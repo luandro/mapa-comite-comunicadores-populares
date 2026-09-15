@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { comiteData } from './data/load'
 import type { Project } from './data/types'
+import { Controls } from './panel/Controls'
 import { Panel } from './panel/Panel'
 import { isMobile } from './device'
 import { mountScene, type SceneController } from './scene/mount'
@@ -96,6 +97,11 @@ export default function App() {
           inertTarget="[data-scene-host]"
         />
       </div>
+      <Controls
+        onZoomIn={() => controllerRef.current?.zoomBy(1.4)}
+        onZoomOut={() => controllerRef.current?.zoomBy(1 / 1.4)}
+        onReset={() => controllerRef.current?.reset()}
+      />
       <TitleOverlay />
     </main>
   )

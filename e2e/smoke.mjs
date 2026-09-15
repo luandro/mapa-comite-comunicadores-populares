@@ -15,15 +15,23 @@ const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1600, height: 900 } })
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.waitForTimeout(4500) // intro
-check('load: scene svg mounted', await page.locator('svg#scene').count() > 0)
-check('load: 11 artifact totems', (await page.locator('#layer-artifacts [data-artifact-id]').count()) >= 11)
-check('load: title visible', await page.evaluate(() => getComputedStyle(document.querySelector('.app-title')).opacity === '1'))
+check('load: scene svg mounted', (await page.locator('svg#scene').count()) > 0)
+check(
+  'load: 11 artifact totems',
+  (await page.locator('#layer-artifacts [data-artifact-id]').count()) >= 11,
+)
+check(
+  'load: title visible',
+  await page.evaluate(() => getComputedStyle(document.querySelector('.app-title')).opacity === '1'),
+)
 
 // city tap raise
 const city = page.locator('[data-city-id="belem"]')
 await city.click({ force: true })
 await page.waitForTimeout(500)
-const raised = await city.evaluate((g) => new DOMMatrixReadOnly(getComputedStyle(g).transform).m42 < 0)
+const raised = await city.evaluate(
+  (g) => new DOMMatrixReadOnly(getComputedStyle(g).transform).m42 < 0,
+)
 check('city tap: raise', raised)
 
 // artifact tap → panel
@@ -49,11 +57,19 @@ check('portrait: slice cover fit', cover)
 await portrait.close()
 
 // --- Reduced motion: final state immediately ---
-const rm = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1600, height: 900 } })
+const rm = await browser.newContext({
+  reducedMotion: 'reduce',
+  viewport: { width: 1600, height: 900 },
+})
 const rpage = await rm.newPage()
 await rpage.goto(BASE, { waitUntil: 'networkidle' })
 await rpage.waitForTimeout(800)
-check('reduced-motion: instant final state', await rpage.evaluate(() => getComputedStyle(document.querySelector('.app-title')).opacity === '1'))
+check(
+  'reduced-motion: instant final state',
+  await rpage.evaluate(
+    () => getComputedStyle(document.querySelector('.app-title')).opacity === '1',
+  ),
+)
 await rm.close()
 
 await browser.close()
