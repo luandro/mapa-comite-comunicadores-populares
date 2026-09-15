@@ -112,7 +112,7 @@ Extensions (top-level project fields — same shape as AGENTS.md):
   "name": "NA CUIA (BELÉM)",
   "icon": "icone-6",                     // artifact id; unknown id → default totem + console warning
   "pos": { "x": 1600, "y": 1480,
-           "from": [{ "x": 1710, "y": 1310 }] },  // scene coords; from = Point[] (multi-dot sources)
+           "from": [{ "x": 1351, "y": 721 }] },  // scene coords; from = Point[] (hub source — §3)
   "conflitos": [], "acao": [], "…": []
 }
 ```

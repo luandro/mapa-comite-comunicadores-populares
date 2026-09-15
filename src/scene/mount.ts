@@ -475,7 +475,6 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     cityLabels: Array.from(labels.el.querySelectorAll<HTMLElement>('.label-city')),
     arrows: {
       paths: Array.from(calibrated.arrows.querySelectorAll<SVGPathElement>(':scope > path')),
-      dots: Array.from(calibrated.arrows.querySelectorAll<SVGCircleElement>(':scope > circle')),
     },
     artifacts: Object.values(calibrated.artifacts),
     pills: Array.from(labels.el.querySelectorAll<HTMLElement>('.label-pill')),

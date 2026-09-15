@@ -48,7 +48,7 @@ export interface IntroTargets {
   cities: SVGGElement[]
   /** Inner `.label-city` divs (outer anchors are per-frame positioned). */
   cityLabels: HTMLElement[]
-  arrows: { paths: SVGPathElement[]; dots: SVGCircleElement[] }
+  arrows: { paths: SVGPathElement[] }
   /** Artifact interaction `<g>`s (no transform attribute — the GSAP target). */
   artifacts: SVGGElement[]
   /** Inner `.label-pill` divs (outer anchors are per-frame positioned). */
@@ -117,7 +117,6 @@ export function primeIntroTargets(targets: IntroTargets): void {
     }
     gsap.set(targets.arrows.paths, { opacity: 0 })
   }
-  if (targets.arrows.dots.length) gsap.set(targets.arrows.dots, { opacity: 0 })
   if (targets.artifacts.length) gsap.set(targets.artifacts, { opacity: 0, y: ARTIFACT_DROP_FROM })
   if (targets.pills.length) gsap.set(targets.pills, { opacity: 0, scale: LABEL_POP_FROM })
 }
@@ -171,9 +170,6 @@ export function buildIntroTimeline(
     // ends at 1.3 + 0.55 + 0.05·(n−1)).
     tl.call(() => settleArrows(targets), undefined, 1.3 + 0.55 + 0.05 * targets.arrows.paths.length)
   }
-  if (targets.arrows.dots.length) {
-    tl.to(targets.arrows.dots, { opacity: 1, duration: 0.3, stagger: 0.05 }, 1.35)
-  }
   if (targets.artifacts.length) {
     tl.to(targets.artifacts, { opacity: 1, y: 0, duration: 0.45, stagger: 0.06 }, 1.9)
   }
@@ -196,7 +192,6 @@ export function finalizeIntroTargets(targets: IntroTargets): void {
     settleArrows(targets)
     gsap.set(targets.arrows.paths, { opacity: 1 })
   }
-  if (targets.arrows.dots.length) gsap.set(targets.arrows.dots, { opacity: 1 })
   if (targets.artifacts.length) gsap.set(targets.artifacts, { opacity: 1, y: 0 })
   if (targets.pills.length) gsap.set(targets.pills, { opacity: 1, scale: 1 })
 }

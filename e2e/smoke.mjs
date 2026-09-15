@@ -25,9 +25,20 @@ check(
   await page.evaluate(() => getComputedStyle(document.querySelector('.app-title')).opacity === '1'),
 )
 
-// city tap raise
+// city tap raise — click a PAINTED point of the mass (the recalibrated Belém
+// bbox center is over the bay, which is a tap-empty reset target, not the city)
 const city = page.locator('[data-city-id="belem"]')
-await city.click({ force: true })
+const tapPoint = await city.evaluate((g) => {
+  const r = g.getBoundingClientRect()
+  for (let i = 0; i < 60; i++) {
+    const x = r.x + r.width * (0.15 + 0.7 * Math.random())
+    const y = r.y + r.height * (0.15 + 0.7 * Math.random())
+    const el = document.elementFromPoint(x, y)
+    if (el && g.contains(el)) return { x, y }
+  }
+  return null
+})
+await page.mouse.click(tapPoint.x, tapPoint.y)
 await page.waitForTimeout(500)
 const raised = await city.evaluate(
   (g) => new DOMMatrixReadOnly(getComputedStyle(g).transform).m42 < 0,
