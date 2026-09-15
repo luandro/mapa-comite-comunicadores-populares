@@ -1,0 +1,143 @@
+/*
+ * DEV-only calibration toolbar (src/scene/calibration) — reached exclusively
+ * through mount.ts's DEV-gated dynamic import; never ships in a prod bundle.
+ */
+
+.calib-toolbar {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  /* above #labels, title and zoom controls (SPEC §4 overlay order) */
+  z-index: 4000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 236px;
+  padding: 10px 12px;
+  border: 1px solid rgba(154, 173, 154, 0.35);
+  border-radius: 10px;
+  background: rgba(18, 24, 19, 0.94);
+  color: #e6efe6;
+  font:
+    12px/1.45 system-ui,
+    sans-serif;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.calib-toolbar:focus-visible {
+  outline: 1px solid #7cc47f;
+}
+
+.calib-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calib-title {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.calib-close {
+  padding: 2px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #b9c9b9;
+  font: inherit;
+  cursor: pointer;
+}
+
+.calib-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.calib-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.calib-caption {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9fb39f;
+}
+
+.calib-toolbar select {
+  width: 100%;
+  padding: 3px 6px;
+  border: 1px solid rgba(154, 173, 154, 0.4);
+  border-radius: 6px;
+  background: #232b23;
+  color: inherit;
+  font: inherit;
+}
+
+.calib-toolbar input[type='range'] {
+  width: 100%;
+  accent-color: #7cc47f;
+}
+
+.calib-readout {
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(124, 196, 127, 0.12);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  color: #b9e6bb;
+  white-space: nowrap;
+}
+
+.calib-row {
+  display: flex;
+  gap: 6px;
+}
+
+.calib-btn {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid rgba(154, 173, 154, 0.4);
+  border-radius: 6px;
+  background: #2b362b;
+  color: #e6efe6;
+  font: inherit;
+  cursor: pointer;
+}
+
+.calib-btn:hover {
+  background: #384538;
+}
+
+.calib-btn.calib-copied {
+  border-color: #7cc47f;
+  color: #b9e6bb;
+}
+
+.calib-toggles {
+  flex-wrap: wrap;
+}
+
+.calib-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #c9d8c9;
+  cursor: pointer;
+}
+
+.calib-toggle input {
+  margin: 0;
+  accent-color: #7cc47f;
+}
+
+.calib-hint {
+  font-size: 10.5px;
+  color: #93a693;
+}

@@ -1,0 +1,218 @@
+// @vitest-environment jsdom
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import rawData from '../../data.json'
+import { validateComiteData } from '../data/schema'
+import type { ComiteData } from '../data/types'
+import { renderLabels, updateLabels } from './labels'
+import { mountCalibratedLayers, orgProjects } from './layers'
+import type { Camera } from './types'
+
+const realData: ComiteData = validateComiteData(rawData)
+
+const SVG_NS = 'http://www.w3.org/2000/svg'
+const cameraStub = {} as Camera
+
+let host: SVGSVGElement
+
+beforeEach(() => {
+  host = document.createElementNS(SVG_NS, 'svg')
+  document.body.appendChild(host)
+})
+
+afterEach(() => {
+  host.remove()
+  vi.restoreAllMocks()
+})
+
+function mountLayers(data: ComiteData = realData) {
+  const cameraNode = document.createElementNS(SVG_NS, 'g')
+  const waterDetail = document.createElementNS(SVG_NS, 'g')
+  waterDetail.id = 'layer-water-detail'
+  cameraNode.appendChild(waterDetail)
+  host.appendChild(cameraNode)
+  const layers = mountCalibratedLayers(cameraNode, data, cameraStub)
+  return { cameraNode, layers }
+}
+
+describe('mountCalibratedLayers', () => {
+  it('builds every layer group in SPEC §4 order above layer-water-detail', () => {
+    const { cameraNode } = mountLayers()
+    expect(Array.from(cameraNode.children).map((child) => child.id)).toEqual([
+      'layer-water-detail',
+      'layer-waves',
+      'layer-squiggles',
+      'layer-city-belem',
+      'layer-city-ananindeua',
+      'layer-city-moju',
+      'layer-artifacts',
+      'layer-arrows',
+    ])
+  })
+
+  it('mounts three [A][A′][A] copies per band with the mirror-chain transforms', () => {
+    const { layers } = mountLayers()
+    const bands = layers.waves.querySelectorAll(':scope > g[data-band]')
+    expect(bands).toHaveLength(3)
+    for (const band of bands) {
+      const placement = band as SVGGElement
+      // translate + composed scale (row scale × 1.3994); exact rows are
+      // calibration data and deliberately not pinned here
+      expect(placement.getAttribute('transform')).toMatch(
+        /^translate\(-?[\d.]+,-?[\d.]+\) scale\([\d.]+\)$/,
+      )
+      const ambient = placement.firstElementChild as SVGGElement
+      expect(ambient.tagName).toBe('g')
+      expect(ambient.getAttribute('transform')).toBeNull() // Phase 2 owns it
+      const children = Array.from(ambient.children)
+      const mirrored = children[children.length - 2]
+      const trailing = children[children.length - 1]
+      expect(mirrored.getAttribute('transform')).toBe('translate(2160.32,0) scale(-1,1)')
+      expect(trailing.getAttribute('transform')).toBe('translate(4320.64,0)')
+      const copyA = children.slice(0, -2)
+      expect(copyA.length).toBeGreaterThan(0)
+      expect(mirrored.children.length).toBe(copyA.length)
+      expect(trailing.children.length).toBe(copyA.length)
+    }
+  })
+
+  it('preserves the source band opacities as attributes (onda2 .8, onda4 .2)', () => {
+    const { layers } = mountLayers()
+    const opacityOf = (band: string) =>
+      layers.waves.querySelector(`g[data-band="${band}"] > g`)!.getAttribute('opacity')
+    expect(opacityOf('onda1')).toBeNull()
+    expect(opacityOf('onda2')).toBe('0.8')
+    expect(opacityOf('onda4')).toBe('0.2')
+  })
+
+  it('nests every city as placement → interaction → ambient (one transform owner)', () => {
+    const { layers } = mountLayers()
+    for (const id of ['belem', 'ananindeua', 'moju']) {
+      const interaction = layers.cities[id]
+      const layer = interaction.closest(`#layer-city-${id}`)
+      expect(layer).not.toBeNull()
+      const placement = layer!.firstElementChild as SVGGElement
+      expect(placement.getAttribute('transform')).toMatch(/^translate\(/)
+      expect(placement.children).toHaveLength(1)
+      expect(interaction.getAttribute('transform')).toBeNull()
+      expect(interaction.getAttribute('data-interactive')).toBe('city')
+      expect(interaction.getAttribute('data-city-id')).toBe(id)
+      expect(interaction.children).toHaveLength(1)
+      const ambient = interaction.firstElementChild as SVGGElement
+      expect(ambient.getAttribute('transform')).toBeNull()
+      expect(ambient.children.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('mounts one artifact per org with pos, nested placement → interaction → ambient', () => {
+    const { cameraNode, layers } = mountLayers()
+    expect(Object.keys(layers.artifacts)).toHaveLength(11)
+    expect(cameraNode.querySelectorAll('#layer-artifacts > g')).toHaveLength(11)
+    for (const [orgId, interaction] of Object.entries(layers.artifacts)) {
+      const placement = interaction.parentElement!
+      expect(placement.getAttribute('transform')).toMatch(
+        /^translate\(-?[\d.]+,-?[\d.]+\) scale\([\d.]+\)$/,
+      )
+      expect(interaction.getAttribute('transform')).toBeNull()
+      expect(interaction.getAttribute('data-interactive')).toBe('artifact')
+      expect(interaction.getAttribute('data-artifact-id')).toBe(orgId)
+      const ambient = interaction.firstElementChild as SVGGElement
+      expect(ambient.getAttribute('transform')).toBeNull()
+      expect(ambient.children.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('places each totem with pos as its BASE point at ≈110 scene units tall', () => {
+    const { layers } = mountLayers()
+    // icone-6 viewBox ground truth: 337.23 × 618.08 (SPEC §1)
+    const scale = 110 / 618.08
+    const placement = layers.artifacts.na_cuia.parentElement! // pos = (1600, 1480)
+    const match = placement
+      .getAttribute('transform')!
+      .match(/^translate\((-?[\d.]+),(-?[\d.]+)\) scale\([\d.]+\)$/)!
+    expect(Number(match[1])).toBeCloseTo(1600 - (337.23 * scale) / 2, 2)
+    expect(Number(match[2])).toBeCloseTo(1480 - 110, 1)
+  })
+
+  it('defaults an unknown icon to icone-6 with a console warning', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const data = structuredClone(realData)
+    // Set directly: the schema canonicalizes unknown ids at load, this exercises
+    // the layer-level defense (data assembled by any other path).
+    data.maps.belem.projects.na_cuia.icon = 'icone-99'
+    const { layers } = mountLayers(data)
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('icone-99'))
+    const defaultContent = layers.artifacts.chibe.firstElementChild!.innerHTML
+    expect(layers.artifacts.na_cuia.firstElementChild!.innerHTML).toBe(defaultContent)
+  })
+
+  it('renders no artifact and no arrows for orgs without pos', () => {
+    const data = structuredClone(realData)
+    delete data.maps.belem.projects.na_cuia.pos
+    const { cameraNode, layers } = mountLayers(data)
+    expect(layers.artifacts.na_cuia).toBeUndefined()
+    expect(cameraNode.querySelectorAll('#layer-artifacts > g')).toHaveLength(10)
+    expect(cameraNode.querySelector('[data-artifact-id="na_cuia"]')).toBeNull()
+    expect(cameraNode.querySelectorAll('#layer-arrows > path')).toHaveLength(10)
+  })
+
+  it('authors one Bézier + source dot per from point, stroke #F2DCB0', () => {
+    const { cameraNode } = mountLayers()
+    const layer = cameraNode.querySelector('#layer-arrows')!
+    const paths = layer.querySelectorAll(':scope > path')
+    const dots = layer.querySelectorAll(':scope > circle')
+    expect(paths).toHaveLength(11) // one per org; each ships exactly one from point
+    expect(dots).toHaveLength(11)
+    for (const path of paths) {
+      expect(path.getAttribute('stroke')).toBe('#F2DCB0')
+      expect(path.getAttribute('fill')).toBe('none')
+      expect(path.getAttribute('stroke-width')).toBe('6')
+      expect(path.getAttribute('marker-end')).toBe('url(#arrowhead)')
+      expect(path.getAttribute('d')).toMatch(/^M-?[\d.]+,-?[\d.]+ Q-?[\d.]+,-?[\d.]+ /)
+    }
+    const marker = layer.querySelector('defs marker#arrowhead')!
+    expect(marker.querySelector('path')!.getAttribute('fill')).toBe('#F2DCB0')
+    // dots sit at the from points, in data order
+    const [firstOrgId] = orgProjects(realData).next().value!
+    const firstFrom = realData.maps.ananindeua.projects[firstOrgId].pos!.from[0]
+    expect(dots[0].getAttribute('cx')).toBe(String(firstFrom.x))
+    expect(dots[0].getAttribute('cy')).toBe(String(firstFrom.y))
+    expect(dots[0].getAttribute('r')).toBe('8')
+    expect(dots[0].getAttribute('tabindex')).toBeNull() // decorative (SPEC §9)
+  })
+
+  it('draws one arrow per from point for multi-source orgs', () => {
+    const data = structuredClone(realData)
+    data.maps.belem.projects.fogo_no_rabo.pos!.from = [
+      { x: 1200, y: 1600 },
+      { x: 1400, y: 1700 },
+    ]
+    const { cameraNode } = mountLayers(data)
+    const layer = cameraNode.querySelector('#layer-arrows')!
+    expect(layer.querySelectorAll(':scope > path')).toHaveLength(12)
+    expect(layer.querySelectorAll(':scope > circle')).toHaveLength(12)
+  })
+})
+
+describe('labels', () => {
+  it('renders org pills + city labels and positions them through the full transform', () => {
+    const el = document.createElement('div')
+    const anchors: Record<string, { x: number; y: number }> = {}
+    for (const [orgId, project] of orgProjects(realData)) {
+      if (project.pos) anchors[orgId] = { x: project.pos.x, y: project.pos.y }
+    }
+    renderLabels(el, realData, anchors)
+    expect(el.querySelectorAll('.label-pill')).toHaveLength(11)
+    expect(el.querySelectorAll('.label-city')).toHaveLength(2) // ananindeua + belem
+    const firstPill = el.querySelector<HTMLElement>('.label-pill')!
+    expect(firstPill.textContent).toBe('REDE CASACURA (Comunidade do Açaizal / Jaderlândia)')
+    expect(el.querySelector('[data-label-id="city:belem"]')!.textContent).toBe('Mapa de Belém')
+
+    // screen = ctm · (k·point + [tx, ty]) — camera translation INCLUDED or pans drift
+    const ctm = { a: 2, b: 0, c: 0, d: 2, e: 10, f: 20 } as DOMMatrix
+    updateLabels(el, { x: 100, y: 50, k: 1.5 }, ctm)
+    const anchor = el.querySelector<HTMLDivElement>('[data-label-id="na_cuia"]')!
+    // sx = 1.5·1600 + 100 = 2500; sy = 1.5·1480 + 50 = 2270
+    // px = 2·2500 + 10 = 5010;  py = 2·2270 + 20 = 4560
+    expect(anchor.style.transform).toBe('translate(5010px, 4560px)')
+  })
+})

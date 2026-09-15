@@ -36,3 +36,40 @@
   inset: 0;
   pointer-events: none;
 }
+
+/* Labels: JS writes `transform: translate(px, py)` on each .label anchor per
+   frame; the inner class owns the offset around the anchor point — two
+   transform owners, two nodes (SPEC §3). Pills are pure decoration. */
+.label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.label-pill {
+  /* bottom-center sits 8px above the anchor */
+  transform: translate(-50%, calc(-100% - 8px));
+  transform-origin: center;
+  pointer-events: none;
+  background: #fdf6e3;
+  color: #304e23;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.label-city {
+  /* centered on the anchor */
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  pointer-events: none;
+  color: #304e23;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}

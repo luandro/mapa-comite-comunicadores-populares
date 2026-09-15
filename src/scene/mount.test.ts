@@ -58,12 +58,28 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  it('builds #camera with the 4 base layers in SPEC §4 order', () => {
+  it('builds #camera with the 4 base layers first, then the calibrated composite', () => {
     const c = mountScene(host, data)
     const camera = host.querySelector('svg#scene #camera')
     expect(camera).not.toBeNull()
     const ids = Array.from(camera!.children, (g) => g.id)
-    expect(ids).toEqual(['layer-water', 'layer-land', 'layer-roads', 'layer-water-detail'])
+    // Full §4 stack order is asserted in layers.test.ts; here the base
+    // partition must remain the first four, untouched by the composite.
+    expect(ids.slice(0, 4)).toEqual([
+      'layer-water',
+      'layer-land',
+      'layer-roads',
+      'layer-water-detail',
+    ])
+    expect(ids.slice(4)).toEqual([
+      'layer-waves',
+      'layer-squiggles',
+      'layer-city-belem',
+      'layer-city-ananindeua',
+      'layer-city-moju',
+      'layer-artifacts',
+      'layer-arrows',
+    ])
     c.destroy()
   })
 
@@ -90,7 +106,10 @@ describe('mountScene', () => {
     expect(measure!.childElementCount).toBe(0)
     const labels = root!.querySelector('#labels')
     expect(labels!.getAttribute('aria-hidden')).toBe('true')
-    expect(labels!.childElementCount).toBe(0)
+    // Phase 1.5: the fixture's one map renders its city name label; no org
+    // pills (fixture projects carry no pos). Pill/city coverage: layers.test.
+    expect(labels!.childElementCount).toBe(1)
+    expect(labels!.querySelector('.label-city')!.textContent).toBe('Mapa de Belém')
     c.destroy()
   })
 

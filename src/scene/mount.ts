@@ -1,4 +1,8 @@
 /**
+ * DOM: .scene-root > svg#scene > g#camera > 4 base layers + calibrated
+ * composite (SPEC §4: waves, squiggles, cities, artifacts, arrows); plus
+ * svg#measure and the #labels div as siblings of the scene SVG — outside any
+ * camera transform.
  * Scene island (SPEC §3/§10): the animated map lives entirely outside the
  * React tree. `mountScene` builds the composed SVG imperatively inside `el`,
  * wires the camera, and returns the single controller React talks to.
@@ -7,7 +11,8 @@ import { SCENE_HEIGHT, SCENE_WIDTH } from '../data/constants'
 import type { ComiteData } from '../data/types'
 import { isMobile } from '../device'
 import { createCamera } from './camera'
-import { createLabelsLayer } from './labels'
+import { mountCalibratedLayers, orgProjects } from './layers'
+import { createLabelsLayer, IDENTITY_CTM, renderLabels, updateLabels } from './labels'
 import { assertBaseCounts, partitionBase } from './partition'
 import { initialFraming } from './placements'
 import './scene.css'
@@ -109,8 +114,33 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     onFrame: (state) => transformHub.emit(state),
   })
 
-  // Nothing carries [data-interactive] in Phase 1, so every scene click is an
-  // empty tap; later phases mark cities/artifacts and opt out here.
+  // Calibrated composite (SPEC §4 items 5–8) appends above layer-water-detail.
+  // The camera handle is a seam for Phase 5 hit sizing (r_scene ≥ 12/u).
+  mountCalibratedLayers(cameraNode, data, camera)
+
+  // Org pills at artifact pos + city name labels, repositioned every frame
+  // through the measurement owner's camera-free CTM (AGENTS invariant 12).
+  const artifactAnchors: Record<string, { x: number; y: number }> = {}
+  for (const [orgId, project] of orgProjects(data)) {
+    if (project.pos) artifactAnchors[orgId] = { x: project.pos.x, y: project.pos.y }
+  }
+  renderLabels(labels.el, data, artifactAnchors)
+  const positionLabels = (state: TransformState) => {
+    // jsdom ships no getScreenCTM at all (and browsers return null pre-layout)
+    // — IDENTITY_CTM keeps the math defined either way.
+    updateLabels(labels.el, state, measureSvg.getScreenCTM?.() ?? IDENTITY_CTM)
+  }
+  const offLabels = transformHub.on(positionLabels)
+  positionLabels(camera.getState()) // camera's initial frame predated this subscription
+
+  // DEV-only calibration tool (Phase 1.5): the dynamic import keeps its bytes
+  // out of production bundles entirely (AGENTS invariant 3).
+  if (import.meta.env.DEV) {
+    void import('./calibration').then((m) => m.attachCalibration(root, sceneSvg)).catch(() => {})
+  }
+
+  // City/artifact interaction groups carry [data-interactive] (layers.ts), so
+  // taps on their content opt out of empty-tap via the closest() check below.
   // Phase 4: ignore `event.detail > 1` — the compat dblclick fired after a
   // double-tap zoom emits a spurious empty-tap that would fight the zoom.
   function onSceneClick(event: Event): void {
@@ -149,7 +179,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       if (destroyed) return
       destroyed = true
       camera.destroy()
-      sceneSvg.removeEventListener('click', onSceneClick)
+      offLabels()
       labels.destroy()
       root.remove()
     },
