@@ -45,6 +45,8 @@ function naCuiaScene(): Plugin {
 
 export default defineConfig({
   plugins: [react(), naCuiaScene()],
+  // trycloudflare preview tunnels for the remote calibration loop (dev server only)
+  server: { allowedHosts: ['.trycloudflare.com'] },
   test: {
     environment: 'node',
     include: ['src/**/*.test.{ts,tsx}'],

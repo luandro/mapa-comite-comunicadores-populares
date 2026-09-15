@@ -63,7 +63,7 @@ export const squigglePlacement: Placement = { x: 0, y: 0 }
  * DEV-only, never inlined into the production bundle.
  */
 export const underlayPlacement: Placement = {
-  x: 0,
-  y: (SCENE_HEIGHT - 899 * (SCENE_WIDTH / 1599)) / 2,
-  scale: SCENE_WIDTH / 1599,
+  x: -300,
+  y: 5,
+  scale: 1.895,
 }
