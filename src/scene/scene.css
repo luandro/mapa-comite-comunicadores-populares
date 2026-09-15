@@ -84,11 +84,14 @@ g[data-artifact-id]:focus-visible {
   outline-offset: 2px;
 }
 
-/* Zoom-gated pill fade (SPEC §5, mobile only — mount.ts applies it only when
-   isMobile()): opacity/visibility ONLY. The .label anchors keep positioning
-   per frame; hit targets, aria and focus are never touched. City labels are
-   NOT pills and stay visible. */
-.pills-hidden .label-pill {
+/* Pill fade (SPEC §5, mobile only — mount.ts applies the gates only when
+   isMobile()): opacity/visibility ONLY. Two gates share these rules:
+   .pills-hidden = zoom gate on #labels (updatePillFade), .is-far =
+   distance-from-center gate per pill (updateLabels, ±10% hysteresis).
+   The .label anchors keep positioning per frame; hit targets, aria and focus
+   are never touched. City labels are NOT pills and stay visible. */
+.pills-hidden .label-pill,
+.label-pill.is-far {
   opacity: 0;
   visibility: hidden;
 }

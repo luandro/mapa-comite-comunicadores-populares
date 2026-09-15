@@ -185,7 +185,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     // jsdom ships no getScreenCTM at all (and browsers return null pre-layout)
     // — IDENTITY_CTM keeps the math defined either way.
     const measureCtm = measureSvg.getScreenCTM?.() ?? IDENTITY_CTM
-    updateLabels(labels.el, state, measureCtm)
+    updateLabels(labels.el, state, measureCtm, mobile)
     // Phase 5 (SPEC §5, mobile only): zoom-gated pill fade with ±10%
     // hysteresis inside updatePillFade — opacity/visibility only.
     if (mobile) updatePillFade(labels.el, state.k)
@@ -296,8 +296,12 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   }
 
   function applyArtifactState(nextId: string | null, opts: { pulse?: boolean } = {}): void {
-    // No state change and no pulse requested → no tween, no emit.
-    if (nextId === selectedArtifactId && !opts.pulse) return
+    // Opus P2 (phase-5): the emit fires on a state CHANGE only — an already
+    // selected id must never re-emit (a Phase 6 panel opening on artifact-tap
+    // calls focusArtifact; a re-emit would loop the drawer open). A pulse on
+    // an unchanged selection still plays (feedback) but emits nothing.
+    const changed = nextId !== selectedArtifactId
+    if (!changed && !opts.pulse) return
     // Settle the entrance first (same reasoning as applyCityState): the intro's
     // artifact tween ends at y:0/opacity:1 and would erase the selected scale.
     if (!introDone) skipIntro()
@@ -317,6 +321,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
               transformOrigin: '50% 100%',
               duration: ARTIFACT_PULSE_DURATION / 2,
               ease: 'power2.out',
+              overwrite: 'auto', // opus P3: keyboard + focusArtifact can stack
             })
             .to(interaction, {
               scale,
@@ -337,9 +342,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       })
     }
     if (opts.pulse && nextId !== null) redrawOrgArrows(nextId)
-    // artifact-tap fires on selection (a state CHANGE to an artifact), mirroring
-    // city-tap; the deselect is a settle, not a change.
-    if (nextId !== null) artifactTapHub.emit(nextId)
+    // artifact-tap fires on a state CHANGE to an artifact only (opus P2);
+    // the deselect is a settle, not a change.
+    if (changed && nextId !== null) artifactTapHub.emit(nextId)
   }
 
   // City/artifact interaction groups carry [data-interactive] (layers.ts), so
@@ -359,8 +364,8 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
         applyCityState(cityId === raisedCityId ? null : cityId)
         return
       }
-      // Phase 5: hit circles/art totems live inside the artifact interaction
-      // g — a tap routes through [data-interactive] into select/pulse/redraw.
+      // Phase 5: hit circles + totems carry [data-artifact-id] — a tap routes
+      // through [data-interactive] into select/pulse/redraw.
       const artifactId = target.closest('[data-artifact-id]')?.getAttribute('data-artifact-id')
       if (artifactId && artifactId in calibrated.artifacts) {
         applyArtifactState(artifactId === selectedArtifactId ? null : artifactId, { pulse: true })
@@ -419,8 +424,25 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     interaction.addEventListener('keydown', onCityKeyDown)
     interaction.addEventListener('focusin', onCityFocusIn)
   }
+  function onArtifactFocusIn(event: FocusEvent): void {
+    const target = event.currentTarget as Element
+    const id = target.getAttribute('data-artifact-id')
+    // Same keyboard-modality guard as onCityFocusIn (opus P2, SPEC §9): focus
+    // flies the camera to the artifact box — NO select, NO emit (a focus fly
+    // must not open the Phase 6 panel).
+    if (!target.matches(':focus-visible')) return
+    if (!id || !(id in artifactAnchors)) return
+    const anchor = artifactAnchors[id]
+    camera.flyTo({
+      x: anchor.x - ARTIFACT_FOCUS_BOX,
+      y: anchor.y - ARTIFACT_FOCUS_BOX,
+      width: ARTIFACT_FOCUS_BOX * 2,
+      height: ARTIFACT_FOCUS_BOX * 2,
+    })
+  }
   for (const interaction of Object.values(calibrated.artifacts)) {
     interaction.addEventListener('keydown', onArtifactKeyDown)
+    interaction.addEventListener('focusin', onArtifactFocusIn)
   }
 
   // --- Phase 3 entrance choreography (SPEC §5) --------------------------------

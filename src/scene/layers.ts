@@ -364,11 +364,12 @@ function mountArtifacts(
     placement.appendChild(interaction)
     layer.appendChild(placement)
     // Invisible hit circle at pos (SPEC §9 / invariant 8): the actual tap
-    // target, comfortably larger than the totem art at every zoom. It lives
-    // INSIDE the interaction g (a click bubbles up through
-    // [data-interactive][data-artifact-id] into mount.ts's artifact branch)
-    // but carries NO classes/animation — its r attribute is rewritten per
-    // camera frame by mount.ts (a node d3-zoom already moves; never tweened).
+    // target, comfortably larger than the totem art at every zoom. It is a
+    // SIBLING of the placement g in #layer-artifacts (scene coords, so the
+    // pulse/raise scaling of the interaction g never resizes the tap area)
+    // and carries the routing attributes so a click bubbles into mount.ts's
+    // artifact branch; its r attribute is rewritten per camera frame by
+    // mount.ts (never tweened).
     const hit = svg('circle')
     hit.setAttribute('cx', String(pos.x))
     hit.setAttribute('cy', String(pos.y))

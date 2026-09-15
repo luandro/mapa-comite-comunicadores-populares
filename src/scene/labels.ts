@@ -100,8 +100,24 @@ export function renderLabels(
  * Position every label: `screen = ctm · (k·point + [tx, ty])` — the camera
  * transform applies in scene coords first, then the measurement owner's
  * camera-free CTM; both translations included, or pans drift (AGENTS 12).
+ *
+ * Per-pill distance-from-center gate (SPEC §5, mobile only): a pill farther
+ * than `PILL_CENTER_R × 1.1` from the viewport center gains `.is-far`
+ * (opacity/visibility only), closer than `× 0.9` loses it — hysteresis keeps
+ * the edge stable. Only applies when `gated` (the mobile flag passed by
+ * mount.ts); desktop pills never fade.
  */
-export function updateLabels(el: HTMLElement, state: TransformState, measureCtm: DOMMatrix): void {
+export function updateLabels(
+  el: HTMLElement,
+  state: TransformState,
+  measureCtm: DOMMatrix,
+  gated = false,
+): void {
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 0
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 0
+  const cx = vw / 2
+  const cy = vh / 2
+  const radius = PILL_CENTER_R * Math.min(vw, vh)
   for (const child of el.children) {
     if (!(child instanceof HTMLDivElement)) continue
     const x = Number(child.dataset.x)
@@ -112,10 +128,31 @@ export function updateLabels(el: HTMLElement, state: TransformState, measureCtm:
     const px = measureCtm.a * sx + measureCtm.c * sy + measureCtm.e
     const py = measureCtm.b * sx + measureCtm.d * sy + measureCtm.f
     child.style.transform = `translate(${px}px, ${py}px)`
+    // Per-pill distance gate (mobile only): the ANCHOR carries the screen
+    // position; the inner .label-pill gains/loses .is-far with ±10%
+    // hysteresis. Opacity/visibility only — hit targets and aria untouched.
+    if (gated) {
+      const pill = child.querySelector('.label-pill')
+      if (pill) {
+        const d = Math.hypot(px - cx, py - cy)
+        const far = pill.classList.contains('is-far')
+        if (!far && d > radius * 1.1) pill.classList.add('is-far')
+        else if (far && d < radius * 0.9) pill.classList.remove('is-far')
+      }
+    }
   }
 }
 
 /* Phase 5: zoom-gated pill fade (SPEC §5 / TODO Phase 5, mobile only). */
+
+/**
+ * Distance-from-center gate radius as a fraction of min(vw, vh) — the primary
+ * mobile gate (SPEC §5): pills past it fade, ±10% hysteresis via PILL_FADE_*.
+ */
+export const PILL_CENTER_R = 0.45
+
+/** Class toggled per-pill by updateLabels (distance gate) on mobile. */
+export const PILL_FAR_CLASS = 'is-far'
 
 /** Class toggled on #labels by updatePillFade; rules live in scene.css. */
 export const PILLS_HIDDEN_CLASS = 'pills-hidden'

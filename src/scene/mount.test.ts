@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ComiteData } from '../data/types'
-import { updatePillFade } from './labels'
+import type { TransformState } from './types'
+import { updateLabels, updatePillFade } from './labels'
 import { mountScene } from './mount'
 
 // jsdom ships no ResizeObserver; the camera owns one on the scene container.
@@ -358,6 +359,37 @@ describe('mountScene', () => {
     c.destroy()
   })
 
+  it('artifact-tap does NOT re-emit for an already-selected id (focusArtifact path — opus P2)', () => {
+    const c = mountScene(host, data)
+    const taps: string[] = []
+    c.on('artifact-tap', (id) => taps.push(id))
+    c.focusArtifact('na_cuia') // select + pulse + fly → emits once
+    expect(taps).toEqual(['na_cuia'])
+    c.focusArtifact('na_cuia') // same id: pulse may replay, emit must not
+    expect(taps).toEqual(['na_cuia'])
+    c.destroy()
+  })
+
+  it('artifact focusin flies ONLY under keyboard modality (:focus-visible guard)', () => {
+    const c = mountScene(host, data)
+    const g = artifactGroups()['na_cuia']
+    const realMatches = Element.prototype.matches
+    // Keyboard modality: :focus-visible matches → fly happens (selection unchanged)
+    Element.prototype.matches = function (selector: string): boolean {
+      return selector === ':focus-visible' ? true : realMatches.call(this, selector)
+    }
+    g.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    expect(g.getAttribute('aria-pressed')).toBe('false') // fly ≠ select
+    // Mouse modality: :focus-visible does NOT match → no fly side effects
+    Element.prototype.matches = function (selector: string): boolean {
+      return selector === ':focus-visible' ? false : realMatches.call(this, selector)
+    }
+    g.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    Element.prototype.matches = realMatches
+    expect(g.getAttribute('aria-pressed')).toBe('false')
+    c.destroy()
+  })
+
   it('artifact keyboard: Enter selects, Space deselects, Space never scrolls', () => {
     const c = mountScene(host, data)
     const taps: string[] = []
@@ -389,6 +421,43 @@ describe('mountScene', () => {
     expect(labels.classList.contains('pills-hidden')).toBe(false)
     updatePillFade(labels, 0.8)
     expect(labels.classList.contains('pills-hidden')).toBe(true)
+  })
+
+  it('pill distance gate (mobile): .is-far toggles with ±10% hysteresis around the center radius', () => {
+    // jsdom viewport 1024×768 → center (512,384), R = 0.45×768 = 345.6
+    const cx = window.innerWidth / 2
+    const cy = window.innerHeight / 2
+    const R = 0.45 * Math.min(window.innerWidth, window.innerHeight)
+    const labels = document.createElement('div')
+    // real structure: .label anchor (dataset + per-frame transform) wrapping
+    // the inner .label-pill (which gains/loses .is-far)
+    const anchor = document.createElement('div')
+    anchor.className = 'label'
+    anchor.dataset.x = '0'
+    anchor.dataset.y = '0'
+    const pill = document.createElement('div')
+    pill.className = 'label-pill'
+    anchor.appendChild(pill)
+    labels.appendChild(anchor)
+    // jsdom ships no DOMMatrix — an identity-shaped stub is enough here (only
+    // .a/.d scale and .e/.f translate are read).
+    const ctm = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 } as DOMMatrix
+    const id = (x: number, y: number): TransformState => ({ x, y, k: 1 })
+    // dead center → visible
+    updateLabels(labels, id(cx, cy), ctm, true)
+    expect(pill.classList.contains('is-far')).toBe(false)
+    // walk out: past 1.1R from center → hidden
+    updateLabels(labels, id(cx, cy + R * 1.2), ctm, true)
+    expect(pill.classList.contains('is-far')).toBe(true)
+    // inside the band (0.9R..1.1R) → holds hidden
+    updateLabels(labels, id(cx, cy + R), ctm, true)
+    expect(pill.classList.contains('is-far')).toBe(true)
+    // walk back under 0.9R → visible again
+    updateLabels(labels, id(cx, cy + R * 0.8), ctm, true)
+    expect(pill.classList.contains('is-far')).toBe(false)
+    // desktop (gated=false) NEVER fades, even far off-center
+    updateLabels(labels, id(cx, cy + R * 1.2), ctm, false)
+    expect(pill.classList.contains('is-far')).toBe(false)
   })
 
   it('keyboard: Enter raises, Space reverses, and Space never scrolls', () => {
