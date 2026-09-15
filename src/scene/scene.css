@@ -49,8 +49,7 @@
 }
 
 .label-pill {
-  /* bottom-center sits 8px above the anchor */
-  transform: translate(-50%, calc(-100% - 8px));
+  /* offset around the anchor is GSAP property (labels.ts) — not CSS transform */
   transform-origin: center;
   pointer-events: none;
   background: #fdf6e3;
@@ -63,8 +62,7 @@
 }
 
 .label-city {
-  /* centered on the anchor */
-  transform: translate(-50%, -50%);
+  /* offset around the anchor is GSAP property (labels.ts) — not CSS transform */
   transform-origin: center;
   pointer-events: none;
   color: #304e23;

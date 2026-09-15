@@ -5,6 +5,7 @@
  * `ComiteData` fields (never HTML from data); `updateLabels` repositions every
  * label per camera frame through the measurement owner's CTM.
  */
+import { gsap } from 'gsap'
 import type { ComiteData, Point } from '../data/types'
 import { orgProjects } from './layers'
 import { cityPlacements } from './placements'
@@ -56,6 +57,16 @@ function appendLabel(
   const label = document.createElement('div')
   label.className = kind
   label.textContent = text // structured fields only — never HTML from data (SPEC §3)
+  // The offset around the anchor is GSAP property (percent-based) — NOT CSS
+  // `transform` on the same node. The intro tweens scale on these divs, and
+  // GSAP bakes any pre-existing CSS transform to px on first touch (fractional
+  // widths round wrong + font-swap reflows would de-center labels permanently —
+  // opus P1). One owner: JS per-frame on the anchor, GSAP property on the div.
+  if (kind === 'label-pill') {
+    gsap.set(label, { xPercent: -50, yPercent: -100, y: -8 })
+  } else {
+    gsap.set(label, { xPercent: -50, yPercent: -50 })
+  }
   anchor.appendChild(label)
   el.appendChild(anchor)
 }

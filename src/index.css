@@ -30,17 +30,18 @@ body {
     opacity 0.6s ease-out,
     transform 0.6s ease-out;
 }
-/* The scene toggles `intro-done` on <html> when the entrance resolves —
+/* The scene toggles `intro-done` on <html> when the entrance completes —
    natural end, skipIntro(), or immediately under prefers-reduced-motion. */
 html.intro-done .app-title {
   opacity: 1;
   transform: translateY(0);
 }
-/* StrictMode remounts the scene before the intro finishes — the class flickers
-   off; suppress the reverse transition so the title never flashes out. */
-html.intro-done .app-title,
-html:not(.intro-done) .app-title {
-  transition-delay: 0s;
+/* Reduced motion: the title appears with the rest of the static final state —
+   no 0.6 s reveal slide (opus P3). */
+@media (prefers-reduced-motion: reduce) {
+  .app-title {
+    transition: none;
+  }
 }
 
 .app-title-blob {

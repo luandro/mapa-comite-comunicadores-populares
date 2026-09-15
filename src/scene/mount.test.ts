@@ -25,6 +25,7 @@ const data: ComiteData = {
       projects: {
         na_cuia: {
           name: 'NA CUIA (BELÉM)',
+          pos: { x: 1500, y: 1500, from: [{ x: 1590, y: 1430 }] },
           conflitos: [],
           acao: [],
           identificacao_e_territorio: [],
@@ -106,10 +107,11 @@ describe('mountScene', () => {
     expect(measure!.childElementCount).toBe(0)
     const labels = root!.querySelector('#labels')
     expect(labels!.getAttribute('aria-hidden')).toBe('true')
-    // Phase 1.5: the fixture's one map renders its city name label; no org
-    // pills (fixture projects carry no pos). Pill/city coverage: layers.test.
-    expect(labels!.childElementCount).toBe(1)
+    // The fixture's one map renders its city name label AND one org pill
+    // (na_cuia carries pos for the intro/label-owner tests).
+    expect(labels!.childElementCount).toBe(2)
     expect(labels!.querySelector('.label-city')!.textContent).toBe('Mapa de Belém')
+    expect(labels!.querySelector('.label-pill')!.textContent).toBe('NA CUIA (BELÉM)')
     c.destroy()
   })
 
@@ -177,6 +179,34 @@ describe('mountScene', () => {
     expect(calls).toEqual([])
     c.skipIntro()
     expect(calls).toEqual([1])
+    c.destroy()
+  })
+
+  it('intro: reduced-motion renders the final state immediately (no priming)', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn() }),
+    )
+    try {
+      const c = mountScene(host, data)
+      // never primed: no inline opacity was set on the land layer (the
+      // reduced-motion path skips primeIntroTargets entirely)
+      expect(document.querySelector('#layer-land')!.hasAttribute('style')).toBe(false)
+      expect(document.documentElement.classList.contains('intro-done')).toBe(true)
+      c.skipIntro() // idempotent even though the intro never ran
+      c.destroy()
+      expect(document.documentElement.classList.contains('intro-done')).toBe(false)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('intro: label offsets are GSAP property, not CSS transform (one owner — opus P1)', () => {
+    const c = mountScene(host, data)
+    c.skipIntro()
+    const pill = document.querySelector<HTMLElement>('.label-pill')!
+    expect(pill.style.transform).toContain('-50%')
+    expect(getComputedStyle(pill).transform).not.toBe('none')
     c.destroy()
   })
 

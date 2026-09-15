@@ -123,6 +123,19 @@ export function primeIntroTargets(targets: IntroTargets): void {
 }
 
 /**
+ * Resting state for arrows: dash attributes are drawing scaffolding — at rest
+ * they would show hairline dashes whenever the rendered length differs a hair
+ * from getTotalLength() (and the jsdom fallback length would show real ones).
+ * Called at intro completion AND from finalizeIntroTargets (skip path).
+ */
+function settleArrows(targets: IntroTargets): void {
+  for (const path of targets.arrows.paths) {
+    path.removeAttribute('stroke-dasharray')
+    path.removeAttribute('stroke-dashoffset')
+  }
+}
+
+/**
  * The ~3 s entrance (SPEC §5 order). Gentle `power1.out` throughout — no
  * bouncing; the arrow draw uses `power1.inOut` so the stroke eases in and out
  * of its travel. Position parameters keep the total just over 3 s with real
@@ -145,14 +158,18 @@ export function buildIntroTimeline(
   }
   if (targets.arrows.paths.length) {
     // Dash-draw: the ONE non-transform/opacity animation (documented exception).
-    // A quick opacity lead-in also hides the marker-end arrowhead until the
-    // stroke starts traveling — markers ignore dash state.
+    // Each path's opacity ramps over its FULL draw duration so the marker-end
+    // arrowhead only becomes visible as the stroke reaches it (markers ignore
+    // dash state — opus P2).
     tl.to(
       targets.arrows.paths,
       { attr: { 'stroke-dashoffset': 0 }, duration: 0.55, stagger: 0.05, ease: 'power1.inOut' },
       1.3,
     )
-    tl.to(targets.arrows.paths, { opacity: 1, duration: 0.2, stagger: 0.05 }, 1.3)
+    tl.to(targets.arrows.paths, { opacity: 1, duration: 0.55, stagger: 0.05 }, 1.3)
+    // Clear the dash scaffolding once every path finished drawing (last draw
+    // ends at 1.3 + 0.55 + 0.05·(n−1)).
+    tl.call(() => settleArrows(targets), undefined, 1.3 + 0.55 + 0.05 * targets.arrows.paths.length)
   }
   if (targets.arrows.dots.length) {
     tl.to(targets.arrows.dots, { opacity: 1, duration: 0.3, stagger: 0.05 }, 1.35)
@@ -176,7 +193,7 @@ export function finalizeIntroTargets(targets: IntroTargets): void {
   if (targets.cities.length) gsap.set(targets.cities, { opacity: 1, y: 0 })
   if (targets.cityLabels.length) gsap.set(targets.cityLabels, { opacity: 1, scale: 1 })
   if (targets.arrows.paths.length) {
-    for (const path of targets.arrows.paths) path.setAttribute('stroke-dashoffset', '0')
+    settleArrows(targets)
     gsap.set(targets.arrows.paths, { opacity: 1 })
   }
   if (targets.arrows.dots.length) gsap.set(targets.arrows.dots, { opacity: 1 })
