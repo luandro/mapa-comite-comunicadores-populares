@@ -1,12 +1,24 @@
 /* Phase 6 panel (SPEC §8): cream paper, green/brown strokes, irregular
    hand-drawn border, wave footer. React-owned UI — pt-BR. */
 
+/* Outside-click backdrop: covers the viewport UNDER the panel (z 40). It is
+   a sibling, NOT inside the inerted scene host, so map taps stay reachable
+   and close the panel (empty-tap contract, SPEC §8). Transparent — the map
+   remains visible; the scene itself stays inert. */
+.panel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: transparent;
+}
+
 .panel {
   position: fixed;
   top: 12px;
   right: 12px;
   bottom: 12px;
   z-index: 40; /* above #labels (10) and title (20), below DEV toolbar (4000) */
+  box-sizing: border-box;
   width: min(420px, 85vw);
   max-height: 80dvh;
   margin: auto 0;

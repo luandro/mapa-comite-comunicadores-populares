@@ -77,6 +77,19 @@ describe('Panel (Phase 6)', () => {
     expect(document.querySelectorAll('.panel-section')).toHaveLength(0)
   })
 
+  it('backdrop click closes (empty-tap path stays reachable while scene is inert — review P1)', () => {
+    let closed = 0
+    const onClose = (): void => {
+      closed += 1
+    }
+    renderPanel(fullProject, onClose)
+    expect(document.querySelector('.panel-backdrop')).toBeTruthy()
+    act(() => {
+      ;(document.querySelector('.panel-backdrop') as HTMLElement).click()
+    })
+    expect(closed).toBe(1)
+  })
+
   it('dialog lifecycle: initial focus, background inert, body scroll lock, focus return', () => {
     const opener = document.createElement('button')
     opener.textContent = 'opener'
@@ -86,10 +99,10 @@ describe('Panel (Phase 6)', () => {
     renderPanel(fullProject, () => {})
     // initial focus on the close button
     expect(document.activeElement).toBe(document.querySelector('.panel-close'))
-    // background (the panel's previousElementSibling inside #panel-host) inert
-    // + body scroll lock
+    // background (inertTarget = #scene-host) inert + fixed-technique scroll lock
     expect(panelBackground().hasAttribute('inert')).toBe(true)
     expect(document.body.style.overflow).toBe('hidden')
+    expect(document.body.style.position).toBe('fixed')
 
     act(() => root!.unmount())
     root = null
@@ -97,6 +110,7 @@ describe('Panel (Phase 6)', () => {
     expect(document.activeElement).toBe(opener)
     expect(panelBackground().hasAttribute('inert')).toBe(false)
     expect(document.body.style.overflow).toBe('')
+    expect(document.body.style.position).toBe('')
   })
 
   it('Esc and × both close', () => {

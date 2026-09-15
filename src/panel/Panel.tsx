@@ -56,15 +56,38 @@ export function Panel({
   // Dialog lifecycle (SPEC §8): runs per open/close transition.
   useEffect(() => {
     if (!open) return
-    restoreFocusRef.current = document.activeElement as HTMLElement | null
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement && document.activeElement.isConnected
+        ? document.activeElement
+        : null
     closeRef.current?.focus()
-    const prevOverflow = document.body.style.overflow
+    // Scroll lock (SPEC §8): position:fixed technique — overflow-only leaks
+    // background scrolls on mobile Safari. Preserve scroll position with a
+    // negative top; restored on EVERY cleanup path.
+    const { scrollX, scrollY } = window
+    const prev = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      width: document.body.style.width,
+    }
     document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `${-scrollY}px`
+    document.body.style.left = `${-scrollX}px`
+    document.body.style.width = '100%'
+    const restoreScroll = () => window.scrollTo(scrollX, scrollY)
     // Background (scene + labels + title) inert — covers #labels per TODO.
     const background = document.querySelector<HTMLElement>(inertTarget)
     background?.setAttribute('inert', '')
     return () => {
-      document.body.style.overflow = prevOverflow
+      document.body.style.overflow = prev.overflow
+      document.body.style.position = prev.position
+      document.body.style.top = prev.top
+      document.body.style.left = prev.left
+      document.body.style.width = prev.width
+      restoreScroll()
       background?.removeAttribute('inert')
       restoreFocusRef.current?.focus?.()
     }
@@ -106,47 +129,52 @@ export function Panel({
   )
 
   return (
-    <div
-      ref={panelRef}
-      className={mobile ? 'panel panel-mobile' : 'panel'}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="panel-heading"
-      data-testid="content-panel"
-    >
-      <button
-        ref={closeRef}
-        className="panel-close"
-        type="button"
-        onClick={handleClose}
-        aria-label="Fechar painel"
+    <>
+      {/* Outside-click backdrop: NOT inert (the scene host is), so taps on the
+          map still reach the app and close the panel (empty-tap path, SPEC §8). */}
+      <div className="panel-backdrop" onClick={handleClose} aria-hidden="true" />
+      <div
+        ref={panelRef}
+        className={mobile ? 'panel panel-mobile' : 'panel'}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="panel-heading"
+        data-testid="content-panel"
       >
-        ×
-      </button>
-      <h2 id="panel-heading">{project.name}</h2>
-      {sections.map(({ key, items }) => (
-        <section key={key} className="panel-section">
-          <h3>
-            <svg className="panel-glyph" viewBox="0 0 24 24" aria-hidden="true">
-              <path d={SECTION_GLYPHS[key]} />
-            </svg>
-            {SECTION_LABELS[key]}
-          </h3>
-          <ul>
-            {items.map((item, i) => (
-              <li key={i}>{item}</li>
-            ))}
-          </ul>
-        </section>
-      ))}
-      <svg
-        className="panel-footer"
-        viewBox="0 0 2160.32 60"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path d="M0,30 Q90,10 180,30 T360,30 T540,30 T720,30 T900,30 T1080,30 T1260,30 T1440,30 T1620,30 T1800,30 T1980,30 T2160,30 V60 H0 Z" />
-      </svg>
-    </div>
+        <button
+          ref={closeRef}
+          className="panel-close"
+          type="button"
+          onClick={handleClose}
+          aria-label="Fechar painel"
+        >
+          ×
+        </button>
+        <h2 id="panel-heading">{project.name}</h2>
+        {sections.map(({ key, items }) => (
+          <section key={key} className="panel-section">
+            <h3>
+              <svg className="panel-glyph" viewBox="0 0 24 24" aria-hidden="true">
+                <path d={SECTION_GLYPHS[key]} />
+              </svg>
+              {SECTION_LABELS[key]}
+            </h3>
+            <ul>
+              {items.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </section>
+        ))}
+        <svg
+          className="panel-footer"
+          viewBox="0 0 2160.32 60"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path d="M0,30 Q90,10 180,30 T360,30 T540,30 T720,30 T900,30 T1080,30 T1260,30 T1440,30 T1620,30 T1800,30 T1980,30 T2160,30 V60 H0 Z" />
+        </svg>
+      </div>
+    </>
   )
 }

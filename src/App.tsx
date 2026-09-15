@@ -66,6 +66,9 @@ export default function App() {
   }, [])
 
   // Open/close side effects: obstruction (desktop only) + artifact focus.
+  // ORDER (review P1): obstruction FIRST — focusArtifact's fly target is
+  // computed against the effective window; installing it after would leave
+  // the artifact under the drawer on narrow desktops.
   useEffect(() => {
     const controller = controllerRef.current
     if (!controller) return
@@ -73,12 +76,11 @@ export default function App() {
       controller.setObstruction(null)
       return
     }
-    controller.focusArtifact(openId)
-    if (mobile) return // occlusion by design — no obstruction, no fly math
-    const rect = panelHostRef.current?.querySelector('.panel')?.getBoundingClientRect()
-    if (rect) {
-      controller.setObstruction({ x: rect.x, y: rect.y, w: rect.width, h: rect.height })
+    if (!mobile) {
+      const rect = panelHostRef.current?.querySelector('.panel')?.getBoundingClientRect()
+      if (rect) controller.setObstruction({ x: rect.x, y: rect.y, w: rect.width, h: rect.height })
     }
+    controller.focusArtifact(openId)
   }, [openId, mobile])
 
   const closePanel = useCallback(() => setOpenId(null), [])
