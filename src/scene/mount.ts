@@ -157,6 +157,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     root.classList.toggle('scene-hidden', document.hidden)
   }
   document.addEventListener('visibilitychange', onVisibilityChange)
+  onVisibilityChange() // mount may happen in an already-hidden tab (opus P2)
 
   function on(event: 'artifact-tap' | 'city-tap', cb: (id: string) => void): () => void
   function on(event: 'empty-tap', cb: () => void): () => void

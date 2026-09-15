@@ -51,7 +51,10 @@ const BAND_OPACITY = { onda1: null, onda2: 0.8, onda4: 0.2 } as const
  * own duration and a negative phase delay so the bands never sync visually.
  */
 export const WAVE_DRIFT_DISTANCE = 2 * BAND_WIDTH // 4320.64
-export const WAVE_DRIFT_BY_BAND: Record<string, { duration: number; delay: number }> = {
+export const WAVE_DRIFT_BY_BAND: Record<
+  'onda1' | 'onda2' | 'onda4',
+  { duration: number; delay: number }
+> = {
   onda1: { duration: 8, delay: -2.7 },
   onda2: { duration: 11, delay: -5.3 },
   onda4: { duration: 14, delay: -9.1 },
@@ -180,10 +183,13 @@ function mountWaves(cameraNode: SVGGElement): SVGGElement {
     if (opacity !== null) ambient.setAttribute('opacity', String(opacity))
     // Copy A — raw band content at band-local 0.
     adoptChildren(ambient, band.content)
-    // Copy A′ — mirrored, one band width right: [A][A′][A] tiles seamlessly
-    // (period 2W; a 2-copy pair jumps at wrap — SPEC §5).
+    // Copy A′ — mirrored INTO the second slot: translate(2W)·scale(-1,1) maps
+    // x → 2W − x, so the band (viewBox [0,W]) lands on [W,2W] — the chain is
+    // truly [A][A′][A] (a 1W offset would stack A′ on top of A — opus P0).
+    // Junctions are exact: A right edge (x=W) meets A′ mirrored right edge;
+    // A′ mirrored left edge (x=2W) meets trailing A left edge; wrap exact.
     const mirrored = svg('g')
-    mirrored.setAttribute('transform', `translate(${BAND_WIDTH},0) scale(-1,1)`)
+    mirrored.setAttribute('transform', `translate(${BAND_WIDTH * 2},0) scale(-1,1)`)
     adoptChildren(mirrored, band.content)
     // Copy A — third, two band widths right; at wrap it sits where A was.
     const trailing = svg('g')

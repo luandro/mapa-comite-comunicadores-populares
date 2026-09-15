@@ -70,7 +70,8 @@ describe('Phase 2 motion wiring on mount', () => {
       const ambient = placement.firstElementChild as SVGGElement
       expect(ambient.classList.contains('wave-drift')).toBe(true)
       expect(ambient.getAttribute('transform')).toBeNull() // CSS owns the drift
-      const { duration, delay } = WAVE_DRIFT_BY_BAND[placement.dataset.band!]
+      const { duration, delay } =
+        WAVE_DRIFT_BY_BAND[placement.dataset.band as 'onda1' | 'onda2' | 'onda4']
       expect(ambient.style.animationDuration).toBe(`${duration}s`)
       expect(ambient.style.animationDelay).toBe(`${delay}s`)
     }
@@ -105,7 +106,8 @@ describe('Phase 2 scene.css keyframes (read as text)', () => {
 
   it('drifts wave-drift from 0 to the exact −4320.64 distance, linear', () => {
     expect(css).toContain('@keyframes wave-drift')
-    expect(css).toMatch(/wave-drift[\s\S]*?translateX\(-4320\.64px\)/)
+    // pin the keyframe to the TS constant so CSS and code can't diverge silently
+    expect(css).toMatch(new RegExp(`wave-drift[\\s\\S]*?translateX\\(-${WAVE_DRIFT_DISTANCE}px\\)`))
     expect(css).toMatch(/\.wave-drift\s*{[^}]*animation-timing-function:\s*linear/)
     expect(css).toMatch(/\.wave-drift\s*{[^}]*animation-iteration-count:\s*infinite/)
   })

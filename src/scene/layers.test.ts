@@ -66,7 +66,7 @@ describe('mountCalibratedLayers', () => {
       const children = Array.from(ambient.children)
       const mirrored = children[children.length - 2]
       const trailing = children[children.length - 1]
-      expect(mirrored.getAttribute('transform')).toBe('translate(2160.32,0) scale(-1,1)')
+      expect(mirrored.getAttribute('transform')).toBe('translate(4320.64,0) scale(-1,1)')
       expect(trailing.getAttribute('transform')).toBe('translate(4320.64,0)')
       const copyA = children.slice(0, -2)
       expect(copyA.length).toBeGreaterThan(0)

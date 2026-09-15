@@ -173,4 +173,34 @@ describe('mountScene', () => {
     expect(taps).toEqual([1, 1])
     c.destroy()
   })
+
+  it('pauses loops when hidden: .scene-hidden tracks document.hidden, incl. initial state, and stops after destroy', () => {
+    // jsdom owns document.hidden as a getter on Document.prototype
+    const hiddenDesc = Object.getOwnPropertyDescriptor(Document.prototype, 'hidden')!
+    const setHidden = (value: boolean) =>
+      Object.defineProperty(Document.prototype, 'hidden', {
+        configurable: true,
+        get: () => value,
+      })
+    try {
+      setHidden(true)
+      const c = mountScene(host, data)
+      const root = host.querySelector('.scene-root')!
+      // mounted while already hidden → paused immediately (opus P2 fix)
+      expect(root.classList.contains('scene-hidden')).toBe(true)
+      setHidden(false)
+      document.dispatchEvent(new Event('visibilitychange'))
+      expect(root.classList.contains('scene-hidden')).toBe(false)
+      setHidden(true)
+      document.dispatchEvent(new Event('visibilitychange'))
+      expect(root.classList.contains('scene-hidden')).toBe(true)
+      c.destroy()
+      // after destroy the listener is gone: the class must not flip back
+      setHidden(false)
+      document.dispatchEvent(new Event('visibilitychange'))
+      expect(root.classList.contains('scene-hidden')).toBe(true)
+    } finally {
+      Object.defineProperty(Document.prototype, 'hidden', hiddenDesc)
+    }
+  })
 })
