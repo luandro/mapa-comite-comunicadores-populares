@@ -7,12 +7,12 @@
           "name": "REDE CASACURA (Comunidade do Açaizal / Jaderlândia)",
           "icon": "icone-6",
           "pos": {
-            "x": 1882,
-            "y": 721,
+            "x": 2160,
+            "y": 900,
             "from": [
               {
-                "x": 1700,
-                "y": 278
+                "x": 2282,
+                "y": 982
               }
             ]
           },
@@ -77,12 +77,12 @@
           "name": "REDE AFROAMAZÔNIDA",
           "icon": "icone-6",
           "pos": {
-            "x": 2260,
-            "y": 133,
+            "x": 2574,
+            "y": 306,
             "from": [
               {
-                "x": 1700,
-                "y": 278
+                "x": 2514,
+                "y": 341
               }
             ]
           },
@@ -123,12 +123,12 @@
           "name": "CENTRO DE EDUCAÇÃO POPULAR E CULTURA DOMINGOS DA SILVA (C.E.P.C.D.S)",
           "icon": "icone-6",
           "pos": {
-            "x": 2215,
-            "y": 618,
+            "x": 2351,
+            "y": 970,
             "from": [
               {
-                "x": 1700,
-                "y": 278
+                "x": 2282,
+                "y": 973
               }
             ]
           },
@@ -165,12 +165,12 @@
           "name": "MUSEU MEMORIAL VILA DA BARCA (MMVB)",
           "icon": "icone-6",
           "pos": {
-            "x": 791,
-            "y": 175,
+            "x": 1100,
+            "y": 950,
             "from": [
               {
-                "x": 1351,
-                "y": 721
+                "x": 1490,
+                "y": 700
               }
             ]
           },
@@ -206,12 +206,12 @@
           "name": "NA CUIA",
           "icon": "icone-6",
           "pos": {
-            "x": 1139,
-            "y": 1368,
+            "x": 1639,
+            "y": 1254,
             "from": [
               {
-                "x": 1351,
-                "y": 721
+                "x": 1648,
+                "y": 1185
               }
             ]
           },
@@ -233,12 +233,12 @@
           "name": "COOPERATIVA DE AUDIOVISUAL, BEM VIVER E ARTE (CABA)",
           "icon": "icone-6",
           "pos": {
-            "x": 412,
-            "y": 422,
+            "x": 1401,
+            "y": 835,
             "from": [
               {
-                "x": 1351,
-                "y": 721
+                "x": 1470,
+                "y": 850
               }
             ]
           },
@@ -276,12 +276,12 @@
           "name": "FOGO NO RABO",
           "icon": "icone-6",
           "pos": {
-            "x": 1518,
-            "y": 1283,
+            "x": 1885,
+            "y": 1237,
             "from": [
               {
-                "x": 1351,
-                "y": 721
+                "x": 1867,
+                "y": 1170
               }
             ]
           },
@@ -311,12 +311,12 @@
           "name": "QUILOMBO DO BAIXO GUAJARÁ-UNA",
           "icon": "icone-6",
           "pos": {
-            "x": 654,
-            "y": 1334,
+            "x": 1150,
+            "y": 1680,
             "from": [
               {
-                "x": 442,
-                "y": 1283
+                "x": 912,
+                "y": 1787
               }
             ]
           },
@@ -371,12 +371,12 @@
           "name": "ESPAÇO CULTURAL RUTH COSTA",
           "icon": "icone-6",
           "pos": {
-            "x": 2048,
-            "y": 465,
+            "x": 2649,
+            "y": 544,
             "from": [
               {
-                "x": 1700,
-                "y": 278
+                "x": 2515,
+                "y": 452
               }
             ]
           },
@@ -408,12 +408,12 @@
           "name": "HIP-HOP",
           "icon": "icone-6",
           "pos": {
-            "x": 1882,
-            "y": 1419,
+            "x": 2280,
+            "y": 1250,
             "from": [
               {
-                "x": 1351,
-                "y": 721
+                "x": 2251,
+                "y": 1000
               }
             ]
           },
@@ -446,12 +446,12 @@
           "name": "CHIBÉ",
           "icon": "icone-6",
           "pos": {
-            "x": 2215,
-            "y": 1027,
+            "x": 2350,
+            "y": 1150,
             "from": [
               {
-                "x": 1351,
-                "y": 721
+                "x": 2280,
+                "y": 984
               }
             ]
           },
