@@ -25,7 +25,7 @@ export interface CityPlacement extends Placement {
  * keeps all 11 orgs on the 16:9 first paint (slice-crop shows ~1700 of 2021
  * scene units vertically; y only clamps in landscape, x only in portrait).
  */
-export const initialFraming: Point = { x: 1300, y: 850 }
+export const initialFraming: Point = { x: 1450, y: 850 }
 
 /**
  * City land-mass placements — calibrated against `Mapa.jpeg` (post-ship v1.0.1
@@ -34,9 +34,9 @@ export const initialFraming: Point = { x: 1300, y: 850 }
  * Moju/Barcarena: elongated mass lower left (per `Mapa.jpeg` composition).
  */
 export const cityPlacements: Record<'belem' | 'ananindeua' | 'moju', CityPlacement> = {
-  belem: { x: 923.5, y: 75.7, scale: 0.8424, labelAnchor: { x: 1400, y: 560 } },
-  ananindeua: { x: 1538.2, y: 19.9, scale: 0.7982, labelAnchor: { x: 1640, y: 270 } },
-  moju: { x: 115.9, y: 759.3, scale: 0.832, labelAnchor: { x: 420, y: 1290 } },
+  belem: { x: 969.5, y: 52.8, scale: 0.8946, labelAnchor: { x: 1470, y: 560 } },
+  ananindeua: { x: 1538.3, y: 11.6, scale: 0.8118, labelAnchor: { x: 1640, y: 270 } },
+  moju: { x: 109.7, y: 759.3, scale: 0.8378, labelAnchor: { x: 420, y: 1290 } },
 }
 
 /**
