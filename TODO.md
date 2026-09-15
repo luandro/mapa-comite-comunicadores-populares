@@ -61,8 +61,8 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 - [x] Artifact tap → pulse + panel; `setObstruction(panelRect)` on open **(desktop only)**, `setObstruction(null)` on close and on mobile; **desktop**: artifact visible at `k ≥ min(1.6, k_max)` beside drawer; mobile: occlusion by design
 
 ## Phase 7 — Polish & ship
-- [ ] Perf pass: ≤4 concurrent tweens, transform/opacity ambient (3 bands × 3 copies + squiggle + bob), pause on `document.hidden`; shipped bundle ≤ ~300 KB gz incl. latin-subset fonts
-- [ ] Resize/orientation: cover fit fills portrait; targets reachable in all panel/camera states; full keyboard tour; reduced-motion end-to-end
-- [ ] Zoom +/−/reset controls; dummy-org test: **content-only** addition renders (default icon + calibration-tool `pos`), schema violations fail loudly
-- [ ] **Playwright smoke suite** (load → tap city → tap artifact → panel opens) green locally **before** deploy and re-run against the live URL after
-- [ ] GH Pages via committed Actions workflow (`actions/deploy-pages`); wait deploy success; verify live URL with Playwright smoke; `git tag v1.0.0 && git push origin v1.0.0`
+- [x] Perf pass: ≤4 concurrent tweens, transform/opacity ambient (3 bands × 3 copies + squiggle + bob), pause on `document.hidden`; shipped bundle ≤ ~300 KB gz incl. latin-subset fonts
+- [x] Resize/orientation: cover fit fills portrait; targets reachable in all panel/camera states; full keyboard tour; reduced-motion end-to-end
+- [x] Zoom +/−/reset controls; dummy-org test: **content-only** addition renders (default icon + calibration-tool `pos`), schema violations fail loudly
+- [x] **Playwright smoke suite** (load → tap city → tap artifact → panel opens) green locally **before** deploy and re-run against the live URL after
+- [x] GH Pages via committed Actions workflow (`actions/deploy-pages`); wait deploy success; verify live URL with Playwright smoke; `git tag v1.0.0 && git push origin v1.0.0`
