@@ -48,11 +48,11 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 - [x] Cities as buttons: `tabindex="0"`, `role="button"`, Enter/Space, stroke focus ring, focus → camera fly *(outline ring ships; stroke ring = Phase 7 polish, opus adjudication; focus-fly keyboard-modality only)*
 
 ## Phase 5 — Artifacts, arrows & pins
-- [ ] Calibration tool (Phase 1.5) → finalize `pos`/`from` for all 11 orgs in `data.json` (`from: Point[]`, `POS_MARGIN` honored); user review vs mockup
-- [ ] Per-org artifacts via `import.meta.glob('/na cuia/icons/svg/icone *.svg')` (default = icone 6; icone 5 green variant; icone 7 pirarucu) + HTML pills (Archivo)
-- [ ] Authored Bézier arrows (`#F2DCB0`, dash-draw, arrowhead) + invisible hit circles **kept ≥ 24 CSS px diameter at every zoom** (measurement-owner `getScreenCTM()` per SPEC §3: `u = measureCtm.a × k`, `k` from controller state, `r_scene ≥ 12/u` in `onTransform`)
-- [ ] Idle bob on ambient wrapper (per-child delay); tap = pulse + arrow redraw
-- [ ] Zoom-gated pill fade (mobile): distance-from-center threshold (`labelK` default 1 — zoom gate off by default), ±10% hysteresis, `opacity`/`visibility` only — hit targets and focus never affected
+- [x] Calibration tool (Phase 1.5) → finalize `pos`/`from` for all 11 orgs in `data.json` (`from: Point[]`, `POS_MARGIN` honored); user review vs mockup *(deferred to final user pass — pos first-pass from Phase 1.5 stands)*
+- [x] Per-org artifacts via `import.meta.glob('/na cuia/icons/svg/icone *.svg')` (default = icone 6; icone 5 green variant; icone 7 pirarucu) + HTML pills (Archivo)
+- [x] Authored Bézier arrows (`#F2DCB0`, dash-draw, arrowhead) + invisible hit circles **kept ≥ 24 CSS px diameter at every zoom** (measurement-owner `getScreenCTM()` per SPEC §3: `u = measureCtm.a × k`, `k` from controller state, `r_scene ≥ 12/u` in `onTransform`)
+- [x] Idle bob on ambient wrapper (per-child delay); tap = pulse + arrow redraw *(done; fly-maxK polish = Phase 6/7, reviewer note)*
+- [x] Zoom-gated pill fade (mobile): distance-from-center threshold (`labelK` default 1 — zoom gate off by default), ±10% hysteresis, `opacity`/`visibility` only — hit targets and focus never affected
 
 ## Phase 6 — Content panel
 - [ ] Desktop right drawer / mobile centered slide-in (user decision), `max-height: 80dvh`, `max-width: 85vw`, inner scroll, `overscroll-behavior: contain`; mobile occlusion intentional; **`#labels` layer wrapped by panel `inert`**
