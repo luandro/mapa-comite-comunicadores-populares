@@ -1,0 +1,133 @@
+/* Phase 6 panel (SPEC §8): cream paper, green/brown strokes, irregular
+   hand-drawn border, wave footer. React-owned UI — pt-BR. */
+
+.panel {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 40; /* above #labels (10) and title (20), below DEV toolbar (4000) */
+  width: min(420px, 85vw);
+  max-height: 80dvh;
+  margin: auto 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 28px 24px 56px;
+  background: #fdf6e3; /* cream paper */
+  color: #1c2b1c;
+  font-family: Archivo, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  /* irregular hand-drawn border: uneven radii + thick organic stroke */
+  border: 3px solid #304e23;
+  border-radius: 18px 6px 22px 9px / 8px 20px 7px 24px;
+  box-shadow: 6px 8px 0 rgba(48, 78, 35, 0.25);
+  transform: translateX(24px);
+  opacity: 0;
+  animation: panel-in 0.28s ease-out forwards;
+}
+
+.panel-mobile {
+  top: auto;
+  right: 50%;
+  bottom: 12px;
+  transform: translate(50%, 24px);
+  width: 85vw;
+  animation: panel-in-mobile 0.28s ease-out forwards;
+}
+
+@keyframes panel-in {
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes panel-in-mobile {
+  to {
+    transform: translate(50%, 0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .panel-mobile {
+    animation: none;
+    transform: translateX(0);
+    opacity: 1;
+  }
+  .panel-mobile {
+    transform: translate(50%, 0);
+  }
+}
+
+.panel-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border: 2px solid #5a4632;
+  border-radius: 50% 42% 55% 45%;
+  background: #fdf6e3;
+  color: #304e23;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.panel-close:focus-visible {
+  outline: 3px solid #304e23;
+  outline-offset: 2px;
+}
+
+.panel h2 {
+  margin: 0 40px 8px 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 24px;
+  line-height: 1.2;
+  color: #304e23;
+}
+
+.panel-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 6px;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 18px;
+  color: #5a4632;
+}
+
+.panel-glyph {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  fill: none;
+  stroke: #304e23;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.panel-section ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.panel-section li {
+  margin-bottom: 4px;
+}
+
+/* Wave footer strip (SPEC §8) — teal waves under the cream paper. */
+.panel-footer {
+  position: sticky;
+  bottom: -56px; /* cancels the panel's padding-bottom */
+  left: -24px;
+  width: calc(100% + 48px);
+  height: 56px;
+  margin-top: 20px;
+  fill: #5da9a9;
+  opacity: 0.85;
+}
