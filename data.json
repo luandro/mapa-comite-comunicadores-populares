@@ -1,0 +1,374 @@
+{
+  "maps": {
+    "ananindeua": {
+      "name": "Mapa de Ananindeua",
+      "projects": {
+        "rede_casacura": {
+          "name": "REDE CASACURA (Comunidade do Açaizal / Jaderlândia)",
+          "conflitos": [
+            "Direito à cidade negado ou dificultado",
+            "Transporte público precário",
+            "Difícil acesso",
+            "Transfobia",
+            "Comunidade em vulnerabilidade social sem renda, trabalho, lazer, educação e acessos",
+            "Racismo ambiental",
+            "Paisagem modificada",
+            "Cursos d’água soterrados"
+          ],
+          "acao": [
+            "Mutirões de manejo e cuidado ambiental",
+            "Recuperação de cursos d'água e canais em ananindeua",
+            "Ecologia Trans Radical",
+            "Cuidado Comunitário",
+            "Oficinas, Aulas",
+            "Arte-educação",
+            "Formação de jovens e adultos",
+            "Festas, Lazer",
+            "Pesquisa territorial",
+            "Incidência Política",
+            "Assistência Social"
+          ],
+          "identificacao_e_territorio": [
+            "LGBTQAIAPN+ Trans Amazônia",
+            "Direito à cidade",
+            "Justiça Climática",
+            "Ancestralidade"
+          ],
+          "futuro": [
+            "Rios Livres",
+            "Pessoas trans contratadas pela rede",
+            "Espaço e serviços de acolhimento p/ comunidade",
+            "Lei p/ Direitos ambientais",
+            "Espaços Verdes e parques aquáticos",
+            "Rede Regional Trans Ambiental",
+            "Horta Comunitária",
+            "Outras CasasCuras"
+          ],
+          "memoria": [
+            "Festival Saracura",
+            "Semana T",
+            "RESSACUR",
+            "Dia da Visibilidade NB",
+            "Natal Solidário",
+            "Festival Águas Grandes"
+          ],
+          "identidade": [
+            "Atalaia",
+            "Distrito Industrial",
+            "Castanheira",
+            "Parque Verde",
+            "Guamá",
+            "Telégrafo",
+            "Terra Firme"
+          ]
+        },
+        "rede_afroamazonida": {
+          "name": "REDE AFROAMAZÔNIDA",
+          "conflitos": [
+            "Governança Racista do município e dos conjuntos (Nível Territorial)",
+            "Falta de Financiamento (nível territorial e nacional)",
+            "Conflitos de acesso a lugares de produção artística (nível nacional)"
+          ],
+          "acao": [
+            "Institucionalização de terreiros",
+            "Reconhecimento de lideranças jovens de terreiro",
+            "Salvaguarda das tradições",
+            "Fomento de Editais de Financiamento",
+            "Oficinas de metodologia de criação e manutenção de projetos",
+            "Procura e escrita de projetos p/ parcerias",
+            "Produção de conteúdo de fomento"
+          ],
+          "identificacao_e_territorio": [
+            "Nível Territorial: Jovens de Terreiro, Racismo Ambiental, Artivismo e Comunicação Popular",
+            "Nível Nacional: Conexão Nacional de Juventudes para Discussão Artística Socioambiental"
+          ],
+          "futuro": [],
+          "memoria": ["Festa de Yemanja", "Levantamento da Bandeira"],
+          "identidade": [
+            "Cidade Nova",
+            "Cidade Velha",
+            "Jurunas",
+            "Cremação",
+            "Salvador (Bahia)",
+            "São Paulo",
+            "Brasília",
+            "Recife",
+            "Manaus",
+            "Rio de Janeiro (RJ)"
+          ]
+        },
+        "centro_educacao_popular": {
+          "name": "CENTRO DE EDUCAÇÃO POPULAR E CULTURA DOMINGOS DA SILVA (C.E.P.C.D.S)",
+          "conflitos": [
+            "Luta pela conquista legal do espaço",
+            "Luta contra o lixo",
+            "Espaço de lazer (Não tem)",
+            "Institucionalização do espaço enquanto movimento"
+          ],
+          "acao": ["Arraial do Casarão Junho"],
+          "identificacao_e_territorio": [
+            "Mulheres",
+            "Crianças e adolescentes",
+            "Educação",
+            "Arte",
+            "Cultura",
+            "Formação",
+            "Geração de Renda"
+          ],
+          "futuro": [
+            "Institucionalizar",
+            "Criar independência financeira",
+            "Reformar e estruturar o centro"
+          ],
+          "memoria": [],
+          "identidade": ["Eliana", "Raimundo", "Júlia Seffer"]
+        }
+      }
+    },
+    "belem": {
+      "name": "Mapa de Belém",
+      "projects": {
+        "museu_memorial_vila_da_barca": {
+          "name": "MUSEU MEMORIAL VILA DA BARCA (MMVB)",
+          "conflitos": [
+            "Pressão atmosférica",
+            "Omissão estatal",
+            "Racismo ambiental",
+            "Violência policial"
+          ],
+          "acao": [
+            "Revista Vozes da Vila",
+            "Roteiro Cozinha Periférica",
+            "Prédio do Museu Memorial da Vila da Barca"
+          ],
+          "identificacao_e_territorio": ["História", "Memória", "Cultura Periférica"],
+          "futuro": ["Prédio do Museu Memorial", "Continuação Revista Vozes"],
+          "memoria": [
+            "Arraial da Vila",
+            "Círio Nossa Senhora dos Navegantes",
+            "Carnaval Crias do Curro Velho"
+          ],
+          "identidade": [
+            "Yasmin Fonseca",
+            "Bianca Salomão",
+            "Kelvyn Gomes",
+            "Suane Barreirinhas",
+            "Inês Medeiros",
+            "Rafael Serrão",
+            "Andrey Leão"
+          ]
+        },
+        "na_cuia": {
+          "name": "NA CUIA",
+          "conflitos": [
+            "No digital, Redes virtuais e internet: crescente de discursos de ódio; Redpill; nazismo (neo); racismo algoritmo; Bigtechs nos territórios"
+          ],
+          "acao": [],
+          "identificacao_e_territorio": [
+            "Guamá",
+            "Comunicação Popular",
+            "Mobilização",
+            "Formações"
+          ],
+          "futuro": [],
+          "memoria": [],
+          "identidade": []
+        },
+        "cooperativa_audiovisual_caba": {
+          "name": "COOPERATIVA DE AUDIOVISUAL, BEM VIVER E ARTE (CABA)",
+          "conflitos": [
+            "Tucunduba",
+            "Lixo",
+            "Falta de Saneamento",
+            "UFPA de costas p/ o bairro",
+            "Não tem CAPS",
+            "Falta água todos os dias"
+          ],
+          "acao": [
+            "Dentro da Nossa Biblioteca",
+            "Formações e acessos para periferia e pessoas lgbt"
+          ],
+          "identificacao_e_territorio": ["Lou", "Guamá"],
+          "futuro": [
+            "Documentar",
+            "Formar",
+            "Conectar",
+            "Formações permanentes",
+            "Festival de Docs Periféricos",
+            "Acervo grande de equipamento p/ cooperativa"
+          ],
+          "memoria": [],
+          "identidade": [
+            "Roma (Baixada do Marco)",
+            "Renata e Lou (Guamá)",
+            "Dada (Cidade Nova)",
+            "Bru (Condor/Alter do Chão)",
+            "Rapha (Cotijuba/Pedra Branca)"
+          ]
+        },
+        "fogo_no_rabo": {
+          "name": "FOGO NO RABO",
+          "conflitos": [
+            "Baixada do Marco falta área de lazer como praças públicas para crianças",
+            "Posto de Sáude e Projetos culturais",
+            "Linha de ônibus"
+          ],
+          "acao": ["Criação de um espaço cultural e acolhimento para a comunidade"],
+          "identificacao_e_territorio": ["Grupo de Dança LGBT", "Quadrilha Fogo no Rabo"],
+          "futuro": [
+            "Espaço cultural acolhedor para os moradores da baixada",
+            "Espaço de lazer para crianças",
+            "Volta da Quadrilha"
+          ],
+          "memoria": ["Festa da Quadrilha Fogo no Rabo", "Ensaios da Quadrilha Fogo no Rabo"],
+          "identidade": [
+            "Lou (Guamá)",
+            "Xico (Canudos)",
+            "Lu (Outeiro)",
+            "Adilson (Jurunas)",
+            "Renata",
+            "Roma"
+          ]
+        },
+        "quilombo_do_baixo_guajara_una": {
+          "name": "QUILOMBO DO BAIXO GUAJARÁ-UNA",
+          "conflitos": [
+            "Insegurança nutricional",
+            "Educação sexual",
+            "Acesso à educação/cultura",
+            "Financiamento de projetos",
+            "Educação Ambiental"
+          ],
+          "acao": [
+            "Formalização da Associação",
+            "Eleições e reuniões",
+            "Acesso à universidade através de cotas raciais",
+            "Manutenção dos cortejos religiosos",
+            "Participação em editais"
+          ],
+          "identificacao_e_territorio": [
+            "Moju/Barcarena (Zona Rural)",
+            "Igarapé Guajaraúna",
+            "Produtores rurais",
+            "Festa do Divino (Religiosidade)",
+            "Educação Quilombola",
+            "Defesa do território"
+          ],
+          "futuro": [
+            "Projeto de Carimbó",
+            "Cuidar dos idosos da comunidade",
+            "Remunerar a comunidade",
+            "Construir um espaço cultural",
+            "Preservação do Igarapé (Patrimônio)"
+          ],
+          "memoria": [
+            "Círio do Divino Espírito Santo",
+            "Quadrilha Junina",
+            "Eventos da consciência negra",
+            "Remar",
+            "Pescar",
+            "Torneio de futebol"
+          ],
+          "identidade": [
+            "Divino Espírito Santo",
+            "Cacoal",
+            "Fazenda",
+            "Cinco Reis",
+            "Guamá",
+            "Jurunas",
+            "Ananindeua"
+          ]
+        },
+        "espaco_cultural_ruth_costa": {
+          "name": "ESPAÇO CULTURAL RUTH COSTA",
+          "conflitos": [
+            "Especulação Imobiliária",
+            "Transporte Público Mobilidade Ativa",
+            "Saneamento Básico",
+            "Resíduos Sólidos"
+          ],
+          "acao": [
+            "Incidência Política pela democratização da mobilidade",
+            "Campanha de comunicação",
+            "Incentivo a mobilidade ativa e sustentável",
+            "Incidência Política",
+            "Formação em mobilidade antiracista"
+          ],
+          "identificacao_e_territorio": ["Mobilidade urbana democrática e sustentável"],
+          "futuro": [
+            "Captar recursos",
+            "Tornar o espaço uma referência de cuidado, de cultura e de acolhimento"
+          ],
+          "memoria": [
+            "Tacacá com Carimbó: O Sabor da Justiça Climática",
+            "Pedal Manifesto Perifa na Pista"
+          ],
+          "identidade": ["Mapinguarí", "Batuque da lua crescente", "Paraciclo"]
+        },
+        "hip_hop": {
+          "name": "HIP-HOP",
+          "conflitos": [
+            "As violências por parte do estado sobre as ações e outras iniciativas",
+            "Violência contra as mulheres que fazem a cultura e constroí o movimento"
+          ],
+          "acao": [
+            "Eventos ex: criando mundos",
+            "Rota Ancestral",
+            "Promoção dos espaços Icoracienses"
+          ],
+          "identificacao_e_territorio": [
+            "Atuação arte, cultura, formação e educação",
+            "Incidência: direito a cultura, direitos humanos, combate ao racismo",
+            "Mulheres",
+            "LGBT",
+            "Juventude",
+            "Negras e Negros"
+          ],
+          "futuro": [
+            "Institucionalizar (CNPJ)",
+            "Criar independência financeira",
+            "Criar a casa do Hip-Hop"
+          ],
+          "memoria": ["Festival Hip-Hop Pai d’égua em novembro"],
+          "identidade": ["Roberta", "RMY", "Larix", "Tinta Preta", "Mina Ribeirinha"]
+        },
+        "chibe": {
+          "name": "CHIBÉ",
+          "conflitos": [
+            "Mobilidade Urbana (Transporte, Ciclofaixa, Sinalizações)",
+            "Saneamento básica (Poluição de rios e falta de água)",
+            "Lugares de lazer"
+          ],
+          "acao": ["Semana do Hip-Hop Pai d’égua", "Formação", "Oficinas", "Militância Política"],
+          "identificacao_e_territorio": [
+            "Coisas de Negro",
+            "Feira de Artesanato do Paracuri",
+            "Ninho de Caba",
+            "Na Casa do Artista",
+            "Orla de Icoaraci",
+            "Círio de Icoaraci"
+          ],
+          "futuro": ["Continuar existindo", "Se regularizar", "Se manter financeiramente"],
+          "memoria": [
+            "Infância em movimento",
+            "Carta de direitos climáticos de Icoaraci",
+            "Icoaracine",
+            "Clube do Livro"
+          ],
+          "identidade": [
+            "Espaço Cultural e Biblioteca Comunitária",
+            "Lutas/Propostas",
+            "Equidade Ambiental",
+            "Infâncias em movimento",
+            "Catarina (São Braz)",
+            "Talita (Agulha)",
+            "Yasmin (Maracacuera)",
+            "Silvia (Cruzeiro)",
+            "Andressa (Águas negras)",
+            "Tayna (Tenoné)"
+          ]
+        }
+      }
+    }
+  }
+}

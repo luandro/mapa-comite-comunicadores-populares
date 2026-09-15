@@ -1,0 +1,14 @@
+node_modules
+dist
+graft
+na cuia
+playwright-report
+test-results
+docs/reviews
+*.md
+*.svg
+*.png
+*.jpeg
+bun.lock
+package-lock.json
+pnpm-lock.yaml
