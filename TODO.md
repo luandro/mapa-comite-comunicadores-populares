@@ -30,11 +30,11 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 - [x] User review side-by-side vs `Mapa.jpeg`: irregularities preserved (asymmetry criterion); `initialFraming` chosen
 
 ## Phase 2 — Water that reads as water
-- [ ] `onda 1/2/4` inlined, **uniform** scale ×1.3994, calibrated rows, source opacities preserved (.8/.2)
-- [ ] Seamless drift: **three copies `[A][A′][A]`**, translate 0 → −4320.64 band-local units, durations 8–14 s, offset phases
-- [ ] `ondinhas` drift + opacity pulse
+- [x] `onda 1/2/4` inlined, **uniform** scale ×1.3994, calibrated rows, source opacities preserved (.8/.2)
+- [x] Seamless drift: **three copies `[A][A′][A]`**, translate 0 → −4320.64 band-local units, durations 8–14 s, offset phases
+- [x] `ondinhas` drift + opacity pulse
 - [ ] **Perf gate**: paint-flash + frame timing, mid-tier Android profile; fallback = aligned sibling `<svg>` per ambient layer inside one camera wrapper (SPEC §3) if inner-SVG transforms repaint — extent/clamp/hit-sizing Vitest re-run in **fallback mode** (measurement-owner contract)
-- [ ] `prefers-reduced-motion` static fallback for all loops
+- [x] `prefers-reduced-motion` static fallback for all loops
 
 ## Phase 3 — Land, roads & entrance choreography
 - [ ] Land + roads + water-detail groups in §4 stack order; entrance fade/rise
