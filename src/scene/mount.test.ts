@@ -151,11 +151,31 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  it('onIntroDone fires immediately after skipIntro() (P1: no intro yet)', () => {
+  it('intro: skipIntro() finalizes targets, is idempotent, and late onIntroDone fires immediately', () => {
     const c = mountScene(host, data)
+    // primed start: the land layer is hidden while the intro runs (jsdom has
+    // no rAF-driven GSAP ticking, so the timeline never advances here)
+    expect(getComputedStyle(document.querySelector('#layer-land')!).opacity).toBe('0')
     c.skipIntro()
+    expect(getComputedStyle(document.querySelector('#layer-land')!).opacity).toBe('1')
+    expect(document.documentElement.classList.contains('intro-done')).toBe(true)
+    // late subscriber fires immediately (SPEC §10 contract)
     const calls: number[] = []
     c.onIntroDone(() => calls.push(1))
+    expect(calls).toEqual([1])
+    // idempotent: second call is a no-op, listeners fire once
+    c.skipIntro()
+    expect(calls).toEqual([1])
+    c.destroy()
+    expect(document.documentElement.classList.contains('intro-done')).toBe(false)
+  })
+
+  it('intro: onIntroDone registered before completion fires when skipIntro() resolves', () => {
+    const c = mountScene(host, data)
+    const calls: number[] = []
+    c.onIntroDone(() => calls.push(1))
+    expect(calls).toEqual([])
+    c.skipIntro()
     expect(calls).toEqual([1])
     c.destroy()
   })

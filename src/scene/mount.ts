@@ -9,8 +9,17 @@
  */
 import { SCENE_HEIGHT, SCENE_WIDTH } from '../data/constants'
 import type { ComiteData } from '../data/types'
+import { gsap } from 'gsap'
 import { isMobile } from '../device'
 import { createCamera } from './camera'
+import {
+  buildIntroTimeline,
+  finalizeIntroTargets,
+  INTRO_DONE_CLASS,
+  prefersReducedMotion,
+  primeIntroTargets,
+} from './intro'
+import type { IntroTargets } from './intro'
 import { mountCalibratedLayers, orgProjects } from './layers'
 import { createLabelsLayer, IDENTITY_CTM, renderLabels, updateLabels } from './labels'
 import { assertBaseCounts, partitionBase } from './partition'
@@ -30,9 +39,10 @@ export interface SceneController {
   reset(): void
   focusCity(id: string): void
   focusArtifact(id: string): void
-  /** Phase 1 no-op — intro choreography lands in Phase 3. */
+  /** Kill the entrance timeline and jump to the final state. Idempotent. */
   skipIntro(): void
-  /** Phase 1: the scene starts in its final state, so every subscriber fires immediately. */
+  /** Fires once the entrance resolves (timeline end, skip, or reduced-motion);
+   * registering after that fires the callback immediately. */
   onIntroDone(cb: () => void): () => void
   on(event: 'artifact-tap' | 'city-tap', cb: (id: string) => void): () => void
   on(event: 'empty-tap', cb: () => void): () => void
@@ -81,6 +91,12 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   assertBaseCounts(layers)
 
   // SPEC §4 order — water-detail sits ABOVE roads (source paint order, §2).
+  // The group wrappers are the Phase 3 entrance targets (opacity/translateY).
+  const layerGroups: {
+    land: SVGGElement
+    roads: SVGGElement
+    waterDetail: SVGGElement
+  } = { land: null!, roads: null!, waterDetail: null! }
   const layerStack: Array<[id: string, nodes: Element[]]> = [
     ['layer-water', layers.water],
     ['layer-land', layers.land],
@@ -90,6 +106,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   for (const [id, nodes] of layerStack) {
     const g = document.createElementNS(SVG_NS, 'g')
     g.id = id
+    if (id === 'layer-land') layerGroups.land = g
+    else if (id === 'layer-roads') layerGroups.roads = g
+    else if (id === 'layer-water-detail') layerGroups.waterDetail = g
     for (const node of nodes) g.appendChild(node) // DOM4 auto-adopt, order preserved
     cameraNode.appendChild(g)
   }
@@ -116,7 +135,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
 
   // Calibrated composite (SPEC §4 items 5–8) appends above layer-water-detail.
   // The camera handle is a seam for Phase 5 hit sizing (r_scene ≥ 12/u).
-  mountCalibratedLayers(cameraNode, data, camera)
+  const calibrated = mountCalibratedLayers(cameraNode, data, camera)
 
   // Org pills at artifact pos + city name labels, repositioned every frame
   // through the measurement owner's camera-free CTM (AGENTS invariant 12).
@@ -149,6 +168,64 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     emptyTapHub.emit()
   }
   sceneSvg.addEventListener('click', onSceneClick)
+
+  // --- Phase 3 entrance choreography (SPEC §5) --------------------------------
+  // ONE gsap.context around the entrance timeline — the camera owns its own
+  // context for fly tweens (each context reverts on destroy, so killing one
+  // never disturbs the other's tweens).
+
+  const introHub = createHub<[]>()
+  let introDone = false
+  let introTimeline: gsap.core.Timeline | null = null
+
+  function markIntroDone(): void {
+    if (introDone) return
+    introDone = true
+    document.documentElement.classList.add(INTRO_DONE_CLASS)
+    introHub.emit()
+  }
+
+  // GSAP touches only nodes with no transform attribute and no CSS animation
+  // (invariant 6): base layer groups, calibrated interaction <g>s, and label
+  // INNER divs — the outer .label anchors are rewritten per frame by
+  // updateLabels, never two transform owners on one node.
+  const introTargets: IntroTargets = {
+    waves: Array.from(calibrated.waves.querySelectorAll<SVGGElement>(':scope > g[data-band]')),
+    squiggles: calibrated.squiggles,
+    land: layerGroups.land,
+    roads: layerGroups.roads,
+    waterDetail: layerGroups.waterDetail,
+    cities: Object.values(calibrated.cities),
+    cityLabels: Array.from(labels.el.querySelectorAll<HTMLElement>('.label-city')),
+    arrows: {
+      paths: Array.from(calibrated.arrows.querySelectorAll<SVGPathElement>(':scope > path')),
+      dots: Array.from(calibrated.arrows.querySelectorAll<SVGCircleElement>(':scope > circle')),
+    },
+    artifacts: Object.values(calibrated.artifacts),
+    pills: Array.from(labels.el.querySelectorAll<HTMLElement>('.label-pill')),
+  }
+
+  const introCtx = gsap.context(() => {
+    if (prefersReducedMotion()) {
+      // SPEC §5 static fallback: no entrance, no priming — final state and
+      // INTRO_DONE_CLASS from the first frame. The ambient CSS loops are
+      // already disabled by the scene.css reduced-motion media query.
+      markIntroDone()
+      return
+    }
+    // Arrow lengths are measured synchronously inside primeIntroTargets —
+    // one build-time pass, never a mid-timeline read.
+    primeIntroTargets(introTargets)
+    introTimeline = buildIntroTimeline(introTargets, markIntroDone)
+  }, sceneSvg)
+
+  function skipIntro(): void {
+    if (introDone) return
+    introTimeline?.kill()
+    introTimeline = null
+    finalizeIntroTargets(introTargets)
+    markIntroDone()
+  }
 
   // Phase 2 ambient motion: document.hidden pauses every loop via .scene-hidden
   // (scene.css sets animation-play-state: paused on .wave-drift/.squiggle-drift).
@@ -187,6 +264,11 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     destroy() {
       if (destroyed) return
       destroyed = true
+      // Revert the entrance context BEFORE the rest: mid-intro teardown undoes
+      // every gsap.set/tween style, and the <html> class goes with it — a
+      // StrictMode remount then replays the intro from a clean slate.
+      introCtx.revert()
+      document.documentElement.classList.remove(INTRO_DONE_CLASS)
       document.removeEventListener('visibilitychange', onVisibilityChange)
       camera.destroy()
       offLabels()
@@ -221,13 +303,11 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
         console.warn(`[scene] focusArtifact('${id}'): ${known}Phase 1 stub — lands in Phase 5`)
       }
     },
-    skipIntro() {
-      // Phase 1 no-op: the intro choreography lands in Phase 3.
-    },
+    skipIntro,
     onIntroDone(cb) {
-      // Phase 1: the scene starts in its final state — fire immediately.
-      cb()
-      return () => {}
+      // Post-intro registrations fire immediately (SPEC §10 contract).
+      if (introDone) cb()
+      return introHub.on(cb)
     },
     on,
   }

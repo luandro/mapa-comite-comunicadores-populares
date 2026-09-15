@@ -34,6 +34,7 @@
 #labels {
   position: absolute;
   inset: 0;
+  z-index: 10; /* title (20) and controls (30) paint above — SPEC §3.9 */
   pointer-events: none;
 }
 
