@@ -37,9 +37,9 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 - [x] `prefers-reduced-motion` static fallback for all loops
 
 ## Phase 3 — Land, roads & entrance choreography
-- [ ] Land + roads + water-detail groups in §4 stack order; entrance fade/rise
-- [ ] ~3 s staggered intro (scene-owned): water → waves → land → cities → arrows → artifacts → title; `skipIntro()` from React button; replays each load; **atmospheric "waking poster" restraint**
-- [ ] Title = live HTML (Fraunces) over authored blob path
+- [x] Land + roads + water-detail groups in §4 stack order; entrance fade/rise
+- [x] ~3 s staggered intro (scene-owned): water → waves → land → cities → arrows → artifacts → title; `skipIntro()` from React button; replays each load; **atmospheric "waking poster" restraint**
+- [x] Title = live HTML (Fraunces) over authored blob path
 
 ## Phase 4 — City land masses (tap = raise)
 - [ ] Verify Phase 1.5 first-pass calibration still holds once motion lands (no drift vs `Mapa.jpeg`)
