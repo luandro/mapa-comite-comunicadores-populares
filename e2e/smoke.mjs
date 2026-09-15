@@ -38,7 +38,8 @@ const tapPoint = await city.evaluate((g) => {
   }
   return null
 })
-await page.mouse.click(tapPoint.x, tapPoint.y)
+if (!tapPoint) failures.push('city tap: no painted point found in belem bbox')
+else await page.mouse.click(tapPoint.x, tapPoint.y)
 await page.waitForTimeout(500)
 const raised = await city.evaluate(
   (g) => new DOMMatrixReadOnly(getComputedStyle(g).transform).m42 < 0,

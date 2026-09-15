@@ -94,3 +94,8 @@ Evidence: `graft/.cache/checks/current-landscape.png` (1600×900, k=1, intro set
   hub like the design. `layers.test.ts` re-pinned to `#1c2b1c` + zero dots; dash-draw
   and tap-redraw transients are color-agnostic (single `ARROW_COLOR` constant).
   Verified side-by-side vs `Mapa.jpeg` (16:9 + 9:19.5).
+- [ ] **Follow-ups from v1.0.1 review (non-blocking P3s, opus r2 APPROVE)**: (a) Moju
+  mass has no city label — `data.json` has only Belém/Ananindeua maps so
+  `cityPlacements.moju.labelAnchor` is unused; the mock labels "Moju/Barcarena"
+  (content decision). (b) MMVB arrow crosses the "Mapa de Belém" text — nudge
+  `labelAnchor` or the MMVB hub stem (mild, label stays legible).
