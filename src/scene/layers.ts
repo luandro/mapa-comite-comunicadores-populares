@@ -225,7 +225,7 @@ function mountSquiggles(cameraNode: SVGGElement): SVGGElement {
   return layer
 }
 
-function mountCities(cameraNode: SVGGElement): Record<string, SVGGElement> {
+function mountCities(cameraNode: SVGGElement, data: ComiteData): Record<string, SVGGElement> {
   const cities: Record<string, SVGGElement> = {}
   for (const id of CITY_IDS) {
     const layer = svg('g')
@@ -236,12 +236,19 @@ function mountCities(cameraNode: SVGGElement): Record<string, SVGGElement> {
       'transform',
       `translate(${placed.x},${placed.y}) scale(${placed.scale ?? 1})`,
     )
-    // Phase 4 wires semantics; today [data-interactive] only opts city taps out
-    // of the empty-tap closest() check in mount.ts.
+    // Phase 4 (SPEC §9): the interaction g is the tap/keyboard target AND the
+    // GSAP raise target (mount.ts); [data-interactive] also opts city taps out
+    // of the empty-tap closest() check there. Real button semantics —
+    // focusable, labeled from data.json (moju has no map entry yet: id
+    // fallback), aria-pressed maintained by mount.ts on raise/reverse.
     const interaction = svg('g')
     interaction.setAttribute('data-interactive', 'city')
     interaction.setAttribute('data-city-id', id)
-    const ambient = svg('g') // Phase 4 raise target — no transform yet
+    interaction.setAttribute('tabindex', '0')
+    interaction.setAttribute('role', 'button')
+    interaction.setAttribute('aria-label', data.maps[id]?.name ?? id)
+    interaction.setAttribute('aria-pressed', 'false')
+    const ambient = svg('g') // CSS stays free — raise tweens own the interaction g
     adoptChildren(ambient, CITY_ASSETS[id])
     interaction.appendChild(ambient)
     placement.appendChild(interaction)
@@ -339,7 +346,7 @@ export function mountCalibratedLayers(
 ): CalibratedLayers {
   const waves = mountWaves(cameraNode)
   const squiggles = mountSquiggles(cameraNode)
-  const cities = mountCities(cameraNode)
+  const cities = mountCities(cameraNode, data)
   const artifacts = mountArtifacts(cameraNode, data)
   const arrows = mountArrows(cameraNode, data)
   return { waves, squiggles, cities, artifacts, arrows }

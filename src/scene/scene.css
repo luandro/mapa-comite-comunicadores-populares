@@ -140,3 +140,12 @@
     animation-name: none;
   }
 }
+
+/* --- Phase 4 city raise (SPEC §9) ------------------------------------------
+   Focusable city interaction g (role=button, tabindex=0 — set in layers.ts).
+   Visible keyboard focus ring; :focus-visible only, so a pointer tap never
+   paints it. */
+g[data-city-id]:focus-visible {
+  outline: 3px solid #304e23;
+  outline-offset: 2px;
+}

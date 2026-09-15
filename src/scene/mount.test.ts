@@ -224,6 +224,109 @@ describe('mountScene', () => {
     c.destroy()
   })
 
+  // --- Phase 4: city tap = raise ---------------------------------------------
+  // jsdom never ticks GSAP's rAF loop, so the tween styles don't land here —
+  // these tests assert the STATE contract instead (aria-pressed is the DOM
+  // reflection of mount.ts's single raisedCityId owner, plus the hub events).
+
+  function cityGroups() {
+    return {
+      belem: host.querySelector<SVGGElement>('[data-city-id="belem"]')!,
+      ananindeua: host.querySelector<SVGGElement>('[data-city-id="ananindeua"]')!,
+      moju: host.querySelector<SVGGElement>('[data-city-id="moju"]')!,
+    }
+  }
+
+  function pressedState(): Record<string, string> {
+    return Object.fromEntries(
+      Object.entries(cityGroups()).map(([id, g]) => [id, g.getAttribute('aria-pressed') ?? '']),
+    )
+  }
+
+  /** A tap lands on a painted landmass path inside the city's interaction g. */
+  function tapCity(id: keyof ReturnType<typeof cityGroups>): void {
+    const g = cityGroups()[id]
+    g.querySelector('path')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  }
+
+  it('raise: city click toggles aria-pressed and emits city-tap; empty-tap stays silent', () => {
+    const c = mountScene(host, data)
+    const raised: string[] = []
+    const empties: number[] = []
+    c.on('city-tap', (id) => raised.push(id))
+    c.on('empty-tap', () => empties.push(1))
+    expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
+    tapCity('belem')
+    expect(raised).toEqual(['belem'])
+    expect(empties).toEqual([])
+    expect(pressedState()).toEqual({ belem: 'true', ananindeua: 'false', moju: 'false' })
+    c.destroy()
+  })
+
+  it('re-raise: tapping a different city moves the raise; city-tap fires per change', () => {
+    const c = mountScene(host, data)
+    const raised: string[] = []
+    c.on('city-tap', (id) => raised.push(id))
+    tapCity('belem')
+    tapCity('ananindeua')
+    expect(raised).toEqual(['belem', 'ananindeua'])
+    expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'true', moju: 'false' })
+    c.destroy()
+  })
+
+  it('reversal: tapping the raised city again settles everything back to rest', () => {
+    const c = mountScene(host, data)
+    const raised: string[] = []
+    c.on('city-tap', (id) => raised.push(id))
+    tapCity('moju')
+    tapCity('moju')
+    // city-tap emits on raise only — the reverse is a settle, not a change to a city
+    expect(raised).toEqual(['moju'])
+    expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
+    c.destroy()
+  })
+
+  it('reversal: tapping empty water settles the raise and emits empty-tap', () => {
+    const c = mountScene(host, data)
+    const raised: string[] = []
+    const empties: number[] = []
+    c.on('city-tap', (id) => raised.push(id))
+    c.on('empty-tap', () => empties.push(1))
+    tapCity('belem')
+    expect(empties).toEqual([])
+    const sea = host.querySelector('svg#scene #layer-water')!.firstElementChild!
+    sea.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(raised).toEqual(['belem'])
+    expect(empties).toEqual([1])
+    expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
+    c.destroy()
+  })
+
+  it('keyboard: Enter raises, Space reverses, and Space never scrolls', () => {
+    const c = mountScene(host, data)
+    const raised: string[] = []
+    c.on('city-tap', (id) => raised.push(id))
+    const belem = cityGroups().belem
+    belem.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    expect(raised).toEqual(['belem'])
+    expect(pressedState()).toEqual({ belem: 'true', ananindeua: 'false', moju: 'false' })
+    const space = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+    belem.dispatchEvent(space)
+    expect(space.defaultPrevented).toBe(true) // SPEC §9: Space must not scroll
+    expect(raised).toEqual(['belem'])
+    expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
+    c.destroy()
+  })
+
+  it('destroy() reverts the raise styles (StrictMode remount starts at rest)', () => {
+    const first = mountScene(host, data)
+    tapCity('belem')
+    first.destroy()
+    const second = mountScene(host, data)
+    expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
+    second.destroy()
+  })
+
   it('pauses loops when hidden: .scene-hidden tracks document.hidden, incl. initial state, and stops after destroy', () => {
     // jsdom owns document.hidden as a getter on Document.prototype
     const hiddenDesc = Object.getOwnPropertyDescriptor(Document.prototype, 'hidden')!

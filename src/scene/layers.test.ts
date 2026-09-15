@@ -96,6 +96,17 @@ describe('mountCalibratedLayers', () => {
       expect(interaction.getAttribute('transform')).toBeNull()
       expect(interaction.getAttribute('data-interactive')).toBe('city')
       expect(interaction.getAttribute('data-city-id')).toBe(id)
+      // Phase 4 (SPEC §9): real button semantics — focusable, labeled from
+      // data.json (moju has no map entry yet → id fallback), starts at rest.
+      const labels: Record<string, string> = {
+        belem: 'Mapa de Belém',
+        ananindeua: 'Mapa de Ananindeua',
+        moju: 'moju',
+      }
+      expect(interaction.getAttribute('tabindex')).toBe('0')
+      expect(interaction.getAttribute('role')).toBe('button')
+      expect(interaction.getAttribute('aria-label')).toBe(labels[id])
+      expect(interaction.getAttribute('aria-pressed')).toBe('false')
       expect(interaction.children).toHaveLength(1)
       const ambient = interaction.firstElementChild as SVGGElement
       expect(ambient.getAttribute('transform')).toBeNull()

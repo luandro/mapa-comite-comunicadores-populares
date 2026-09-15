@@ -66,6 +66,14 @@ function createHub<Args extends unknown[]>() {
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
+/* Phase 4 city-raise tuning (SPEC §5 city tap, scoped by TODO Phase 4): the
+   tapped city's interaction g lifts and the other two dim. The camera fly,
+   growing shadow and outline draw in the same SPEC sentence are Phase 5 —
+   raise + dim ONLY here. */
+const CITY_RAISE_LIFT = -14 // scene units, GSAP `y` on the interaction g
+const CITY_DIM_OPACITY = 0.45
+const CITY_RAISE_DURATION = 0.35
+
 export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   // DOM: .scene-root > svg#scene > g#camera > 4 base layers; plus svg#measure and
   // the #labels div as siblings of the scene SVG — outside any camera transform.
@@ -158,16 +166,75 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     void import('./calibration').then((m) => m.attachCalibration(root, sceneSvg)).catch(() => {})
   }
 
+  // --- Phase 4: city tap = raise (SPEC §5) -----------------------------------
+  // `raisedCityId` is the single raise-state owner; the city groups'
+  // aria-pressed is its DOM reflection. Tweens live in their OWN gsap.context
+  // scoped to the scene (never two owners per node): revert() in destroy()
+  // undoes every raise/dim style — and killing one context never disturbs the
+  // entrance context's tweens, or vice versa. The interaction g is the GSAP
+  // target; the placement g's transform attribute is never touched
+  // (invariant 6) and the ambient g stays CSS-free.
+  let raisedCityId: string | null = null
+  const cityCtx = gsap.context(() => {}, sceneSvg)
+  const reduceMotion = prefersReducedMotion()
+
+  function applyCityState(nextId: string | null): void {
+    if (nextId === raisedCityId) return // no state change → no tween, no emit
+    raisedCityId = nextId
+    for (const [id, interaction] of Object.entries(calibrated.cities)) {
+      const raised = id === nextId
+      interaction.setAttribute('aria-pressed', String(raised))
+      const props = {
+        y: raised ? CITY_RAISE_LIFT : 0,
+        opacity: raised || nextId === null ? 1 : CITY_DIM_OPACITY,
+      }
+      cityCtx.add(() => {
+        gsap.to(interaction, {
+          ...props,
+          duration: reduceMotion ? 0 : CITY_RAISE_DURATION,
+          ease: 'power2.out',
+          // A tap during the ~3 s entrance would otherwise lose the lift the
+          // moment the intro tween (same properties, same nodes) ends at
+          // y:0/opacity:1 — 'auto' kills those conflicting tweens at first
+          // render, and every city gets a tween here so no sibling is left
+          // stranded at the intro's primed opacity 0.
+          overwrite: 'auto',
+        })
+      })
+    }
+    // city-tap fires on raise only (state CHANGE to a city), never on reverse.
+    if (nextId !== null) cityTapHub.emit(nextId)
+  }
+
   // City/artifact interaction groups carry [data-interactive] (layers.ts), so
   // taps on their content opt out of empty-tap via the closest() check below.
+  // A city tap toggles: raise, or reverse when that city is already raised.
   // Phase 4: ignore `event.detail > 1` — the compat dblclick fired after a
   // double-tap zoom emits a spurious empty-tap that would fight the zoom.
   function onSceneClick(event: Event): void {
     const target = event.target
-    if (target instanceof Element && target.closest('[data-interactive]')) return
+    if (target instanceof Element && target.closest('[data-interactive]')) {
+      const cityId = target.closest('[data-city-id]')?.getAttribute('data-city-id')
+      if (cityId) applyCityState(cityId === raisedCityId ? null : cityId)
+      return // artifact taps opt out too — their semantics land in Phase 5
+    }
+    // Empty water / background: reverse any raised city, then notify.
+    applyCityState(null)
     emptyTapHub.emit()
   }
   sceneSvg.addEventListener('click', onSceneClick)
+
+  // Keyboard activation (SPEC §9): Enter/Space act exactly like a tap; Space
+  // is cancelled so the page never scrolls. Focus→camera fly is Phase 5.
+  function onCityKeyDown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    const id = (event.currentTarget as Element).getAttribute('data-city-id')
+    if (id) applyCityState(id === raisedCityId ? null : id)
+  }
+  for (const interaction of Object.values(calibrated.cities)) {
+    interaction.addEventListener('keydown', onCityKeyDown)
+  }
 
   // --- Phase 3 entrance choreography (SPEC §5) --------------------------------
   // ONE gsap.context around the entrance timeline — the camera owns its own
@@ -264,6 +331,11 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     destroy() {
       if (destroyed) return
       destroyed = true
+      // Revert the raise context BEFORE the entrance context: mid-raise
+      // teardown undoes every lift/dim style first, then the intro revert
+      // restores entrance-start styling — a StrictMode remount replays both
+      // from a clean slate.
+      cityCtx.revert()
       // Revert the entrance context BEFORE the rest: mid-intro teardown undoes
       // every gsap.set/tween style, and the <html> class goes with it — a
       // StrictMode remount then replays the intro from a clean slate.
@@ -294,7 +366,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     focusCity(id) {
       if (import.meta.env.DEV) {
         const known = id in data.maps ? '' : 'unknown city, '
-        console.warn(`[scene] focusCity('${id}'): ${known}Phase 1 stub — lands in Phase 4`)
+        console.warn(`[scene] focusCity('${id}'): ${known}camera fly lands in Phase 5`)
       }
     },
     focusArtifact(id) {
