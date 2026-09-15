@@ -4,7 +4,7 @@ import rawData from '../../data.json'
 import { validateComiteData } from '../data/schema'
 import type { ComiteData } from '../data/types'
 import { renderLabels, updateLabels } from './labels'
-import { mountCalibratedLayers, orgProjects } from './layers'
+import { ARTIFACT_BOB_STEP, mountCalibratedLayers, orgProjects, rSceneFor } from './layers'
 import type { Camera } from './types'
 
 const realData: ComiteData = validateComiteData(rawData)
@@ -130,6 +130,46 @@ describe('mountCalibratedLayers', () => {
       expect(ambient.getAttribute('transform')).toBeNull()
       expect(ambient.children.length).toBeGreaterThan(0)
     }
+  })
+
+  it('mounts one invisible hit circle per artifact with data-interactive routing', () => {
+    const { cameraNode, layers } = mountLayers()
+    expect(Object.keys(layers.hitCircles)).toHaveLength(11)
+    for (const [orgId, circle] of Object.entries(layers.hitCircles)) {
+      expect(circle.getAttribute('data-interactive')).toBe('artifact')
+      expect(circle.getAttribute('data-artifact-id')).toBe(orgId)
+      expect(circle.getAttribute('fill')).toBe('transparent') // invisible tap target
+      expect(Number(circle.getAttribute('r'))).toBeGreaterThan(0)
+    }
+    // circles live in the artifacts layer, one per artifact group
+    expect(cameraNode.querySelectorAll('#layer-artifacts circle[data-artifact-id]')).toHaveLength(
+      11,
+    )
+  })
+
+  it('rSceneFor: 12 CSS px floor, 40 ceiling, grows as zoom-out shrinks u', () => {
+    // u = measureA × k ≥ 1 → raw 12/u ≤ 12 → floor 12 dominates
+    expect(rSceneFor(1, 1)).toBe(12)
+    expect(rSceneFor(4, 1)).toBe(12)
+    expect(rSceneFor(1, 2)).toBe(12)
+    // zoomed out (u < 1): raw exceeds the floor, still under the ceiling
+    expect(rSceneFor(0.5, 1)).toBe(24)
+    // extreme zoom-out: ceiling clamp keeps neighbors tappable
+    expect(rSceneFor(1, 0.2)).toBe(40)
+  })
+
+  it('bob: ambient g gets .artifact-bob with stepped negative animation-delay', () => {
+    const { layers } = mountLayers()
+    const ids = Object.keys(layers.artifacts)
+    ids.forEach((orgId, i) => {
+      const ambient = layers.artifacts[orgId].firstElementChild as SVGGElement
+      expect(ambient.classList.contains('artifact-bob')).toBe(true)
+      expect(ambient.getAttribute('transform')).toBeNull() // no second transform owner
+      const expected = -i * ARTIFACT_BOB_STEP
+      expect(ambient.style.animationDelay).toBe(
+        `${expected === 0 ? '' : '-'}${Math.abs(expected)}s`,
+      )
+    })
   })
 
   it('places each totem with pos as its BASE point at ≈110 scene units tall', () => {

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ComiteData } from '../data/types'
+import { updatePillFade } from './labels'
 import { mountScene } from './mount'
 
 // jsdom ships no ResizeObserver; the camera owns one on the scene container.
@@ -26,6 +27,16 @@ const data: ComiteData = {
         na_cuia: {
           name: 'NA CUIA (BELÉM)',
           pos: { x: 1500, y: 1500, from: [{ x: 1590, y: 1430 }] },
+          conflitos: [],
+          acao: [],
+          identificacao_e_territorio: [],
+          futuro: [],
+          memoria: [],
+          identidade: [],
+        },
+        chibe: {
+          name: 'CHIBÉ',
+          pos: { x: 1200, y: 1200, from: [{ x: 1290, y: 1130 }] },
           conflitos: [],
           acao: [],
           identificacao_e_territorio: [],
@@ -108,10 +119,10 @@ describe('mountScene', () => {
     const labels = root!.querySelector('#labels')
     expect(labels!.getAttribute('aria-hidden')).toBe('true')
     // The fixture's one map renders its city name label AND one org pill
-    // (na_cuia carries pos for the intro/label-owner tests).
-    expect(labels!.childElementCount).toBe(2)
+    // (both fixture orgs carry pos → two pills) + the city name label.
+    expect(labels!.childElementCount).toBe(3)
     expect(labels!.querySelector('.label-city')!.textContent).toBe('Mapa de Belém')
-    expect(labels!.querySelector('.label-pill')!.textContent).toBe('NA CUIA (BELÉM)')
+    expect(labels!.querySelectorAll('.label-pill')).toHaveLength(2)
     c.destroy()
   })
 
@@ -306,6 +317,78 @@ describe('mountScene', () => {
     expect(empties).toEqual([1])
     expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
     c.destroy()
+  })
+
+  // ---- Phase 5: artifacts ----
+  /** Artifact interaction groups keyed by org id (mountCalibratedLayers). */
+  function artifactGroups(): Record<string, SVGGElement> {
+    return Object.fromEntries(
+      Array.from(host.querySelectorAll<SVGGElement>('#layer-artifacts g[data-artifact-id]')).map(
+        (g) => [g.getAttribute('data-artifact-id')!, g],
+      ),
+    )
+  }
+
+  it('artifact tap: emits artifact-tap, sets aria-pressed, single-select moves, toggle deselects', () => {
+    const c = mountScene(host, data)
+    const taps: string[] = []
+    c.on('artifact-tap', (id) => taps.push(id))
+    const groups = artifactGroups()
+    const circles = Object.fromEntries(
+      Array.from(
+        host.querySelectorAll<SVGCircleElement>('#layer-artifacts circle[data-artifact-id]'),
+      ).map((c) => [c.getAttribute('data-artifact-id')!, c]),
+    )
+    // select the first org (tap its hit circle — the real tap target)
+    circles['na_cuia'].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(taps).toEqual(['na_cuia'])
+    expect(groups['na_cuia'].getAttribute('aria-pressed')).toBe('true')
+    // selecting another MOVES the selection
+    circles['chibe'].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(taps).toEqual(['na_cuia', 'chibe'])
+    expect(groups['na_cuia'].getAttribute('aria-pressed')).toBe('false')
+    expect(groups['chibe'].getAttribute('aria-pressed')).toBe('true')
+    // toggling the selected one deselects (no emit — mirrors city reverse)
+    circles['chibe'].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(taps).toEqual(['na_cuia', 'chibe'])
+    expect(groups['chibe'].getAttribute('aria-pressed')).toBe('false')
+    // empty tap deselects silently
+    seaClick()
+    expect(groups['chibe'].getAttribute('aria-pressed')).toBe('false')
+    c.destroy()
+  })
+
+  it('artifact keyboard: Enter selects, Space deselects, Space never scrolls', () => {
+    const c = mountScene(host, data)
+    const taps: string[] = []
+    c.on('artifact-tap', (id) => taps.push(id))
+    const g = artifactGroups()['na_cuia']
+    g.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    expect(taps).toEqual(['na_cuia'])
+    expect(g.getAttribute('aria-pressed')).toBe('true')
+    const space = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+    g.dispatchEvent(space)
+    expect(space.defaultPrevented).toBe(true)
+    expect(g.getAttribute('aria-pressed')).toBe('false')
+    c.destroy()
+  })
+
+  it('pills-hidden: ±10% hysteresis around labelK (drives the same updatePillFade the controller calls)', () => {
+    const labels = document.createElement('div')
+    // below 0.9 → hidden
+    updatePillFade(labels, 0.8)
+    expect(labels.classList.contains('pills-hidden')).toBe(true)
+    // inside the hysteresis band → unchanged (still hidden)
+    updatePillFade(labels, 1.0)
+    expect(labels.classList.contains('pills-hidden')).toBe(true)
+    // above 1.1 → shown
+    updatePillFade(labels, 1.2)
+    expect(labels.classList.contains('pills-hidden')).toBe(false)
+    // falling back in from above does NOT re-hide inside the band
+    updatePillFade(labels, 1.0)
+    expect(labels.classList.contains('pills-hidden')).toBe(false)
+    updatePillFade(labels, 0.8)
+    expect(labels.classList.contains('pills-hidden')).toBe(true)
   })
 
   it('keyboard: Enter raises, Space reverses, and Space never scrolls', () => {

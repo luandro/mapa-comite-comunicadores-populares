@@ -32,6 +32,8 @@ export interface CalibratedLayers {
   squiggles: SVGGElement
   cities: Record<string, SVGGElement>
   artifacts: Record<string, SVGGElement>
+  /** Artifact hit circle per org id — r rewritten per camera frame (mount.ts). */
+  hitCircles: Record<string, SVGCircleElement>
   arrows: SVGGElement
 }
 
@@ -61,6 +63,68 @@ export const WAVE_DRIFT_BY_BAND: Record<
 }
 /** Ondinhas drift ±40 band-local units + opacity pulse, both alternate. */
 export const SQUIGGLE_MOTION = { duration: 12, pulseDuration: 6 } as const
+
+/* Phase 5 artifact interaction tuning (SPEC §5/§9 / TODO Phase 5). */
+
+/**
+ * Hit-circle sizing (AGENTS invariant 8): the rendered tap diameter must stay
+ * ≥ 24 CSS px at every zoom. `u = measureCtm.a × k` maps scene units to CSS
+ * px through the measurement owner's camera-free CTM, so the scene radius is
+ * `max(base, 12/u)` clamped to a sane ceiling so circles never swallow
+ * neighboring artifacts at k = 1. Pure math — mount.ts feeds it per frame.
+ */
+export const HIT_MIN_RADIUS_PX = 12
+export const HIT_BASE_R = 12
+export const HIT_MAX_R = 40
+
+export function rSceneFor(k: number, measureA: number): number {
+  const u = Math.max(measureA * k, Number.EPSILON) // never divide by zero
+  return Math.min(HIT_MAX_R, Math.max(HIT_BASE_R, HIT_MIN_RADIUS_PX / u))
+}
+
+/**
+ * Idle bob (SPEC §5): per-artifact negative animation-delay step in seconds
+ * (inline style on the ambient g — keyframes + duration live in scene.css).
+ */
+export const ARTIFACT_BOB_STEP = 0.37
+
+/**
+ * Arrow stroke length for the Phase 5 dash-draw redraw. Measured, never
+ * derived: `getTotalLength()` with the same authored-`d` quadratic fallback
+ * intro.ts uses (jsdom ships no path math).
+ */
+const FALLBACK_ARROW_LENGTH = 200
+
+function quadLength(d: string): number {
+  const n = d.match(/-?[\d.]+/g)?.map(Number) ?? []
+  if (n.length < 6 || n.some((v) => !Number.isFinite(v))) return FALLBACK_ARROW_LENGTH
+  const [x0, y0, cx, cy, x1, y1] = n.slice(0, 6) as [number, number, number, number, number, number]
+  let length = 0
+  let px = x0
+  let py = y0
+  const steps = 24
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps
+    const x = (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * cx + t * t * x1
+    const y = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * cy + t * t * y1
+    length += Math.hypot(x - px, y - py)
+    px = x
+    py = y
+  }
+  return length
+}
+
+export function arrowPathLength(path: SVGPathElement): number {
+  try {
+    if (typeof path.getTotalLength === 'function') {
+      const measured = path.getTotalLength()
+      if (Number.isFinite(measured) && measured > 0) return measured
+    }
+  } catch {
+    // not implemented (jsdom) — fall through to the authored-`d` estimate
+  }
+  return quadLength(path.getAttribute('d') ?? '')
+}
 
 /** Totem height in scene units — first-pass sizing, recalibrated in Phase 1.5. */
 const TOTEM_HEIGHT = 110
@@ -259,10 +323,15 @@ function mountCities(cameraNode: SVGGElement, data: ComiteData): Record<string, 
   return cities
 }
 
-function mountArtifacts(cameraNode: SVGGElement, data: ComiteData): Record<string, SVGGElement> {
+function mountArtifacts(
+  cameraNode: SVGGElement,
+  data: ComiteData,
+): { artifacts: Record<string, SVGGElement>; hitCircles: Record<string, SVGCircleElement> } {
   const layer = svg('g')
   layer.id = 'layer-artifacts'
   const artifacts: Record<string, SVGGElement> = {}
+  const hitCircles: Record<string, SVGCircleElement> = {}
+  let index = 0
   for (const [orgId, project] of orgProjects(data)) {
     const pos = project.pos
     if (!pos) continue // no calibrated position yet — renders nothing (Phase 5)
@@ -278,15 +347,42 @@ function mountArtifacts(cameraNode: SVGGElement, data: ComiteData): Record<strin
     const interaction = svg('g')
     interaction.setAttribute('data-interactive', 'artifact')
     interaction.setAttribute('data-artifact-id', orgId)
-    const ambient = svg('g') // Phase 5 bob target — no transform yet
+    // Phase 5 (SPEC §9): real button semantics like the cities — focusable,
+    // labeled from data.json, aria-pressed is mount.ts's selection reflection.
+    interaction.setAttribute('tabindex', '0')
+    interaction.setAttribute('role', 'button')
+    interaction.setAttribute('aria-label', project.name)
+    interaction.setAttribute('aria-pressed', 'false')
+    // Ambient g owns the Phase 5 idle bob — CSS ONLY, never GSAP (invariant 6:
+    // the intro drop + tap pulse tween the INTERACTION g, exactly one
+    // transform owner per node). Per-artifact negative delay desyncs the loop.
+    const ambient = svg('g')
+    ambient.classList.add('artifact-bob')
+    ambient.style.animationDelay = `${-(index * ARTIFACT_BOB_STEP)}s`
     adoptChildren(ambient, content)
     interaction.appendChild(ambient)
     placement.appendChild(interaction)
     layer.appendChild(placement)
+    // Invisible hit circle at pos (SPEC §9 / invariant 8): the actual tap
+    // target, comfortably larger than the totem art at every zoom. It lives
+    // INSIDE the interaction g (a click bubbles up through
+    // [data-interactive][data-artifact-id] into mount.ts's artifact branch)
+    // but carries NO classes/animation — its r attribute is rewritten per
+    // camera frame by mount.ts (a node d3-zoom already moves; never tweened).
+    const hit = svg('circle')
+    hit.setAttribute('cx', String(pos.x))
+    hit.setAttribute('cy', String(pos.y))
+    hit.setAttribute('r', String(HIT_BASE_R))
+    hit.setAttribute('fill', 'transparent')
+    hit.setAttribute('data-interactive', 'artifact')
+    hit.setAttribute('data-artifact-id', orgId)
+    layer.appendChild(hit)
     artifacts[orgId] = interaction
+    hitCircles[orgId] = hit
+    index++
   }
   cameraNode.appendChild(layer)
-  return artifacts
+  return { artifacts, hitCircles }
 }
 
 function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
@@ -307,7 +403,7 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
   marker.appendChild(head)
   defs.appendChild(marker)
   layer.appendChild(defs)
-  for (const [, project] of orgProjects(data)) {
+  for (const [orgId, project] of orgProjects(data)) {
     const pos = project.pos
     if (!pos) continue
     for (const from of pos.from) {
@@ -318,6 +414,8 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
       path.setAttribute('stroke-width', String(ARROW_STROKE))
       path.setAttribute('stroke-linecap', 'round')
       path.setAttribute('marker-end', `url(#${marker.id})`)
+      // Phase 5: org ownership lets mount.ts redraw one org's arrows on tap.
+      path.setAttribute('data-arrow-org', orgId)
       layer.appendChild(path)
       // Decorative source dot (SPEC §9 — never focusable; no tabindex).
       const dot = svg('circle')
@@ -347,7 +445,7 @@ export function mountCalibratedLayers(
   const waves = mountWaves(cameraNode)
   const squiggles = mountSquiggles(cameraNode)
   const cities = mountCities(cameraNode, data)
-  const artifacts = mountArtifacts(cameraNode, data)
+  const { artifacts, hitCircles } = mountArtifacts(cameraNode, data)
   const arrows = mountArrows(cameraNode, data)
-  return { waves, squiggles, cities, artifacts, arrows }
+  return { waves, squiggles, cities, artifacts, hitCircles, arrows }
 }

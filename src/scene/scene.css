@@ -48,6 +48,51 @@
   pointer-events: none;
 }
 
+/* --- Phase 5 artifacts (SPEC §5/§9) ----------------------------------------- */
+
+/* Idle bob on the artifact AMBIENT g (class + inline animation-delay from
+   layers.ts). CSS only — the intro drop and the tap pulse tween the
+   INTERACTION g, so each node keeps exactly one transform owner (invariant 6).
+   ±6 scene/px units, alternate = the yoyo. */
+@keyframes artifact-bob {
+  from {
+    transform: translateY(-6px);
+  }
+  to {
+    transform: translateY(6px);
+  }
+}
+
+.artifact-bob {
+  animation-name: artifact-bob;
+  animation-duration: 2.4s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+/* document.hidden pauses the bob with every other ambient loop. */
+.scene-hidden .artifact-bob {
+  animation-play-state: paused;
+}
+
+/* Focusable artifact interaction g (role=button, tabindex=0 — layers.ts):
+   visible keyboard focus ring, :focus-visible only so a pointer tap never
+   paints it (same pattern as the city rings above). */
+g[data-artifact-id]:focus-visible {
+  outline: 3px solid #304e23;
+  outline-offset: 2px;
+}
+
+/* Zoom-gated pill fade (SPEC §5, mobile only — mount.ts applies it only when
+   isMobile()): opacity/visibility ONLY. The .label anchors keep positioning
+   per frame; hit targets, aria and focus are never touched. City labels are
+   NOT pills and stay visible. */
+.pills-hidden .label-pill {
+  opacity: 0;
+  visibility: hidden;
+}
+
 .label-pill {
   /* offset around the anchor is GSAP property (labels.ts) — not CSS transform */
   transform-origin: center;
@@ -59,6 +104,9 @@
   font-family: system-ui, sans-serif;
   font-size: 14px;
   white-space: nowrap;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
 }
 
 .label-city {
@@ -136,7 +184,8 @@
    (not the shorthand) so inline duration/delay longhands are simply ignored. */
 @media (prefers-reduced-motion: reduce) {
   .wave-drift,
-  .squiggle-drift {
+  .squiggle-drift,
+  .artifact-bob {
     animation-name: none;
   }
 }

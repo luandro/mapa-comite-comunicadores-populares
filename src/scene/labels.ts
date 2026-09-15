@@ -114,3 +114,38 @@ export function updateLabels(el: HTMLElement, state: TransformState, measureCtm:
     child.style.transform = `translate(${px}px, ${py}px)`
   }
 }
+
+/* Phase 5: zoom-gated pill fade (SPEC §5 / TODO Phase 5, mobile only). */
+
+/** Class toggled on #labels by updatePillFade; rules live in scene.css. */
+export const PILLS_HIDDEN_CLASS = 'pills-hidden'
+
+/**
+ * Hysteresis band around `labelK` (±10%, TODO Phase 5): zooming below
+ * `labelK × 0.9` hides the pills, zooming back above `labelK × 1.1` shows
+ * them; inside the band the previous state holds (no flicker at the edge).
+ */
+export const LABEL_K = 1
+export const PILL_FADE_LOW = 0.9
+export const PILL_FADE_HIGH = 1.1
+
+/** The hide decision at the band's lower edge (pure — unit-tested). */
+export function pillsHiddenFor(k: number, labelK = LABEL_K): boolean {
+  return k < labelK * PILL_FADE_LOW
+}
+
+/**
+ * Apply the zoom gate to the labels layer — opacity/visibility ONLY (the
+ * .pills-hidden rules in scene.css); hit targets, aria and focus are never
+ * touched (hard constraint). True ±10% hysteresis: the class itself is the
+ * state bit, so k inside the band (0.9·labelK, 1.1·labelK] keeps whatever
+ * the last decision was.
+ */
+export function updatePillFade(el: HTMLElement, k: number, labelK = LABEL_K): void {
+  const hidden = el.classList.contains(PILLS_HIDDEN_CLASS)
+  if (hidden) {
+    if (k > labelK * PILL_FADE_HIGH) el.classList.remove(PILLS_HIDDEN_CLASS)
+  } else if (pillsHiddenFor(k, labelK)) {
+    el.classList.add(PILLS_HIDDEN_CLASS)
+  }
+}

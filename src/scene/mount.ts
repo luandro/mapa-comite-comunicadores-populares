@@ -20,8 +20,14 @@ import {
   primeIntroTargets,
 } from './intro'
 import type { IntroTargets } from './intro'
-import { mountCalibratedLayers, orgProjects } from './layers'
-import { createLabelsLayer, IDENTITY_CTM, renderLabels, updateLabels } from './labels'
+import { mountCalibratedLayers, orgProjects, rSceneFor, arrowPathLength } from './layers'
+import {
+  createLabelsLayer,
+  IDENTITY_CTM,
+  renderLabels,
+  updateLabels,
+  updatePillFade,
+} from './labels'
 import { cityPlacements } from './placements'
 import { assertBaseCounts, partitionBase } from './partition'
 import { initialFraming } from './placements'
@@ -86,6 +92,15 @@ const CITY_VIEWBOX: Record<'belem' | 'ananindeua' | 'moju', [number, number]> = 
   ananindeua: [625.23, 618.08],
   moju: [741.7, 1131.89],
 }
+
+/* Phase 5 artifact interaction tuning (SPEC §5 / TODO Phase 5). */
+const ARTIFACT_PULSE_SCALE = 1.15 // tap pulse peak (1 → 1.15 → rest, 0.4 s)
+const ARTIFACT_PULSE_DURATION = 0.4
+const ARTIFACT_SELECTED_SCALE = 1.08 // persistent scale while selected
+const ARTIFACT_SETTLE_DURATION = 0.35
+const ARROW_REDRAW_DURATION = 0.6 // per-org dash-draw re-run on tap
+/** focusArtifact flies to a box this many scene units around the org pos. */
+const ARTIFACT_FOCUS_BOX = 120
 
 export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   // DOM: .scene-root > svg#scene > g#camera > 4 base layers; plus svg#measure and
@@ -165,10 +180,24 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     if (project.pos) artifactAnchors[orgId] = { x: project.pos.x, y: project.pos.y }
   }
   renderLabels(labels.el, data, artifactAnchors)
+  const mobile = isMobile()
   const positionLabels = (state: TransformState) => {
     // jsdom ships no getScreenCTM at all (and browsers return null pre-layout)
     // — IDENTITY_CTM keeps the math defined either way.
-    updateLabels(labels.el, state, measureSvg.getScreenCTM?.() ?? IDENTITY_CTM)
+    const measureCtm = measureSvg.getScreenCTM?.() ?? IDENTITY_CTM
+    updateLabels(labels.el, state, measureCtm)
+    // Phase 5 (SPEC §5, mobile only): zoom-gated pill fade with ±10%
+    // hysteresis inside updatePillFade — opacity/visibility only.
+    if (mobile) updatePillFade(labels.el, state.k)
+    // Phase 5 (AGENTS invariant 8): keep every artifact hit circle ≥ 24 CSS px
+    // in diameter at every zoom. u = measureCtm.a × k with k from the
+    // CONTROLLER state carried in this callback (never a DOM camera read);
+    // measureCtm is the measurement owner's camera-free CTM — the same source
+    // updateLabels projects through, by construction.
+    const r = rSceneFor(state.k, measureCtm.a)
+    for (const circle of Object.values(calibrated.hitCircles)) {
+      circle.setAttribute('r', String(r))
+    }
   }
   const offLabels = transformHub.on(positionLabels)
   positionLabels(camera.getState()) // camera's initial frame predated this subscription
@@ -224,6 +253,95 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     if (nextId !== null) cityTapHub.emit(nextId)
   }
 
+  // --- Phase 5: artifact tap = select + pulse + arrow redraw (SPEC §5) -------
+  // Same single-owner pattern as the city raise above: `selectedArtifactId`
+  // is the only selection-state owner; each interaction g's aria-pressed is
+  // its DOM reflection. Every tween lives in the artifact context (reverted
+  // in destroy()); GSAP touches ONLY the interaction g — the ambient g keeps
+  // its CSS bob and the placement g keeps its transform attribute (invariant 6).
+  // The pulse scales about the totem's BASE point ('50% 100%') so pos never
+  // slides while the artifact breathes.
+  let selectedArtifactId: string | null = null
+  const artifactCtx = gsap.context(() => {}, sceneSvg)
+
+  /** Re-run the Phase 3 dash-draw for ONE org's arrows (~0.6 s, SPEC §5). */
+  function redrawOrgArrows(orgId: string): void {
+    const paths = Array.from(
+      calibrated.arrows.querySelectorAll<SVGPathElement>(`path[data-arrow-org="${orgId}"]`),
+    )
+    if (!paths.length) return
+    artifactCtx.add(() => {
+      for (const path of paths) {
+        // Same scaffolding + settle pattern as the intro draw (intro.ts):
+        // dash to full length, ramp opacity across the draw so the marker-end
+        // arrowhead only appears as the stroke reaches it, then clear the dash
+        // attributes so no hairline dashes linger at rest.
+        const length = arrowPathLength(path)
+        path.setAttribute('stroke-dasharray', String(length))
+        path.setAttribute('stroke-dashoffset', String(length))
+        gsap.set(path, { opacity: 0 })
+        gsap.to(path, {
+          opacity: 1,
+          attr: { 'stroke-dashoffset': 0 },
+          duration: reduceMotion ? 0 : ARROW_REDRAW_DURATION,
+          ease: 'power1.inOut',
+          overwrite: 'auto',
+          onComplete: () => {
+            path.removeAttribute('stroke-dasharray')
+            path.removeAttribute('stroke-dashoffset')
+          },
+        })
+      }
+    })
+  }
+
+  function applyArtifactState(nextId: string | null, opts: { pulse?: boolean } = {}): void {
+    // No state change and no pulse requested → no tween, no emit.
+    if (nextId === selectedArtifactId && !opts.pulse) return
+    // Settle the entrance first (same reasoning as applyCityState): the intro's
+    // artifact tween ends at y:0/opacity:1 and would erase the selected scale.
+    if (!introDone) skipIntro()
+    selectedArtifactId = nextId
+    for (const [id, interaction] of Object.entries(calibrated.artifacts)) {
+      const selected = id === nextId
+      interaction.setAttribute('aria-pressed', String(selected))
+      const scale = selected ? ARTIFACT_SELECTED_SCALE : 1
+      artifactCtx.add(() => {
+        if (opts.pulse && selected && !reduceMotion) {
+          // Tap pulse: 1 → 1.15 → settled scale over 0.4 s total (SPEC §5).
+          // The second tween settles at the persistent selected scale.
+          gsap
+            .timeline()
+            .to(interaction, {
+              scale: ARTIFACT_PULSE_SCALE,
+              transformOrigin: '50% 100%',
+              duration: ARTIFACT_PULSE_DURATION / 2,
+              ease: 'power2.out',
+            })
+            .to(interaction, {
+              scale,
+              transformOrigin: '50% 100%',
+              duration: ARTIFACT_PULSE_DURATION / 2,
+              ease: 'power2.in',
+            })
+        } else {
+          // Reduced-motion: no pulse animation — jump straight to the state.
+          gsap.to(interaction, {
+            scale,
+            transformOrigin: '50% 100%',
+            duration: reduceMotion ? 0 : ARTIFACT_SETTLE_DURATION,
+            ease: 'power2.out',
+            overwrite: 'auto',
+          })
+        }
+      })
+    }
+    if (opts.pulse && nextId !== null) redrawOrgArrows(nextId)
+    // artifact-tap fires on selection (a state CHANGE to an artifact), mirroring
+    // city-tap; the deselect is a settle, not a change.
+    if (nextId !== null) artifactTapHub.emit(nextId)
+  }
+
   // City/artifact interaction groups carry [data-interactive] (layers.ts), so
   // taps on their content opt out of empty-tap via the closest() check below.
   // A city tap toggles: raise, or reverse when that city is already raised.
@@ -237,11 +355,23 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     const target = event.target
     if (target instanceof Element && target.closest('[data-interactive]')) {
       const cityId = target.closest('[data-city-id]')?.getAttribute('data-city-id')
-      if (cityId) applyCityState(cityId === raisedCityId ? null : cityId)
-      return // artifact taps opt out too — their semantics land in Phase 5
+      if (cityId) {
+        applyCityState(cityId === raisedCityId ? null : cityId)
+        return
+      }
+      // Phase 5: hit circles/art totems live inside the artifact interaction
+      // g — a tap routes through [data-interactive] into select/pulse/redraw.
+      const artifactId = target.closest('[data-artifact-id]')?.getAttribute('data-artifact-id')
+      if (artifactId && artifactId in calibrated.artifacts) {
+        applyArtifactState(artifactId === selectedArtifactId ? null : artifactId, { pulse: true })
+        return
+      }
+      return
     }
-    // Empty water / background: reverse any raised city, then notify.
+    // Empty water / background: reverse any raised city, deselect any
+    // artifact (settle, no emit — mirrors the city reverse), then notify.
     applyCityState(null)
+    applyArtifactState(null)
     emptyTapHub.emit()
   }
   sceneSvg.addEventListener('click', onSceneClick)
@@ -254,6 +384,14 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     event.preventDefault()
     const id = (event.currentTarget as Element).getAttribute('data-city-id')
     if (id) applyCityState(id === raisedCityId ? null : id)
+  }
+  function onArtifactKeyDown(event: KeyboardEvent): void {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    const id = (event.currentTarget as Element).getAttribute('data-artifact-id')
+    if (id && id in calibrated.artifacts) {
+      applyArtifactState(id === selectedArtifactId ? null : id, { pulse: true })
+    }
   }
   function onCityFocusIn(event: FocusEvent): void {
     const target = event.currentTarget as Element
@@ -280,6 +418,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   for (const interaction of Object.values(calibrated.cities)) {
     interaction.addEventListener('keydown', onCityKeyDown)
     interaction.addEventListener('focusin', onCityFocusIn)
+  }
+  for (const interaction of Object.values(calibrated.artifacts)) {
+    interaction.addEventListener('keydown', onArtifactKeyDown)
   }
 
   // --- Phase 3 entrance choreography (SPEC §5) --------------------------------
@@ -364,13 +505,6 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     }
   }
 
-  function isKnownArtifact(id: string): boolean {
-    for (const city of Object.values(data.maps)) {
-      if (id in city.projects) return true
-    }
-    return false
-  }
-
   let destroyed = false
 
   return {
@@ -382,6 +516,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       // restores entrance-start styling — a StrictMode remount replays both
       // from a clean slate.
       cityCtx.revert()
+      // Artifact context reverts with the same ordering rationale (pulse/
+      // selection/arrow-redraw styles undone before the intro revert).
+      artifactCtx.revert()
       // Revert the entrance context BEFORE the rest: mid-intro teardown undoes
       // every gsap.set/tween style, and the <html> class goes with it — a
       // StrictMode remount then replays the intro from a clean slate.
@@ -430,10 +567,22 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       })
     },
     focusArtifact(id) {
-      if (import.meta.env.DEV) {
-        const known = isKnownArtifact(id) ? '' : 'unknown artifact, '
-        console.warn(`[scene] focusArtifact('${id}'): ${known}Phase 1 stub — lands in Phase 5`)
+      // Gate on the MOUNTED set (an org with no calibrated pos renders no
+      // artifact — same pattern as focusCity vs. data.maps).
+      if (!(id in calibrated.artifacts)) {
+        if (import.meta.env.DEV) console.warn(`[scene] focusArtifact('${id}'): unknown artifact`)
+        return
       }
+      const anchor = artifactAnchors[id] // pos from data.json (org → anchor map above)
+      // Select (+ pulse + arrow redraw), then fly to a box around the pos
+      // (SPEC §5 focus mirrors focusCity: clamped + fitted by the camera).
+      applyArtifactState(id, { pulse: true })
+      camera.flyTo({
+        x: anchor.x - ARTIFACT_FOCUS_BOX,
+        y: anchor.y - ARTIFACT_FOCUS_BOX,
+        width: ARTIFACT_FOCUS_BOX * 2,
+        height: ARTIFACT_FOCUS_BOX * 2,
+      })
     },
     skipIntro,
     onIntroDone(cb) {
