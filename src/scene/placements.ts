@@ -33,9 +33,9 @@ export const initialFraming: Point = { x: SCENE_WIDTH / 2, y: SCENE_HEIGHT / 2 }
  * (per `Mapa.jpeg` composition).
  */
 export const cityPlacements: Record<'belem' | 'ananindeua' | 'moju', CityPlacement> = {
-  belem: { x: 300, y: 740, scale: 0.66, labelAnchor: { x: 683, y: 1078 } },
-  ananindeua: { x: 1900, y: 380, scale: 1, labelAnchor: { x: 2212, y: 689 } },
-  moju: { x: 2150, y: 850, scale: 0.55, labelAnchor: { x: 2354, y: 1161 } },
+  belem: { x: 1004, y: 22, scale: 0.6787, labelAnchor: { x: 1412, y: 380 } },
+  ananindeua: { x: 1366, y: 39, scale: 1.1611, labelAnchor: { x: 1745, y: 382 } },
+  moju: { x: 64, y: 858, scale: 0.7212, labelAnchor: { x: 337, y: 1258 } },
 }
 
 /**
