@@ -6,7 +6,16 @@
         "rede_casacura": {
           "name": "REDE CASACURA (Comunidade do Açaizal / Jaderlândia)",
           "icon": "icone-6",
-          "pos": { "x": 2050, "y": 980, "from": [{ "x": 2160, "y": 890 }] },
+          "pos": {
+            "x": 1882,
+            "y": 738,
+            "from": [
+              {
+                "x": 1972,
+                "y": 668
+              }
+            ]
+          },
           "conflitos": [
             "Direito à cidade negado ou dificultado",
             "Transporte público precário",
@@ -67,7 +76,16 @@
         "rede_afroamazonida": {
           "name": "REDE AFROAMAZÔNIDA",
           "icon": "icone-6",
-          "pos": { "x": 2380, "y": 1080, "from": [{ "x": 2490, "y": 990 }] },
+          "pos": {
+            "x": 2230,
+            "y": 184,
+            "from": [
+              {
+                "x": 2320,
+                "y": 114
+              }
+            ]
+          },
           "conflitos": [
             "Governança Racista do município e dos conjuntos (Nível Territorial)",
             "Falta de Financiamento (nível territorial e nacional)",
@@ -104,7 +122,16 @@
         "centro_educacao_popular": {
           "name": "CENTRO DE EDUCAÇÃO POPULAR E CULTURA DOMINGOS DA SILVA (C.E.P.C.D.S)",
           "icon": "icone-6",
-          "pos": { "x": 2600, "y": 900, "from": [{ "x": 2710, "y": 810 }] },
+          "pos": {
+            "x": 2321,
+            "y": 712,
+            "from": [
+              {
+                "x": 2411,
+                "y": 642
+              }
+            ]
+          },
           "conflitos": [
             "Luta pela conquista legal do espaço",
             "Luta contra o lixo",
@@ -137,7 +164,16 @@
         "museu_memorial_vila_da_barca": {
           "name": "MUSEU MEMORIAL VILA DA BARCA (MMVB)",
           "icon": "icone-6",
-          "pos": { "x": 700, "y": 1050, "from": [{ "x": 810, "y": 960 }] },
+          "pos": {
+            "x": 1139,
+            "y": 175,
+            "from": [
+              {
+                "x": 1229,
+                "y": 105
+              }
+            ]
+          },
           "conflitos": [
             "Pressão atmosférica",
             "Omissão estatal",
@@ -169,7 +205,16 @@
         "na_cuia": {
           "name": "NA CUIA",
           "icon": "icone-6",
-          "pos": { "x": 1600, "y": 1480, "from": [{ "x": 1710, "y": 1390 }] },
+          "pos": {
+            "x": 1109,
+            "y": 1325,
+            "from": [
+              {
+                "x": 1199,
+                "y": 1255
+              }
+            ]
+          },
           "conflitos": [
             "No digital, Redes virtuais e internet: crescente de discursos de ódio; Redpill; nazismo (neo); racismo algoritmo; Bigtechs nos territórios"
           ],
@@ -187,7 +232,16 @@
         "cooperativa_audiovisual_caba": {
           "name": "COOPERATIVA DE AUDIOVISUAL, BEM VIVER E ARTE (CABA)",
           "icon": "icone-6",
-          "pos": { "x": 950, "y": 1350, "from": [{ "x": 1060, "y": 1260 }] },
+          "pos": {
+            "x": 654,
+            "y": 405,
+            "from": [
+              {
+                "x": 744,
+                "y": 335
+              }
+            ]
+          },
           "conflitos": [
             "Tucunduba",
             "Lixo",
@@ -221,7 +275,16 @@
         "fogo_no_rabo": {
           "name": "FOGO NO RABO",
           "icon": "icone-6",
-          "pos": { "x": 1250, "y": 1720, "from": [{ "x": 1360, "y": 1630 }] },
+          "pos": {
+            "x": 1442,
+            "y": 1334,
+            "from": [
+              {
+                "x": 1532,
+                "y": 1264
+              }
+            ]
+          },
           "conflitos": [
             "Baixada do Marco falta área de lazer como praças públicas para crianças",
             "Posto de Sáude e Projetos culturais",
@@ -247,7 +310,16 @@
         "quilombo_do_baixo_guajara_una": {
           "name": "QUILOMBO DO BAIXO GUAJARÁ-UNA",
           "icon": "icone-6",
-          "pos": { "x": 1750, "y": 1120, "from": [{ "x": 1860, "y": 1030 }] },
+          "pos": {
+            "x": 700,
+            "y": 1368,
+            "from": [
+              {
+                "x": 790,
+                "y": 1298
+              }
+            ]
+          },
           "conflitos": [
             "Insegurança nutricional",
             "Educação sexual",
@@ -298,7 +370,16 @@
         "espaco_cultural_ruth_costa": {
           "name": "ESPAÇO CULTURAL RUTH COSTA",
           "icon": "icone-6",
-          "pos": { "x": 2050, "y": 1600, "from": [{ "x": 2160, "y": 1510 }] },
+          "pos": {
+            "x": 2094,
+            "y": 516,
+            "from": [
+              {
+                "x": 2184,
+                "y": 446
+              }
+            ]
+          },
           "conflitos": [
             "Especulação Imobiliária",
             "Transporte Público Mobilidade Ativa",
@@ -326,7 +407,16 @@
         "hip_hop": {
           "name": "HIP-HOP",
           "icon": "icone-6",
-          "pos": { "x": 2450, "y": 1450, "from": [{ "x": 2560, "y": 1360 }] },
+          "pos": {
+            "x": 1791,
+            "y": 1334,
+            "from": [
+              {
+                "x": 1881,
+                "y": 1264
+              }
+            ]
+          },
           "conflitos": [
             "As violências por parte do estado sobre as ações e outras iniciativas",
             "Violência contra as mulheres que fazem a cultura e constroí o movimento"
@@ -355,7 +445,16 @@
         "chibe": {
           "name": "CHIBÉ",
           "icon": "icone-6",
-          "pos": { "x": 1450, "y": 950, "from": [{ "x": 1560, "y": 860 }] },
+          "pos": {
+            "x": 2139,
+            "y": 1053,
+            "from": [
+              {
+                "x": 2229,
+                "y": 983
+              }
+            ]
+          },
           "conflitos": [
             "Mobilidade Urbana (Transporte, Ciclofaixa, Sinalizações)",
             "Saneamento básica (Poluição de rios e falta de água)",

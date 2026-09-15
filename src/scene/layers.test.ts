@@ -125,12 +125,13 @@ describe('mountCalibratedLayers', () => {
     const { layers } = mountLayers()
     // icone-6 viewBox ground truth: 337.23 × 618.08 (SPEC §1)
     const scale = 110 / 618.08
-    const placement = layers.artifacts.na_cuia.parentElement! // pos = (1600, 1480)
+    const placement = layers.artifacts.na_cuia.parentElement! // pos from data.json
+    const pos = realData.maps.belem.projects.na_cuia.pos!
     const match = placement
       .getAttribute('transform')!
       .match(/^translate\((-?[\d.]+),(-?[\d.]+)\) scale\([\d.]+\)$/)!
-    expect(Number(match[1])).toBeCloseTo(1600 - (337.23 * scale) / 2, 2)
-    expect(Number(match[2])).toBeCloseTo(1480 - 110, 1)
+    expect(Number(match[1])).toBeCloseTo(pos.x - (337.23 * scale) / 2, 2)
+    expect(Number(match[2])).toBeCloseTo(pos.y - 110, 1)
   })
 
   it('defaults an unknown icon to icone-6 with a console warning', () => {
@@ -207,12 +208,14 @@ describe('labels', () => {
     expect(firstPill.textContent).toBe('REDE CASACURA (Comunidade do Açaizal / Jaderlândia)')
     expect(el.querySelector('[data-label-id="city:belem"]')!.textContent).toBe('Mapa de Belém')
 
-    // screen = ctm · (k·point + [tx, ty]) — camera translation INCLUDED or pans drift
+    // sx = 1.5·pos.x + 100; sy = 1.5·pos.y + 50 (pos from data.json)
+    const pos = realData.maps.belem.projects.na_cuia.pos!
     const ctm = { a: 2, b: 0, c: 0, d: 2, e: 10, f: 20 } as DOMMatrix
     updateLabels(el, { x: 100, y: 50, k: 1.5 }, ctm)
     const anchor = el.querySelector<HTMLDivElement>('[data-label-id="na_cuia"]')!
-    // sx = 1.5·1600 + 100 = 2500; sy = 1.5·1480 + 50 = 2270
-    // px = 2·2500 + 10 = 5010;  py = 2·2270 + 20 = 4560
-    expect(anchor.style.transform).toBe('translate(5010px, 4560px)')
+    const sx = 1.5 * pos.x + 100
+    const sy = 1.5 * pos.y + 50
+    // px = 2·sx + 10;  py = 2·sy + 20
+    expect(anchor.style.transform).toBe(`translate(${2 * sx + 10}px, ${2 * sy + 20}px)`)
   })
 })

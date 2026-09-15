@@ -1,4 +1,3 @@
-import { SCENE_HEIGHT, SCENE_WIDTH } from '../data/constants'
 import type { Point } from '../data/types'
 
 /**
@@ -22,10 +21,11 @@ export interface CityPlacement extends Placement {
 
 /**
  * Scene-coordinate focus point: at k = 1 the viewport centers on it (then
- * clamps); `reset()` returns to it. Placeholder center — the real point is
- * chosen at the Phase 1.5 calibration pass (densest org cluster, not water).
+ * clamps); `reset()` returns to it. Chosen at Phase 1.5 calibration: the
+ * densest org cluster (Belém mainland bottom-center: Na Cuia / Fogo no Rabo /
+ * Hip-Hop / Quilombo), so portrait first paint centers content, not water.
  */
-export const initialFraming: Point = { x: SCENE_WIDTH / 2, y: SCENE_HEIGHT / 2 }
+export const initialFraming: Point = { x: 1450, y: 1250 }
 
 /**
  * City land-mass placements — first pass, uniform scale only (SPEC §3).
@@ -55,7 +55,7 @@ export const wavePlacements: Record<'onda1' | 'onda2' | 'onda4', Placement> = {
  * Water squiggle texture. Like the wave bands, the width-fit scale
  * (SCENE_WIDTH / viewBox width ≈ 1.3994) composes with `scale`.
  */
-export const squigglePlacement: Placement = { x: 0, y: 0 }
+export const squigglePlacement: Placement = { x: 0, y: 32 }
 
 /**
  * DEV calibration-tool default for the `Mapa.jpeg` underlay (1599×899):
