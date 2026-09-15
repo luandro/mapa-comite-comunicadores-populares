@@ -150,6 +150,14 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   }
   sceneSvg.addEventListener('click', onSceneClick)
 
+  // Phase 2 ambient motion: document.hidden pauses every loop via .scene-hidden
+  // (scene.css sets animation-play-state: paused on .wave-drift/.squiggle-drift).
+  // The listener is reverted in destroy().
+  function onVisibilityChange(): void {
+    root.classList.toggle('scene-hidden', document.hidden)
+  }
+  document.addEventListener('visibilitychange', onVisibilityChange)
+
   function on(event: 'artifact-tap' | 'city-tap', cb: (id: string) => void): () => void
   function on(event: 'empty-tap', cb: () => void): () => void
   function on(event: string, cb: (id: never) => void): () => void {
@@ -178,6 +186,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     destroy() {
       if (destroyed) return
       destroyed = true
+      document.removeEventListener('visibilitychange', onVisibilityChange)
       camera.destroy()
       offLabels()
       labels.destroy()

@@ -73,3 +73,71 @@
   letter-spacing: 0.12em;
   white-space: nowrap;
 }
+
+/* --- Phase 2 ambient motion (SPEC §5) -------------------------------------
+   Whole-group, transform/opacity ONLY, one animated element per band plus one
+   for the squiggle texture (SPEC §11 perf). The classes land on the AMBIENT
+   wrapper g (no transform attribute — the placement g above it keeps its
+   transform; never two transform owners, AGENTS invariant 6). Durations and
+   negative phase delays are set inline from layers.ts (single source:
+   WAVE_DRIFT_BY_BAND / SQUIGGLE_MOTION). */
+
+/* Seamless wave drift: the [A][A′][A] chain inside the ambient g has period
+   2 × 2160.32 = 4320.64 band-local units — translate by exactly that and the
+   trailing copy lands where A started, so the loop never shows a seam. */
+@keyframes wave-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-4320.64px);
+  }
+}
+
+.wave-drift {
+  animation-name: wave-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* Ondinhas: gentle ±40 band-local-unit sway + opacity pulse, both alternate. */
+@keyframes squiggle-drift {
+  from {
+    transform: translateX(-40px);
+  }
+  to {
+    transform: translateX(40px);
+  }
+}
+
+@keyframes squiggle-pulse {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.squiggle-drift {
+  animation-name: squiggle-drift, squiggle-pulse;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  animation-direction: alternate, alternate;
+}
+
+/* document.hidden pauses every ambient loop (mount.ts toggles .scene-hidden
+   on the scene root; reverted on destroy). */
+.scene-hidden .wave-drift,
+.scene-hidden .squiggle-drift {
+  animation-play-state: paused;
+}
+
+/* SPEC §5 static fallback: reduced motion disables every loop. animation-name
+   (not the shorthand) so inline duration/delay longhands are simply ignored. */
+@media (prefers-reduced-motion: reduce) {
+  .wave-drift,
+  .squiggle-drift {
+    animation-name: none;
+  }
+}

@@ -44,6 +44,21 @@ const BAND_SCALE = SCENE_WIDTH / BAND_WIDTH
 /** Source band opacities resolved by the pipeline onto the asset root (SPEC §1). */
 const BAND_OPACITY = { onda1: null, onda2: 0.8, onda4: 0.2 } as const
 
+/**
+ * Phase 2 ambient motion (SPEC §5). The [A][A′][A] chain inside each ambient
+ * g has period 2W, so the seamless drift distance is 2 × 2160.32 = 4320.64
+ * band-local units (keyframes `wave-drift` in scene.css). Each band gets its
+ * own duration and a negative phase delay so the bands never sync visually.
+ */
+export const WAVE_DRIFT_DISTANCE = 2 * BAND_WIDTH // 4320.64
+export const WAVE_DRIFT_BY_BAND: Record<string, { duration: number; delay: number }> = {
+  onda1: { duration: 8, delay: -2.7 },
+  onda2: { duration: 11, delay: -5.3 },
+  onda4: { duration: 14, delay: -9.1 },
+}
+/** Ondinhas drift ±40 band-local units + opacity pulse, both alternate. */
+export const SQUIGGLE_MOTION = { duration: 12, pulseDuration: 6 } as const
+
 /** Totem height in scene units — first-pass sizing, recalibrated in Phase 1.5. */
 const TOTEM_HEIGHT = 110
 /** Arrowhead stops this many scene units above the totem base point. */
@@ -153,8 +168,14 @@ function mountWaves(cameraNode: SVGGElement): SVGGElement {
       'transform',
       `translate(${row.x},${row.y}) scale(${(row.scale ?? 1) * BAND_SCALE})`,
     )
-    // Ambient g is the Phase 2 drift target — no transform until then.
+    // Ambient g owns the Phase 2 CSS drift — placement keeps its transform,
+    // never two owners on one node (AGENTS invariant 6). Class + inline
+    // duration/delay come from WAVE_DRIFT_BY_BAND; keyframes are in scene.css.
     const ambient = svg('g')
+    ambient.classList.add('wave-drift')
+    const { duration, delay } = WAVE_DRIFT_BY_BAND[band.id]
+    ambient.style.animationDuration = `${duration}s`
+    ambient.style.animationDelay = `${delay}s`
     const opacity = BAND_OPACITY[band.id]
     if (opacity !== null) ambient.setAttribute('opacity', String(opacity))
     // Copy A — raw band content at band-local 0.
@@ -186,7 +207,11 @@ function mountSquiggles(cameraNode: SVGGElement): SVGGElement {
     'transform',
     `translate(${placed.x},${placed.y}) scale(${(placed.scale ?? 1) * widthFit})`,
   )
-  const ambient = svg('g') // Phase 2 drift/pulse target — no transform yet
+  // Ambient g owns the Phase 2 CSS sway + pulse (class in scene.css; duration
+  // split drift/pulse via the comma-list inline longhands).
+  const ambient = svg('g')
+  ambient.classList.add('squiggle-drift')
+  ambient.style.animationDuration = `${SQUIGGLE_MOTION.duration}s, ${SQUIGGLE_MOTION.pulseDuration}s`
   adoptChildren(ambient, ondinhas)
   placement.appendChild(ambient)
   layer.appendChild(placement)
