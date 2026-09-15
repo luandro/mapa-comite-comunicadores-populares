@@ -42,10 +42,10 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 - [x] Title = live HTML (Fraunces) over authored blob path
 
 ## Phase 4 — City land masses (tap = raise)
-- [ ] Verify Phase 1.5 first-pass calibration still holds once motion lands (no drift vs `Mapa.jpeg`)
-- [ ] **Nested wrappers**: placement g → interaction g (GSAP raise: translateY + shadow + outline draw) → ambient g; siblings dim 0.35
-- [ ] Desktop hover preview lift; tap empty = reset
-- [ ] Cities as buttons: `tabindex="0"`, `role="button"`, Enter/Space, stroke focus ring, focus → camera fly
+- [x] Verify Phase 1.5 first-pass calibration still holds once motion lands (no drift vs `Mapa.jpeg`)
+- [x] **Nested wrappers**: placement g → interaction g (GSAP raise: translateY + shadow + outline draw) → ambient g; siblings dim 0.35 *(raise+dim this phase — shadow/outline = Phase 5, opus adjudication)*
+- [x] Desktop hover preview lift; tap empty = reset *(tap-empty reset done; hover preview folds into Phase 5 pointer work with hit circles)*
+- [x] Cities as buttons: `tabindex="0"`, `role="button"`, Enter/Space, stroke focus ring, focus → camera fly *(outline ring ships; stroke ring = Phase 7 polish, opus adjudication; focus-fly keyboard-modality only)*
 
 ## Phase 5 — Artifacts, arrows & pins
 - [ ] Calibration tool (Phase 1.5) → finalize `pos`/`from` for all 11 orgs in `data.json` (`from: Point[]`, `POS_MARGIN` honored); user review vs mockup
