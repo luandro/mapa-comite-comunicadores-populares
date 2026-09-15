@@ -94,6 +94,10 @@ Evidence: `graft/.cache/checks/current-landscape.png` (1600×900, k=1, intro set
   hub like the design. `layers.test.ts` re-pinned to `#1c2b1c` + zero dots; dash-draw
   and tap-redraw transients are color-agnostic (single `ARROW_COLOR` constant).
   Verified side-by-side vs `Mapa.jpeg` (16:9 + 9:19.5).
+- [x] **Numeric alignment gate shipped** (`graft/.cache/gate/run.sh`, 2026-09-15): per-mass IoU
+  vs mock — Belém 0.813, Ananindeua 0.709, Moju 0.942 (all at/near asset ceiling). ALL GATES
+  PASS; deviations documented in `docs/reviews/v1.0.1-fidelity.md`. Re-run after any placement
+  or asset change.
 - [ ] **Follow-ups from v1.0.1 review (non-blocking P3s, opus r2 APPROVE)**: (a) Moju
   mass has no city label — `data.json` has only Belém/Ananindeua maps so
   `cityPlacements.moju.labelAnchor` is unused; the mock labels "Moju/Barcarena"
