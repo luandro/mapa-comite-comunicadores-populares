@@ -256,10 +256,16 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     if (id) applyCityState(id === raisedCityId ? null : id)
   }
   function onCityFocusIn(event: FocusEvent): void {
-    const id = (event.currentTarget as Element).getAttribute('data-city-id')
-    if (!id || !(id in data.maps)) return
-    // Keyboard focus fly: the placement transform (translate/scale) maps the
-    // city's native viewBox onto scene coords; camera.flyTo clamps + fits.
+    const target = event.currentTarget as Element
+    const id = target.getAttribute('data-city-id')
+    // Keyboard-modality only (SPEC §9 focus-fly): mousedown also focuses a
+    // tabindex=0 <g>, and d3-zoom's mousedown handler never preventDefaults —
+    // an unguarded fly would fight every drag-pan from a city (opus round-2
+    // P1; breaks AGENTS §8 "user gesture cancels fly-to").
+    if (!target.matches(':focus-visible')) return
+    if (!id || !(id in cityPlacements)) return
+    // The placement transform (translate/scale) maps the city's native
+    // viewBox onto scene coords; camera.flyTo clamps + fits.
     const cityId = id as 'belem' | 'ananindeua' | 'moju'
     const placement = cityPlacements[cityId]
     const [w, h] = CITY_VIEWBOX[cityId]
@@ -404,11 +410,12 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       camera.reset()
     },
     focusCity(id) {
-      const known = id in data.maps
-      if (import.meta.env.DEV && !known) {
-        console.warn(`[scene] focusCity('${id}'): unknown city`)
+      // Gate on the MOUNTED set (cityPlacements), not data.maps — Moju has no
+      // data.json map entry but IS a mounted, raisable city (opus round-2 P2).
+      if (!(id in cityPlacements)) {
+        if (import.meta.env.DEV) console.warn(`[scene] focusCity('${id}'): unknown city`)
+        return
       }
-      if (!known) return
       // Phase 4 (opus round-2): focus flies the camera to the city box.
       applyCityState(id)
       const cityId = id as 'belem' | 'ananindeua' | 'moju'
