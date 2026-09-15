@@ -24,10 +24,10 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 - [x] Pinch/drag/wheel/double-tap verified on touch + desktop; gesture cancels fly-to
 
 ## Phase 1.5 — Static composite & calibration checkpoint
-- [ ] ALL layers mounted and **first-pass calibrated** (cities uniform-scale, waves, squiggles, roads, arrows drawn, artifacts at `pos`, pills rendered) — static composite, **no motion**
-- [ ] DEV calibration tool: `Mapa.jpeg` underlay in scene coords, opacity slider, layer dropdown, arrow-key nudge (+shift = large), live coords, copy → exact `placements.ts` / `data.json` entries; uniform city scale `{x,y,s?}`, no rotation; `import.meta.env.DEV`-gated, zero prod bytes
-- [ ] Underlay calibrated to `mapa cru` sea/land edges first; verified under `slice` at 16:9 + 9:19.5
-- [ ] User review side-by-side vs `Mapa.jpeg`: irregularities preserved (asymmetry criterion); `initialFraming` chosen
+- [x] ALL layers mounted and **first-pass calibrated** (cities uniform-scale, waves, squiggles, roads, arrows drawn, artifacts at `pos`, pills rendered) — static composite, **no motion**
+- [x] DEV calibration tool: `Mapa.jpeg` underlay in scene coords, opacity slider, layer dropdown, arrow-key nudge (+shift = large), live coords, copy → exact `placements.ts` / `data.json` entries; uniform city scale `{x,y,s?}`, no rotation; `import.meta.env.DEV`-gated, zero prod bytes
+- [x] Underlay calibrated to `mapa cru` sea/land edges first; verified under `slice` at 16:9 + 9:19.5
+- [x] User review side-by-side vs `Mapa.jpeg`: irregularities preserved (asymmetry criterion); `initialFraming` chosen
 
 ## Phase 2 — Water that reads as water
 - [ ] `onda 1/2/4` inlined, **uniform** scale ×1.3994, calibrated rows, source opacities preserved (.8/.2)

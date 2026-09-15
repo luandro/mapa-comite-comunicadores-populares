@@ -33,10 +33,22 @@ calibration tool. No motion. Commits `e1b5e17` (composite + tool), `7a4e5b7`
 
 ## Evidence
 
-- `graft/.cache/calib/fidelity-sheet.png` — mockup vs app landscape (1512×1011)
-  vs app portrait (390×844), timestamped 2026-09-15T12-48-32.
+- `graft/.cache/calib/fidelity-sheet2.png` — mockup vs app **1600×900 (true
+  16:9)** vs app **390×844 (9:19.5)**, timestamped 2026-09-15T13-05, **label
+  pills + city names visible** (controller-owned `#labels` layer rendering).
+- `graft/.cache/calib/final2-landscape.png`, `final2-portrait.png` — full-res
+  singles (DEV calibration toolbar hidden for capture; DEV-only, zero prod
+  bytes).
 - Gates: `bun run build` ✅ · `bun run lint` ✅ · `bun run test` 71/71 ✅ ·
   `bunx prettier --check .` ✅.
+
+### Round 1 findings (codex, REQUEST_CHANGES) — resolved
+
+1. **P1 labels absent from captures** — the v1 captures hid `#labels` for a
+   layers-only view. v2 recaptures keep them visible; pills and city names
+   render through the measurement-owner transform (SPEC §3).
+2. **P1 landscape not 16:9** — v1 used 1512×1011 (3:2). v2 uses 1600×900
+   (16:9) + 390×844 (9:19.5) per the acceptance line.
 
 ## Fidelity notes (asymmetry preserved)
 
@@ -49,5 +61,12 @@ calibration tool. No motion. Commits `e1b5e17` (composite + tool), `7a4e5b7`
 
 ## REVIEW VERDICT
 
-(to be filled by the senior reviewer: findings P0–P3 with concrete fixes,
-then APPROVE or REQUEST_CHANGES)
+**Round 1 (codex gpt-5.6-sol): REQUEST_CHANGES** — 2 P1 (labels hidden in
+captures; landscape not 16:9). Both fixed: v2 captures with labels visible at
+1600×900 + 390×844.
+
+**Round 2 (codex gpt-5.6-sol): VERDICT: APPROVE** — P1 fixes verified in the
+v2 captures. Reviewer note: its local repo reads failed again (bwrap sandbox),
+so the approve rests on the capture images + this record; source-level
+verification is covered by the green gates above (build/lint/test 71/71/
+prettier) and the Phase 2 motion gate re-checks wave rows in the running app.
