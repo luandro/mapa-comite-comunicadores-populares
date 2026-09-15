@@ -22,6 +22,7 @@ import {
 import type { IntroTargets } from './intro'
 import { mountCalibratedLayers, orgProjects } from './layers'
 import { createLabelsLayer, IDENTITY_CTM, renderLabels, updateLabels } from './labels'
+import { cityPlacements } from './placements'
 import { assertBaseCounts, partitionBase } from './partition'
 import { initialFraming } from './placements'
 import './scene.css'
@@ -71,8 +72,20 @@ const SVG_NS = 'http://www.w3.org/2000/svg'
    growing shadow and outline draw in the same SPEC sentence are Phase 5 —
    raise + dim ONLY here. */
 const CITY_RAISE_LIFT = -14 // scene units, GSAP `y` on the interaction g
-const CITY_DIM_OPACITY = 0.45
+// SPEC §5 value — the task contract's 0.45 was a downstream drift (opus round-2
+// adjudication: SPEC stands unless SPEC itself changes in the same commit).
+const CITY_DIM_OPACITY = 0.35
 const CITY_RAISE_DURATION = 0.35
+
+/**
+ * Native viewBox sizes of the city assets (handoff context) — with the
+ * placements these give each city's scene-coordinate box for focus-fly.
+ */
+const CITY_VIEWBOX: Record<'belem' | 'ananindeua' | 'moju', [number, number]> = {
+  belem: [1157.53, 1026.18],
+  ananindeua: [625.23, 618.08],
+  moju: [741.7, 1131.89],
+}
 
 export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   // DOM: .scene-root > svg#scene > g#camera > 4 base layers; plus svg#measure and
@@ -180,6 +193,11 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
 
   function applyCityState(nextId: string | null): void {
     if (nextId === raisedCityId) return // no state change → no tween, no emit
+    // A tap during the entrance would leave a stuck raise: the intro's city
+    // tween (same nodes/properties) ends at y:0/opacity:1 and erases the lift
+    // while aria-pressed stays true (opus P1). Settle the entrance first —
+    // skipIntro() is idempotent and finalizes every intro target instantly.
+    if (!introDone) skipIntro()
     raisedCityId = nextId
     for (const [id, interaction] of Object.entries(calibrated.cities)) {
       const raised = id === nextId
@@ -212,6 +230,10 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   // Phase 4: ignore `event.detail > 1` — the compat dblclick fired after a
   // double-tap zoom emits a spurious empty-tap that would fight the zoom.
   function onSceneClick(event: Event): void {
+    // Compat click after a double-tap zoom (Chromium fires click per tap):
+    // ignore detail > 1 — the raise-then-reverse flicker would fight the zoom
+    // and emit spurious taps (opus P2).
+    if ('detail' in event && (event as MouseEvent).detail > 1) return
     const target = event.target
     if (target instanceof Element && target.closest('[data-interactive]')) {
       const cityId = target.closest('[data-city-id]')?.getAttribute('data-city-id')
@@ -225,15 +247,33 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   sceneSvg.addEventListener('click', onSceneClick)
 
   // Keyboard activation (SPEC §9): Enter/Space act exactly like a tap; Space
-  // is cancelled so the page never scrolls. Focus→camera fly is Phase 5.
+  // is cancelled so the page never scrolls. Focus also flies the camera to
+  // the city (SPEC §8 focus-fly — TODO Phase 4, opus round-2 adjudication).
   function onCityKeyDown(event: KeyboardEvent): void {
     if (event.key !== 'Enter' && event.key !== ' ') return
     event.preventDefault()
     const id = (event.currentTarget as Element).getAttribute('data-city-id')
     if (id) applyCityState(id === raisedCityId ? null : id)
   }
+  function onCityFocusIn(event: FocusEvent): void {
+    const id = (event.currentTarget as Element).getAttribute('data-city-id')
+    if (!id || !(id in data.maps)) return
+    // Keyboard focus fly: the placement transform (translate/scale) maps the
+    // city's native viewBox onto scene coords; camera.flyTo clamps + fits.
+    const cityId = id as 'belem' | 'ananindeua' | 'moju'
+    const placement = cityPlacements[cityId]
+    const [w, h] = CITY_VIEWBOX[cityId]
+    const scale = placement.scale ?? 1
+    camera.flyTo({
+      x: placement.x,
+      y: placement.y,
+      width: w * scale,
+      height: h * scale,
+    })
+  }
   for (const interaction of Object.values(calibrated.cities)) {
     interaction.addEventListener('keydown', onCityKeyDown)
+    interaction.addEventListener('focusin', onCityFocusIn)
   }
 
   // --- Phase 3 entrance choreography (SPEC §5) --------------------------------
@@ -364,10 +404,23 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       camera.reset()
     },
     focusCity(id) {
-      if (import.meta.env.DEV) {
-        const known = id in data.maps ? '' : 'unknown city, '
-        console.warn(`[scene] focusCity('${id}'): ${known}camera fly lands in Phase 5`)
+      const known = id in data.maps
+      if (import.meta.env.DEV && !known) {
+        console.warn(`[scene] focusCity('${id}'): unknown city`)
       }
+      if (!known) return
+      // Phase 4 (opus round-2): focus flies the camera to the city box.
+      applyCityState(id)
+      const cityId = id as 'belem' | 'ananindeua' | 'moju'
+      const placement = cityPlacements[cityId]
+      const [w, h] = CITY_VIEWBOX[cityId]
+      const scale = placement.scale ?? 1
+      camera.flyTo({
+        x: placement.x,
+        y: placement.y,
+        width: w * scale,
+        height: h * scale,
+      })
     },
     focusArtifact(id) {
       if (import.meta.env.DEV) {

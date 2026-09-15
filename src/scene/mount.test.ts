@@ -249,6 +249,12 @@ describe('mountScene', () => {
     g.querySelector('path')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   }
 
+  /** A tap on the sea rect with an optional detail (compat dblclick). */
+  function seaClick(detail = 1): void {
+    const sea = host.querySelector('svg#scene #layer-water')!.firstElementChild!
+    sea.dispatchEvent(new MouseEvent('click', { bubbles: true, detail }))
+  }
+
   it('raise: city click toggles aria-pressed and emits city-tap; empty-tap stays silent', () => {
     const c = mountScene(host, data)
     const raised: string[] = []
@@ -325,6 +331,37 @@ describe('mountScene', () => {
     const second = mountScene(host, data)
     expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
     second.destroy()
+  })
+
+  it('raise: a tap during the intro settles the entrance first (no stuck raise — opus P1)', () => {
+    const c = mountScene(host, data)
+    const introCalls: number[] = []
+    c.onIntroDone(() => introCalls.push(1))
+    // jsdom never ticks GSAP, so the intro has NOT completed here
+    tapCity('belem')
+    // skipIntro() ran → intro resolved AND the raise state is consistent
+    expect(introCalls).toEqual([1])
+    expect(pressedState()).toEqual({ belem: 'true', ananindeua: 'false', moju: 'false' })
+    // and the tapped city reverses normally afterwards (no stuck raise)
+    tapCity('belem')
+    expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
+    c.destroy()
+  })
+
+  it('raise: compat click with detail > 1 is ignored (double-tap zoom guard — opus P2)', () => {
+    const c = mountScene(host, data)
+    const raised: string[] = []
+    const empties: number[] = []
+    c.on('city-tap', (id) => raised.push(id))
+    c.on('empty-tap', () => empties.push(1))
+    cityGroups()
+      .belem.querySelector('path')!
+      .dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }))
+    seaClick(2)
+    expect(raised).toEqual([])
+    expect(empties).toEqual([])
+    expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
+    c.destroy()
   })
 
   it('pauses loops when hidden: .scene-hidden tracks document.hidden, incl. initial state, and stops after destroy', () => {
