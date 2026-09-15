@@ -132,9 +132,8 @@ const TOTEM_HEIGHT = 110
 const ARROW_END_LIFT = 40
 /** Control-point perpendicular offset as a fraction of the from→end distance. */
 const ARROW_BOW = 0.3
-const ARROW_COLOR = '#F2DCB0'
+const ARROW_COLOR = '#1c2b1c'
 const ARROW_STROKE = 6
-const DOT_RADIUS = 8
 
 const CITY_ASSETS = { belem: cityBelem, ananindeua: cityAnanindeua, moju: cityMoju }
 const CITY_IDS = ['belem', 'ananindeua', 'moju'] as const
@@ -418,13 +417,6 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
       // Phase 5: org ownership lets mount.ts redraw one org's arrows on tap.
       path.setAttribute('data-arrow-org', orgId)
       layer.appendChild(path)
-      // Decorative source dot (SPEC §9 — never focusable; no tabindex).
-      const dot = svg('circle')
-      dot.setAttribute('cx', String(from.x))
-      dot.setAttribute('cy', String(from.y))
-      dot.setAttribute('r', String(DOT_RADIUS))
-      dot.setAttribute('fill', ARROW_COLOR)
-      layer.appendChild(dot)
     }
   }
   cameraNode.appendChild(layer)

@@ -66,3 +66,31 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 - [x] Zoom +/−/reset controls; dummy-org test: **content-only** addition renders (default icon + calibration-tool `pos`), schema violations fail loudly
 - [x] **Playwright smoke suite** (load → tap city → tap artifact → panel opens) green locally **before** deploy and re-run against the live URL after
 - [x] GH Pages via committed Actions workflow (`actions/deploy-pages`); wait deploy success; verify live URL with Playwright smoke; `git tag v1.0.0 && git push origin v1.0.0`
+
+## Post-ship v1.0.1 — visual fidelity vs `Mapa.jpeg` (filed 2026-09-15, live-site audit)
+
+Evidence: `graft/.cache/checks/current-landscape.png` (1600×900, k=1, intro settled) +
+`graft/.cache/checks/side-by-side.png` vs `na cuia/Mapa.jpeg`; label boxes measured via
+`graft/.cache/checks/labels-audit.mjs` against the live URL.
+
+- [x] **City land-mass placements drift from the design composition.** Re-calibrated
+  `cityPlacements` (belem / ananindeua / moju in `src/scene/placements.ts`) against
+  `Mapa.jpeg` (city-fill component match → painted-bbox solve): Belém central mass with
+  the bay, Ananindeua joined at the upper right, Moju/Barcarena elongated mass lower
+  left. `labelAnchor`s re-picked onto their own masses; `initialFraming` re-centered on
+  the dense org cluster (1300, 1330); all 11 org `pos` recalibrated from mock fractions
+  via the underlay transform. Verified under `slice` at 16:9 + 9:19.5 (dev renders +
+  component re-audit).
+- [x] **Label collisions: writings on top of each other.** Resolved by the placement +
+  `labelAnchor` recalibration alone (no collision engine needed): re-measured at
+  1600×900 k=1, zero pill-pill overlaps (was `REDE CASACURA…` × `CENTRO DE
+  EDUCAÇÃO…` 263×6 px) and the two city-name labels no longer share a band (Belém on
+  its mass, Ananindeua on its own). Keyboard focus + hit targets unaffected.
+- [x] **Arrows unreadable vs design.** Opus planning verdict (option A): arrows now
+  stroke `#1c2b1c` panel ink (mock's dark arrows; cream invisible on land/water) —
+  SPEC §3 reworded in the same commit (hub-anchored `from`, no source dots — mock has
+  none; dots removed from `mountArrows`). All `pos.from` re-authored to the three mock
+  hubs (Belém 1351,721 · Ananindeua 1700,278 · Moju 442,1283) so arrows fan out per
+  hub like the design. `layers.test.ts` re-pinned to `#1c2b1c` + zero dots; dash-draw
+  and tap-redraw transients are color-agnostic (single `ARROW_COLOR` constant).
+  Verified side-by-side vs `Mapa.jpeg` (16:9 + 9:19.5).

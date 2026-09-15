@@ -207,29 +207,22 @@ describe('mountCalibratedLayers', () => {
     expect(cameraNode.querySelectorAll('#layer-arrows > path')).toHaveLength(10)
   })
 
-  it('authors one Bézier + source dot per from point, stroke #F2DCB0', () => {
+  it('authors one Bézier per from point, stroke #1c2b1c, no source dots', () => {
     const { cameraNode } = mountLayers()
     const layer = cameraNode.querySelector('#layer-arrows')!
     const paths = layer.querySelectorAll(':scope > path')
     const dots = layer.querySelectorAll(':scope > circle')
     expect(paths).toHaveLength(11) // one per org; each ships exactly one from point
-    expect(dots).toHaveLength(11)
+    expect(dots).toHaveLength(0) // mock has no source dots (SPEC §3, v1.0.1)
     for (const path of paths) {
-      expect(path.getAttribute('stroke')).toBe('#F2DCB0')
+      expect(path.getAttribute('stroke')).toBe('#1c2b1c')
       expect(path.getAttribute('fill')).toBe('none')
       expect(path.getAttribute('stroke-width')).toBe('6')
       expect(path.getAttribute('marker-end')).toBe('url(#arrowhead)')
       expect(path.getAttribute('d')).toMatch(/^M-?[\d.]+,-?[\d.]+ Q-?[\d.]+,-?[\d.]+ /)
     }
     const marker = layer.querySelector('defs marker#arrowhead')!
-    expect(marker.querySelector('path')!.getAttribute('fill')).toBe('#F2DCB0')
-    // dots sit at the from points, in data order
-    const [firstOrgId] = orgProjects(realData).next().value!
-    const firstFrom = realData.maps.ananindeua.projects[firstOrgId].pos!.from[0]
-    expect(dots[0].getAttribute('cx')).toBe(String(firstFrom.x))
-    expect(dots[0].getAttribute('cy')).toBe(String(firstFrom.y))
-    expect(dots[0].getAttribute('r')).toBe('8')
-    expect(dots[0].getAttribute('tabindex')).toBeNull() // decorative (SPEC §9)
+    expect(marker.querySelector('path')!.getAttribute('fill')).toBe('#1c2b1c')
   })
 
   it('draws one arrow per from point for multi-source orgs', () => {
@@ -241,7 +234,7 @@ describe('mountCalibratedLayers', () => {
     const { cameraNode } = mountLayers(data)
     const layer = cameraNode.querySelector('#layer-arrows')!
     expect(layer.querySelectorAll(':scope > path')).toHaveLength(12)
-    expect(layer.querySelectorAll(':scope > circle')).toHaveLength(12)
+    expect(layer.querySelectorAll(':scope > circle')).toHaveLength(0)
   })
 })
 

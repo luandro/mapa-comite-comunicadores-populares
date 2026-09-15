@@ -25,17 +25,18 @@ export interface CityPlacement extends Placement {
  * densest org cluster (Belém mainland bottom-center: Na Cuia / Fogo no Rabo /
  * Hip-Hop / Quilombo), so portrait first paint centers content, not water.
  */
-export const initialFraming: Point = { x: 1450, y: 1250 }
+export const initialFraming: Point = { x: 1300, y: 1330 }
 
 /**
- * City land-mass placements — first pass, uniform scale only (SPEC §3).
- * Belém: big left/central mass; Ananindeua: upper right; Moju: lower right
- * (per `Mapa.jpeg` composition).
+ * City land-mass placements — calibrated against `Mapa.jpeg` (post-ship v1.0.1
+ * fidelity pass: city-fill component matching, painted-bbox → mock-bbox solve).
+ * Belém: big central mass with the bay; Ananindeua: joined at upper right;
+ * Moju/Barcarena: elongated mass lower left (per `Mapa.jpeg` composition).
  */
 export const cityPlacements: Record<'belem' | 'ananindeua' | 'moju', CityPlacement> = {
-  belem: { x: 1004, y: 22, scale: 0.6787, labelAnchor: { x: 1412, y: 380 } },
-  ananindeua: { x: 1366, y: 39, scale: 1.1611, labelAnchor: { x: 1745, y: 382 } },
-  moju: { x: 64, y: 858, scale: 0.7212, labelAnchor: { x: 337, y: 1258 } },
+  belem: { x: 923.5, y: 75.7, scale: 0.8424, labelAnchor: { x: 1400, y: 560 } },
+  ananindeua: { x: 1538.2, y: 19.9, scale: 0.7982, labelAnchor: { x: 1790, y: 330 } },
+  moju: { x: 115.9, y: 759.3, scale: 0.832, labelAnchor: { x: 420, y: 1290 } },
 }
 
 /**

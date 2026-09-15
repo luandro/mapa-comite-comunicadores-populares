@@ -62,7 +62,7 @@ Rules:
 - **Label layer (controller-owned)**: an HTML `#labels` div — **sibling of the camera wrapper and of `#measure`, outside any camera transform in both modes** — is created, owned and destroyed by `SceneController`, never React. The controller renders label pills **and city name labels** from `ComiteData` (structured fields only — names, tone; never arbitrary HTML) and positions them per frame with the full camera transform: `screen = measureCTM · (k·point + [tx, ty])` — translation included, or pans drift. Pills are `aria-hidden="true"` decoration (`pointer-events: none`; taps land on scene hit circles — the SVG button is the single focusable control per org, §9). `destroy()` removes the layer; remount recreates exactly one (no leaks, no duplicates); title/controls carry explicit z-index above `#labels`; panel `inert` wraps it.
 - **Calibration**: cities, waves, squiggles, artifacts each get a one-time `<g transform>` in `src/scene/placements.ts`, placed against a `Mapa.jpeg`/`Mapa geral` underlay and reviewed with the user. `placements.ts` also exports `initialFraming {x, y}` — a **scene-coordinate focus point**: at k=1 the viewport centers on it (then clamps), all aspects; `reset()` returns to it. Chosen at calibration so portrait first paint centers the densest org cluster, not open water.
 - **Nested transform wrappers (mandatory)**: `placement <g transform=attr>` → `interaction <g>` (GSAP target) → `ambient <g>` (CSS animation target). CSS animations win the cascade over GSAP/attribute transforms on the same node — never share a node between two transform owners. Camera transform lives on a separate ancestor.
-- Arrows exist in no reusable asset — **authored in code**: quadratic Bézier from source dot to artifact, stroke `#F2DCB0`, round cap, arrowhead marker, dash-offset draw.
+- Arrows exist in no reusable asset — **authored in code**: quadratic Bézier from a **hub source point** (Belém / Ananindeua / Moju center, per `Mapa.jpeg` — multiple arrows fan out of each hub) to the artifact, stroke **`#1c2b1c` ink** (the mock's dark arrows; the earlier cream `#F2DCB0` was invisible on land/water — v1.0.1 recalibration), round cap, same-color arrowhead marker, dash-offset draw. `pos.from` points are authored to the hub, not offset from `pos`; no source dots (mock has none).
 - Title backing blob: authored SVG path in code (matched to mockup), not sourced from any file. Title, pills, panel, controls = HTML overlay.
 - Responsive: the scene wrapper fills the viewport (`100% × 100dvh`, `background: #5da9a9` — the sea color, so pan-reveal past the sea rect, which extends to x = 3027.66, never shows blank); `slice` cover does the fitting; no separate portrait layout.
 
@@ -75,7 +75,7 @@ Rules:
 5. `layer-waves` (`onda 1/2/4`)
 6. `layer-squiggles` (`ondinhas`)
 7. `layer-city-{belem,ananindeua,moju}` (city name labels render in `#labels`, controller-owned)
-8. `layer-arrows` (authored paths + source dots + invisible hit circles)
+8. `layer-arrows` (authored paths + invisible hit circles)
 9. HTML overlay (paints above the whole SVG): `#labels` (controller-owned pills) < title < zoom controls / skip button — explicit z-index in that order.
 
 ## 5. Motion design
@@ -129,7 +129,7 @@ Extensions (top-level project fields — same shape as AGENTS.md):
 
 ## 9. Accessibility
 
-Artifacts and cities are real buttons semantically: `role="button"`, `tabindex="0"` (SVG children), Enter/Space activation, visible **stroke-based** focus ring (no `outline` dependency), deterministic tab order (**cities → artifacts**; arrow source dots are decorative anchors with `tabindex="-1"`), keyboard focus triggers camera fly-to. Label pills are `aria-hidden` decoration owned by the controller (§3) — exactly one focusable control per org/city. Panel per §8. `prefers-reduced-motion` static mode. Zoom controls ARIA-labelled. pt-BR UI throughout.
+Artifacts and cities are real buttons semantically: `role="button"`, `tabindex="0"` (SVG children), Enter/Space activation, visible **stroke-based** focus ring (no `outline` dependency), deterministic tab order (**cities → artifacts**; `pos.from` hub points are decorative, never focusable), keyboard focus triggers camera fly-to. Label pills are `aria-hidden` decoration owned by the controller (§3) — exactly one focusable control per org/city. Panel per §8. `prefers-reduced-motion` static mode. Zoom controls ARIA-labelled. pt-BR UI throughout.
 
 ## 10. Scene controller API (single owner of the imperative world)
 
