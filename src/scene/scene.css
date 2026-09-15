@@ -1,0 +1,38 @@
+/* Scene island styles (SPEC §3) — imported by mount.ts, never via JSX. */
+
+.scene-root {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  /* the sea color — panning past the sea rect never shows blank */
+  background: #5da9a9;
+  user-select: none;
+}
+
+#scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* d3-zoom owns every gesture on the scene */
+  touch-action: none;
+}
+
+/* Measurement owner (SPEC §3/§6): untransformed, full-viewport, never painted. */
+#measure {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Label layer: controller-owned, outside any camera transform. */
+#labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}

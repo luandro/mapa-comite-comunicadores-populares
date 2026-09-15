@@ -8,10 +8,10 @@ Order matters: each layer lands animated and verified before the next starts. "D
 - [x] `data.json` types + Vitest schema validation: shape (6 ordered section keys, `icon` known-or-default, `pos` **and every `from` point** inside scene rect + `POS_MARGIN`), **not project count**; decide `POS_MARGIN` (shared constant: schema + tool); define `isMobile` (`matchMedia('(pointer: coarse)')`) in one module
 
 ## Phase 1 — Scene island, partition & camera
-- [ ] Build pipeline: parse → resolve `<style>` to attributes (**all properties**: `fill`, `opacity`, …) → `prefixIds` → group by resolved fill → inject; **node-count assertions 1/42/5/20 (=68)** (SPEC §2)
-- [ ] `mountScene(el: HTMLElement, data: ComiteData) → SceneController` per SPEC §10 incl. `destroy()`, `setObstruction()` (desktop-only; mobile `null`), `onTransform` (overload-typed events); StrictMode/HMR safe
-- [ ] Camera: d3-zoom; all writes through `zoom.transform`; per-frame clamp; **slice cover** (`preserveAspectRatio="xMidYMid slice"`), camera `k ∈ [1, 4]`; **explicit `zoom.extent`** (viewport corners via **measurement-owner** CTM inverse — default viewBox extent is wrong under slice) recomputed on resize; domain = union(scene rect, hit bounds); `ResizeObserver` vs full viewport + orientation; Vitest clamp cases for 16:9 + 9:19.5
-- [ ] Pinch/drag/wheel/double-tap verified on touch + desktop; gesture cancels fly-to
+- [x] Build pipeline: parse → resolve `<style>` to attributes (**all properties**: `fill`, `opacity`, …) → `prefixIds` → group by resolved fill → inject; **node-count assertions 1/42/5/20 (=68)** (SPEC §2)
+- [x] `mountScene(el: HTMLElement, data: ComiteData) → SceneController` per SPEC §10 incl. `destroy()`, `setObstruction()` (desktop-only; mobile `null`), `onTransform` (overload-typed events); StrictMode/HMR safe
+- [x] Camera: d3-zoom; all writes through `zoom.transform`; per-frame clamp; **slice cover** (`preserveAspectRatio="xMidYMid slice"`), camera `k ∈ [1, 4]`; **explicit `zoom.extent`** (viewport corners via **measurement-owner** CTM inverse — default viewBox extent is wrong under slice) recomputed on resize; domain = union(scene rect, hit bounds); `ResizeObserver` vs full viewport + orientation; Vitest clamp cases for 16:9 + 9:19.5
+- [x] Pinch/drag/wheel/double-tap verified on touch + desktop; gesture cancels fly-to
 
 ## Phase 1.5 — Static composite & calibration checkpoint
 - [ ] ALL layers mounted and **first-pass calibrated** (cities uniform-scale, waves, squiggles, roads, arrows drawn, artifacts at `pos`, pills rendered) — static composite, **no motion**
