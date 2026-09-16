@@ -139,6 +139,16 @@ export const TOTEM_WIDTH = 110
 export const ARROW_TIP_CLEARANCE = 24
 /** Extra stroke back-off so the head BODY (30 units) stays out of the box too. */
 export const ARROWHEAD_SCENE = 30
+/**
+ * Title-pill exclusion zone under the totem base (scene units, width AND
+ * depth): org pills hang below the base at most ~130px wide × ~72px tall
+ * (PILL_BASE_OFFSET 8 + 3 wrapped lines ≈ 64px) ≈ 205×113 scene units at the
+ * k=1 slice scale 0.635 — 165 covers both with margin. Arrows approaching
+ * from below must stop short of this zone or their heads hide behind the
+ * title (user QA round 3). Worst case at k=1; at k>1 the zone shrinks in
+ * scene units, so k=1 sizing is always sufficient.
+ */
+export const PILL_BAND_SCENE = 165
 /** Control-point perpendicular offset as a fraction of the from→end distance. */
 const ARROW_BOW = 0.3
 const ARROW_COLOR = '#EDE5CE' // poster arrows: warm cream (sampled 236,233,214)
@@ -245,22 +255,32 @@ export function arrowEndPoint(from: Point, base: Point): Point {
   if (len < 1) return { x: base.x, y: base.y - TOTEM_HEIGHT - ARROW_TIP_CLEARANCE }
   const ux = dx / len
   const uy = dy / len
-  // Ray param t where the from→base ray FIRST crosses the art box on each
-  // axis (approaching the base, the first face hit is the entry face).
-  const tx =
-    ux > 0 ? (base.x - halfW - from.x) / ux : ux < 0 ? (base.x + halfW - from.x) / ux : Infinity
-  const ty =
-    uy > 0
-      ? (base.y - TOTEM_HEIGHT - from.y) / uy
-      : uy < 0
-        ? (base.y - from.y) / uy
-        : Infinity
-  // Entry param: max of per-axis entries (the ray is inside the box once past
-  // both entry faces); the base sits inside the box, so it is always finite.
-  // Negative entries (from inside the box's x/y span) clamp at 0.
-  const tEntry = Math.max(tx, ty, 0)
-  // The TIP sits ARROW_TIP_CLEARANCE before the entry face; the stroke ends
-  // one head-length further back so the marker BODY never overlaps the art.
+  /**
+   * Ray/AABB entry param for one rect: the t where the from→base ray first
+   * sits inside [x0,x1]×[y0,y1] — max of the per-axis entry params (a ray is
+   * inside once past BOTH faces). Infinity on an axis it never crosses.
+   */
+  const rectEntry = (x0: number, x1: number, y0: number, y1: number): number => {
+    const tx =
+      ux > 0 ? (x0 - from.x) / ux : ux < 0 ? (x1 - from.x) / ux : Infinity
+    const ty =
+      uy > 0 ? (y0 - from.y) / uy : uy < 0 ? (y1 - from.y) / uy : Infinity
+    return Math.max(tx, ty, 0)
+  }
+  // Two obstacles stacked on the base: the art box above it and the title
+  // pill band below it (pills hang under the base — an arrowhead stopping
+  // inside the band hides behind the title, user QA round 3). The FIRST face
+  // the ray crosses wins (min of the two entries; both are ≥ 0).
+  const tArt = rectEntry(base.x - halfW, base.x + halfW, base.y - TOTEM_HEIGHT, base.y)
+  const tBand = rectEntry(
+    base.x - PILL_BAND_SCENE / 2,
+    base.x + PILL_BAND_SCENE / 2,
+    base.y,
+    base.y + PILL_BAND_SCENE,
+  )
+  const tEntry = Math.min(tArt, tBand)
+  // The TIP sits ARROW_TIP_CLEARANCE before that face; the stroke ends one
+  // head-length further back so the marker BODY never overlaps either rect.
   const tTip = Math.max(0, tEntry - ARROW_TIP_CLEARANCE)
   const tEnd = Math.max(0, tTip - ARROWHEAD_SCENE)
   return { x: from.x + ux * tEnd, y: from.y + uy * tEnd }

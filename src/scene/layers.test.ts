@@ -13,6 +13,7 @@ import {
   ARROW_TIP_CLEARANCE,
   mountCalibratedLayers,
   orgProjects,
+  PILL_BAND_SCENE,
   rSceneFor,
   TOTEM_HEIGHT,
   TOTEM_WIDTH,
@@ -256,10 +257,16 @@ describe('mountCalibratedLayers', () => {
         const ux = (pos.x - from.x) / len
         const uy = (pos.y - from.y) / len
         const tip = { x: end.x + ux * ARROWHEAD_SCENE, y: end.y + uy * ARROWHEAD_SCENE }
+        // Clear the ART box (shrunk by the clearance)…
         const inBoxX = Math.abs(tip.x - pos.x) < TOTEM_WIDTH / 2 - ARROW_TIP_CLEARANCE
         const inBoxY = tip.y > pos.y - TOTEM_HEIGHT + ARROW_TIP_CLEARANCE && tip.y < pos.y
-        expect(`${orgId} tip-in-box=${inBoxX && inBoxY}`).toBe(
-          `${orgId} tip-in-box=false`,
+        // …and the TITLE-PILL band hanging below the base (heads behind the
+        // title are exactly the bug — user QA round 3).
+        const halfBand = PILL_BAND_SCENE / 2
+        const inBandX = Math.abs(tip.x - pos.x) < halfBand
+        const inBandY = tip.y > pos.y && tip.y < pos.y + PILL_BAND_SCENE
+        expect(`${orgId} art=${inBoxX && inBoxY} pill=${inBandX && inBandY}`).toBe(
+          `${orgId} art=false pill=false`,
         )
       }
     }
