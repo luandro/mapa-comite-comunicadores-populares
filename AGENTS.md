@@ -65,7 +65,7 @@ Schema validation: six ordered section keys; unknown `icon` → default + warnin
 - `mapa cru`'s sea is a `<rect>` and land includes a `<polygon>` — partition every painted child, not just `<path>`.
 - Illustrator styles are classes (`cls-N`) resolved via `<style>` — resolve all properties to attributes at build; CSS descendant selectors (`#layer-x path`) still beat presentation attributes for tint overrides.
 - Draw-on: `getTotalLength()` + dasharray/dashoffset; no plugin.
-- `onda 1/2/4` end contours ≠ start contours — a 2-copy tile jumps at wrap; use the 3-copy `[A][A′][A]` chain.
+- ~~`onda 1/2/4` end contours ≠ start contours — a 2-copy tile jumps at wrap; use the 3-copy `[A][A′][A]` chain.~~ (v1.1: bands removed.)
 - Panel text arrays can be long (138-char strings exist) — test overflow early.
 - GSAP + d3-zoom: animate numbers, write through `zoom.transform`, or the next gesture jumps.
 - Never read camera transforms from the DOM — controller state is the only source; the measurement owner's CTM is camera-free by construction.

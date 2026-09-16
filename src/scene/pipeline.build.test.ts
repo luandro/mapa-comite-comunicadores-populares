@@ -13,9 +13,13 @@ describe('processSvg', () => {
     expect(processed).not.toContain('class=')
   })
 
-  it('resolves every declared property, not just fill (onda band opacities)', () => {
-    expect(processSvg(readAsset('onda 2'), 'onda2')).toContain('opacity="0.8"')
-    expect(processSvg(readAsset('onda 4'), 'onda4')).toContain('opacity="0.2"')
+  it('resolves every declared property, not just fill (ondinhas squiggle fills)', () => {
+    // The squiggle asset (kept in v1.1) declares two class fills — both must
+    // resolve to attributes, never remain class-dependent.
+    const processed = processSvg(readAsset('ondinhas mapa geral'), 'ondinhas')
+    expect(processed).toContain('fill="#509393"')
+    expect(processed).toContain('fill="#99d3d8"')
+    expect(processed).not.toContain('class=')
   })
 
   it('resolves all class declarations onto the node and prefixes its id', () => {

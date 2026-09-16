@@ -7,16 +7,20 @@
  * so svogo never reaches the client bundle. Browser/jsdom only (DOMParser).
  */
 
-/** The four base-map layers, keyed per SPEC §2, arrays in document order. */
+/**
+ * The three mounted base-map layers, keyed per SPEC §2, arrays in document
+ * order. The sea is NOT a layer: v1.1 cut the ocean rect from the scene —
+ * `.scene-root { background: #5da9a9 }` (scene.css) is the ocean.
+ */
 export interface BaseLayers {
-  water: Element[]
   land: Element[]
   roads: Element[]
   waterDetail: Element[]
 }
 
 const LAYER_BY_FILL: Record<string, keyof BaseLayers> = {
-  '#5da9a9': 'water',
+  // '#5da9a9' (the sea rect fill) is deliberately absent: v1.1 unmounts the
+  // ocean — the CSS background on .scene-root carries it instead.
   '#95c98e': 'land',
   '#58b254': 'roads',
   '#509393': 'waterDetail',
@@ -26,14 +30,14 @@ const LAYER_BY_FILL: Record<string, keyof BaseLayers> = {
 
 /**
  * Split a processed base map into layers by RESOLVED fill attribute, in
- * document order. Elements carrying none of the six known fills (empty
+ * document order. Elements carrying none of the known fills (empty
  * groups, wrappers) are ignored. Fails loud when the map is not flat
  * (SPEC §2): `mapa cru` ships zero `<g>` wrappers and zero `transform`
  * attributes, and reparenting painted nodes into layer groups would silently
  * discard any ancestor geometry — a non-flat map must never mount shifted.
  */
 export function partitionBase(processed: string): BaseLayers {
-  const layers: BaseLayers = { water: [], land: [], roads: [], waterDetail: [] }
+  const layers: BaseLayers = { land: [], roads: [], waterDetail: [] }
   const svg = new DOMParser().parseFromString(processed, 'image/svg+xml').documentElement
   if (svg.querySelector('g')) {
     throw new Error(
@@ -53,8 +57,12 @@ export function partitionBase(processed: string): BaseLayers {
   return layers
 }
 
-/** SPEC §2 ground truth for `mapa cru.svg`: 1 + 42 + 5 + 20 = 68 painted nodes. */
-export const BASE_COUNTS = { water: 1, land: 42, roads: 5, waterDetail: 20 } as const
+/**
+ * SPEC §2 ground truth for `mapa cru.svg` ABOVE the cut sea: 42 + 5 + 20 = 67
+ * painted nodes. The single #5da9a9 sea <rect> is not mounted (v1.1 — the
+ * `.scene-root` CSS background is the ocean).
+ */
+export const BASE_COUNTS = { land: 42, roads: 5, waterDetail: 20 } as const
 
 /** Mount-time hard error (SPEC §2) when the base map does not partition exactly. */
 export function assertBaseCounts(layers: BaseLayers): void {

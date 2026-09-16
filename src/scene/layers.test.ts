@@ -52,7 +52,6 @@ describe('mountCalibratedLayers', () => {
     const { cameraNode } = mountLayers()
     expect(Array.from(cameraNode.children).map((child) => child.id)).toEqual([
       'layer-water-detail',
-      'layer-waves',
       'layer-squiggles',
       'layer-city-belem',
       'layer-city-ananindeua',
@@ -62,39 +61,10 @@ describe('mountCalibratedLayers', () => {
     ])
   })
 
-  it('mounts three [A][A′][A] copies per band with the mirror-chain transforms', () => {
-    const { layers } = mountLayers()
-    const bands = layers.waves.querySelectorAll(':scope > g[data-band]')
-    expect(bands).toHaveLength(3)
-    for (const band of bands) {
-      const placement = band as SVGGElement
-      // translate + composed scale (row scale × 1.3994); exact rows are
-      // calibration data and deliberately not pinned here
-      expect(placement.getAttribute('transform')).toMatch(
-        /^translate\(-?[\d.]+,-?[\d.]+\) scale\([\d.]+\)$/,
-      )
-      const ambient = placement.firstElementChild as SVGGElement
-      expect(ambient.tagName).toBe('g')
-      expect(ambient.getAttribute('transform')).toBeNull() // Phase 2 owns it
-      const children = Array.from(ambient.children)
-      const mirrored = children[children.length - 2]
-      const trailing = children[children.length - 1]
-      expect(mirrored.getAttribute('transform')).toBe('translate(4320.64,0) scale(-1,1)')
-      expect(trailing.getAttribute('transform')).toBe('translate(4320.64,0)')
-      const copyA = children.slice(0, -2)
-      expect(copyA.length).toBeGreaterThan(0)
-      expect(mirrored.children.length).toBe(copyA.length)
-      expect(trailing.children.length).toBe(copyA.length)
-    }
-  })
-
-  it('preserves the source band opacities as attributes (onda2 .8, onda4 .2)', () => {
-    const { layers } = mountLayers()
-    const opacityOf = (band: string) =>
-      layers.waves.querySelector(`g[data-band="${band}"] > g`)!.getAttribute('opacity')
-    expect(opacityOf('onda1')).toBeNull()
-    expect(opacityOf('onda2')).toBe('0.8')
-    expect(opacityOf('onda4')).toBe('0.2')
+  it('mounts no wave bands (v1.1 — the big water animation is removed)', () => {
+    const { cameraNode } = mountLayers()
+    expect(cameraNode.querySelector('#layer-waves')).toBeNull()
+    expect(cameraNode.querySelector('[data-band]')).toBeNull()
   })
 
   it('nests every city as placement → interaction → ambient (one transform owner)', () => {

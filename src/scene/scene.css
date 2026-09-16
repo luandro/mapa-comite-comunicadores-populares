@@ -5,7 +5,9 @@
   width: 100%;
   height: 100dvh;
   overflow: hidden;
-  /* the sea color — panning past the sea rect never shows blank */
+  /* THE OCEAN (v1.1): the sea rect is unmounted — this background carries it.
+     Same hex as the old #5da9a9 sea, so panning past the scene never shows
+     blank and the composition is unchanged. */
   background: #5da9a9;
   user-select: none;
 }
@@ -135,30 +137,13 @@ g[data-artifact-id]:focus-visible {
 }
 
 /* --- Phase 2 ambient motion (SPEC §5) -------------------------------------
-   Whole-group, transform/opacity ONLY, one animated element per band plus one
-   for the squiggle texture (SPEC §11 perf). The classes land on the AMBIENT
-   wrapper g (no transform attribute — the placement g above it keeps its
-   transform; never two transform owners, AGENTS invariant 6). Durations and
-   negative phase delays are set inline from layers.ts (single source:
-   WAVE_DRIFT_BY_BAND / SQUIGGLE_MOTION). */
-
-/* Seamless wave drift: the [A][A′][A] chain inside the ambient g has period
-   2 × 2160.32 = 4320.64 band-local units — translate by exactly that and the
-   trailing copy lands where A started, so the loop never shows a seam. */
-@keyframes wave-drift {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-4320.64px);
-  }
-}
-
-.wave-drift {
-  animation-name: wave-drift;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
+   Whole-group, transform/opacity ONLY, one animated element for the squiggle
+   texture (SPEC §11 perf). The class lands on the AMBIENT wrapper g (no
+   transform attribute — the placement g above it keeps its transform; never
+   two transform owners, AGENTS invariant 6). Durations are set inline from
+   layers.ts (single source: SQUIGGLE_MOTION). The big wave-band system
+   retired in v1.1 — the ondinhas squiggle is the only remaining water
+   animation. */
 
 /* Ondinhas: gentle ±40 band-local-unit sway + opacity pulse, both alternate. */
 @keyframes squiggle-drift {
@@ -188,7 +173,6 @@ g[data-artifact-id]:focus-visible {
 
 /* document.hidden pauses every ambient loop (mount.ts toggles .scene-hidden
    on the scene root; reverted on destroy). */
-.scene-hidden .wave-drift,
 .scene-hidden .squiggle-drift {
   animation-play-state: paused;
 }
@@ -203,7 +187,6 @@ g[data-artifact-id]:focus-visible {
 /* SPEC §5 static fallback: reduced motion disables every loop. animation-name
    (not the shorthand) so inline duration/delay longhands are simply ignored. */
 @media (prefers-reduced-motion: reduce) {
-  .wave-drift,
   .squiggle-drift,
   .artifact-bob {
     animation-name: none;

@@ -71,21 +71,16 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  it('builds #camera with the 4 base layers first, then the calibrated composite', () => {
+  it('builds #camera with the 3 base layers first, then the calibrated composite', () => {
     const c = mountScene(host, data)
     const camera = host.querySelector('svg#scene #camera')
     expect(camera).not.toBeNull()
     const ids = Array.from(camera!.children, (g) => g.id)
     // Full §4 stack order is asserted in layers.test.ts; here the base
-    // partition must remain the first four, untouched by the composite.
-    expect(ids.slice(0, 4)).toEqual([
-      'layer-water',
-      'layer-land',
-      'layer-roads',
-      'layer-water-detail',
-    ])
-    expect(ids.slice(4)).toEqual([
-      'layer-waves',
+    // partition must remain the first three, untouched by the composite.
+    // v1.1: no layer-water — the .scene-root CSS background is the ocean.
+    expect(ids.slice(0, 3)).toEqual(['layer-land', 'layer-roads', 'layer-water-detail'])
+    expect(ids.slice(3)).toEqual([
       'layer-squiggles',
       'layer-city-belem',
       'layer-city-ananindeua',
@@ -96,11 +91,11 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  it('mounts the partitioned base map with asserted node counts (1/42/5/20)', () => {
+  it('mounts the partitioned base map with asserted node counts (42/5/20, no sea rect)', () => {
     const c = mountScene(host, data)
     const count = (id: string) => host.querySelector(`svg#scene #${id}`)!.childElementCount
     // Real `?scene` import — chunk A's vite pipeline serves the processed string.
-    expect(count('layer-water')).toBe(1)
+    expect(host.querySelector('svg#scene #layer-water')).toBeNull() // ocean is CSS now
     expect(count('layer-land')).toBe(42)
     expect(count('layer-roads')).toBe(5)
     expect(count('layer-water-detail')).toBe(20)
@@ -231,9 +226,10 @@ describe('mountScene', () => {
     const scene = host.querySelector('svg#scene')!
     scene.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     expect(taps).toEqual([1])
-    // Clicks on painted base-map nodes count as empty taps in Phase 1 too.
-    const sea = scene.querySelector('#layer-water')!.firstElementChild!
-    sea.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    // Clicks on painted base-map nodes count as empty taps in Phase 1 too
+    // (v1.1: the sea rect is gone — a land node stands in as painted base).
+    const land = scene.querySelector('#layer-land')!.firstElementChild!
+    land.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     expect(taps).toEqual([1, 1])
     c.destroy()
   })
@@ -263,10 +259,10 @@ describe('mountScene', () => {
     g.querySelector('path')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   }
 
-  /** A tap on the sea rect with an optional detail (compat dblclick). */
-  function seaClick(detail = 1): void {
-    const sea = host.querySelector('svg#scene #layer-water')!.firstElementChild!
-    sea.dispatchEvent(new MouseEvent('click', { bubbles: true, detail }))
+  /** A tap on a painted non-interactive base node (v1.1: sea rect is CSS now). */
+  function backgroundClick(detail = 1): void {
+    const land = host.querySelector('svg#scene #layer-land')!.firstElementChild!
+    land.dispatchEvent(new MouseEvent('click', { bubbles: true, detail }))
   }
 
   it('raise: city click toggles aria-pressed and emits city-tap; empty-tap stays silent', () => {
@@ -306,7 +302,7 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  it('reversal: tapping empty water settles the raise and emits empty-tap', () => {
+  it('reversal: tapping empty background settles the raise and emits empty-tap', () => {
     const c = mountScene(host, data)
     const raised: string[] = []
     const empties: number[] = []
@@ -314,8 +310,7 @@ describe('mountScene', () => {
     c.on('empty-tap', () => empties.push(1))
     tapCity('belem')
     expect(empties).toEqual([])
-    const sea = host.querySelector('svg#scene #layer-water')!.firstElementChild!
-    sea.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    backgroundClick()
     expect(raised).toEqual(['belem'])
     expect(empties).toEqual([1])
     expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
@@ -356,7 +351,7 @@ describe('mountScene', () => {
     expect(taps).toEqual(['na_cuia', 'chibe'])
     expect(groups['chibe'].getAttribute('aria-pressed')).toBe('false')
     // empty tap deselects silently
-    seaClick()
+    backgroundClick()
     expect(groups['chibe'].getAttribute('aria-pressed')).toBe('false')
     c.destroy()
   })
@@ -511,7 +506,7 @@ describe('mountScene', () => {
     cityGroups()
       .belem.querySelector('path')!
       .dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }))
-    seaClick(2)
+    backgroundClick(2)
     expect(raised).toEqual([])
     expect(empties).toEqual([])
     expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
