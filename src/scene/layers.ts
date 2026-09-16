@@ -141,14 +141,16 @@ export const ARROW_TIP_CLEARANCE = 24
 export const ARROWHEAD_SCENE = 30
 /**
  * Title-pill exclusion zone under the totem base (scene units, width AND
- * depth): org pills hang below the base at most ~130px wide × ~72px tall
- * (PILL_BASE_OFFSET 8 + 3 wrapped lines ≈ 64px) ≈ 205×113 scene units at the
- * k=1 slice scale 0.635 — 165 covers both with margin. Arrows approaching
- * from below must stop short of this zone or their heads hide behind the
- * title (user QA round 3). Worst case at k=1; at k>1 the zone shrinks in
- * scene units, so k=1 sizing is always sufficient.
+ * depth). Real pill: 130px wide × ~53px tall (offset 8 + 2 lines). At the
+ * k=1 slice scale 0.635 that is ~205×84 scene units; the tip additionally
+ * sits ARROW_TIP_CLEARANCE (24) outside and the head body (30) behind it,
+ * so the zone needs half-width 102 + 24 ≈ 126 → 260 covers width with
+ * margin, and depth 260u ≈ 165px clears the 53px pill + 15px tip gap +
+ * 19px head. Arrows approaching from below must stop short of this zone or
+ * their heads hide behind the title (user QA rounds 3–4). Worst case at
+ * k=1; at k>1 the zone shrinks in scene units, so k=1 sizing suffices.
  */
-export const PILL_BAND_SCENE = 165
+export const PILL_BAND_SCENE = 260
 /** Control-point perpendicular offset as a fraction of the from→end distance. */
 const ARROW_BOW = 0.3
 const ARROW_COLOR = '#EDE5CE' // poster arrows: warm cream (sampled 236,233,214)
