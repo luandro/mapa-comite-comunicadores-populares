@@ -274,6 +274,21 @@ describe('mountCalibratedLayers', () => {
     expect(layerPaths.length).toBeGreaterThan(0)
   })
 
+  it('arrowEndPoint: axis-aligned rays stay finite and clear the rects', () => {
+    // Exactly vertical approach from below: crosses the pill band's bottom
+    // face (review round 1 — Infinity-on-zero-direction poisoning).
+    const base = { x: 1500, y: 1000 }
+    const end = arrowEndPoint({ x: 1500, y: 1700 }, base)
+    const len = Math.hypot(base.x - 1500, base.y - 1700)
+    const uy = (base.y - 1700) / len
+    const tipY = end.y + uy * ARROWHEAD_SCENE
+    // Ray from below: the band face sits at base.y + band depth; the tip stops
+    // ARROW_TIP_CLEARANCE OUTSIDE it (below the face).
+    expect(Number.isFinite(tipY)).toBe(true)
+    expect(tipY).toBeGreaterThan(base.y)
+    expect(tipY).toBeCloseTo(base.y + 260 + ARROW_TIP_CLEARANCE, 5)
+  })
+
   it('draws one arrow + one tail dot per from point for multi-source orgs', () => {
     const data = structuredClone(realData)
     data.maps.belem.projects.fogo_no_rabo.pos!.from = [

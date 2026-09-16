@@ -159,20 +159,24 @@ export function buildIntroTimeline(
     // Dash-draw: the ONE non-transform/opacity animation (documented exception).
     // Each path's opacity ramps over its FULL draw duration so the marker-end
     // arrowhead only becomes visible as the stroke reaches it (markers ignore
-    // dash state — opus P2).
-    tl.to(
-      targets.arrows.paths,
-      { attr: { 'stroke-dashoffset': 0 }, duration: 0.55, stagger: 0.05, ease: 'power1.inOut' },
-      1.3,
-    )
-    tl.to(
-      [...targets.arrows.paths, ...targets.arrows.tails],
-      { opacity: 1, duration: 0.55, stagger: 0.05 },
-      1.3,
-    )
+    // dash state — opus P2). Each tail dot fades with its OWN path — a shared
+    // stagger over paths-then-tails desyncs them (review round 1): the tail
+    // tweens run pairwise (path i, tail i) at the same slot.
+    const n = targets.arrows.paths.length
+    for (let i = 0; i < n; i++) {
+      const path = targets.arrows.paths[i]
+      const tail = targets.arrows.tails[i]
+      tl.to(
+        path,
+        { attr: { 'stroke-dashoffset': 0 }, duration: 0.55, ease: 'power1.inOut' },
+        1.3 + 0.05 * i,
+      )
+      tl.to(path, { opacity: 1, duration: 0.55 }, 1.3 + 0.05 * i)
+      if (tail) tl.to(tail, { opacity: 1, duration: 0.55 }, 1.3 + 0.05 * i)
+    }
     // Clear the dash scaffolding once every path finished drawing (last draw
     // ends at 1.3 + 0.55 + 0.05·(n−1)).
-    tl.call(() => settleArrows(targets), undefined, 1.3 + 0.55 + 0.05 * targets.arrows.paths.length)
+    tl.call(() => settleArrows(targets), undefined, 1.3 + 0.55 + 0.05 * n)
   }
   if (targets.artifacts.length) {
     tl.to(targets.artifacts, { opacity: 1, y: 0, duration: 0.45, stagger: 0.06 }, 1.9)

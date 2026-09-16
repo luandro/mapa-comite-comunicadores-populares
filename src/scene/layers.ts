@@ -263,10 +263,25 @@ export function arrowEndPoint(from: Point, base: Point): Point {
    * inside once past BOTH faces). Infinity on an axis it never crosses.
    */
   const rectEntry = (x0: number, x1: number, y0: number, y1: number): number => {
+    // Axis-parallel rays: inside the slab → already at it (0); outside →
+    // never crosses (Infinity). Plain Infinity for both would poison a
+    // perfectly vertical/horizontal arrow (review round 1).
     const tx =
-      ux > 0 ? (x0 - from.x) / ux : ux < 0 ? (x1 - from.x) / ux : Infinity
+      ux > 0
+        ? (x0 - from.x) / ux
+        : ux < 0
+          ? (x1 - from.x) / ux
+          : from.x >= x0 && from.x <= x1
+            ? 0
+            : Infinity
     const ty =
-      uy > 0 ? (y0 - from.y) / uy : uy < 0 ? (y1 - from.y) / uy : Infinity
+      uy > 0
+        ? (y0 - from.y) / uy
+        : uy < 0
+          ? (y1 - from.y) / uy
+          : from.y >= y0 && from.y <= y1
+            ? 0
+            : Infinity
     return Math.max(tx, ty, 0)
   }
   // Two obstacles stacked on the base: the art box above it and the title
