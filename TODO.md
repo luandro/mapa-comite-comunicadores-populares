@@ -50,7 +50,7 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 ## Phase 5 — Artifacts, arrows & pins
 - [x] Calibration tool (Phase 1.5) → finalize `pos`/`from` for all 11 orgs in `data.json` (`from: Point[]`, `POS_MARGIN` honored); user review vs mockup *(deferred to final user pass — pos first-pass from Phase 1.5 stands)*
 - [x] Per-org artifacts via `import.meta.glob('/na cuia/icons/svg/icone *.svg')` (default = icone 6; icone 5 green variant; icone 7 pirarucu) + HTML pills (Archivo)
-- [x] Authored Bézier arrows (`#F2DCB0`, dash-draw, arrowhead) + invisible hit circles **kept ≥ 24 CSS px diameter at every zoom** (measurement-owner `getScreenCTM()` per SPEC §3: `u = measureCtm.a × k`, `k` from controller state, `r_scene ≥ 12/u` in `onTransform`)
+- [x] Authored Bézier arrows (`#EDE5CE`, dash-draw, arrowhead) + invisible hit circles **kept ≥ 24 CSS px diameter at every zoom** (measurement-owner `getScreenCTM()` per SPEC §3: `u = measureCtm.a × k`, `k` from controller state, `r_scene ≥ 12/u` in `onTransform`)
 - [x] Idle bob on ambient wrapper (per-child delay); tap = pulse + arrow redraw *(done; fly-maxK polish = Phase 6/7, reviewer note)*
 - [x] Zoom-gated pill fade (mobile): distance-from-center threshold (`labelK` default 1 — zoom gate off by default), ±10% hysteresis, `opacity`/`visibility` only — hit targets and focus never affected
 
@@ -87,11 +87,11 @@ Evidence: `graft/.cache/checks/current-landscape.png` (1600×900, k=1, intro set
   EDUCAÇÃO…` 263×6 px) and the two city-name labels no longer share a band (Belém on
   its mass, Ananindeua on its own). Keyboard focus + hit targets unaffected.
 - [x] **Arrows unreadable vs design.** Opus planning verdict (option A): arrows now
-  stroke `#1c2b1c` panel ink (mock's dark arrows; cream invisible on land/water) —
+  stroke `#EDE5CE (poster cream)` panel ink (mock's dark arrows; cream invisible on land/water) —
   SPEC §3 reworded in the same commit (hub-anchored `from`, no source dots — mock has
   none; dots removed from `mountArrows`). All `pos.from` re-authored to the three mock
   hubs (Belém 1351,721 · Ananindeua 1700,278 · Moju 442,1283) so arrows fan out per
-  hub like the design. `layers.test.ts` re-pinned to `#1c2b1c` + zero dots; dash-draw
+  hub like the design. `layers.test.ts` re-pinned to `#EDE5CE (poster cream)` + zero dots; dash-draw
   and tap-redraw transients are color-agnostic (single `ARROW_COLOR` constant).
   Verified side-by-side vs `Mapa.jpeg` (16:9 + 9:19.5).
 - [x] **Numeric alignment gate shipped** (`graft/.cache/gate/run.sh`, 2026-09-15): per-mass IoU

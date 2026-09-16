@@ -207,7 +207,7 @@ describe('mountCalibratedLayers', () => {
     expect(cameraNode.querySelectorAll('#layer-arrows > path')).toHaveLength(10)
   })
 
-  it('authors one Bézier per from point, stroke #1c2b1c, no source dots', () => {
+  it('authors one Bézier per from point, stroke poster cream, no source dots', () => {
     const { cameraNode } = mountLayers()
     const layer = cameraNode.querySelector('#layer-arrows')!
     const paths = layer.querySelectorAll(':scope > path')
@@ -215,14 +215,14 @@ describe('mountCalibratedLayers', () => {
     expect(paths).toHaveLength(11) // one per org; each ships exactly one from point
     expect(dots).toHaveLength(0) // mock has no source dots (SPEC §3, v1.0.1)
     for (const path of paths) {
-      expect(path.getAttribute('stroke')).toBe('#1c2b1c')
+      expect(path.getAttribute('stroke')).toBe('#EDE5CE')
       expect(path.getAttribute('fill')).toBe('none')
       expect(path.getAttribute('stroke-width')).toBe('6')
       expect(path.getAttribute('marker-end')).toBe('url(#arrowhead)')
       expect(path.getAttribute('d')).toMatch(/^M-?[\d.]+,-?[\d.]+ Q-?[\d.]+,-?[\d.]+ /)
     }
     const marker = layer.querySelector('defs marker#arrowhead')!
-    expect(marker.querySelector('path')!.getAttribute('fill')).toBe('#1c2b1c')
+    expect(marker.querySelector('path')!.getAttribute('fill')).toBe('#EDE5CE')
   })
 
   it('draws one arrow per from point for multi-source orgs', () => {
