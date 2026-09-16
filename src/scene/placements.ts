@@ -28,13 +28,14 @@ export interface CityPlacement extends Placement {
 export const initialFraming: Point = { x: 1900, y: 850 }
 
 /**
- * City land-mass placements — calibrated against `Mapa.jpeg` (post-ship v1.0.1
- * fidelity pass: city-fill component matching, painted-bbox → mock-bbox solve).
- * Belém: big central mass with the bay; Ananindeua: joined at upper right;
- * Moju/Barcarena: elongated mass lower left (per `Mapa.jpeg` composition).
+ * City land-mass placements — calibrated against the real poster
+ * (graft/.cache/gate/ref/poster.jpg); 2026-09-16 user QA nudged Belém
+ * up-left (-18,-22) to clear the base-map islands. Belém: big central mass
+ * with the bay; Ananindeua: joined at upper right; Moju/Barcarena:
+ * elongated mass lower left (per poster composition).
  */
 export const cityPlacements: Record<'belem' | 'ananindeua' | 'moju', CityPlacement> = {
-  belem: { x: 1473.1, y: 458.9, scale: 0.7247, labelAnchor: { x: 1890, y: 830 } },
+  belem: { x: 1455.1, y: 436.9, scale: 0.7247, labelAnchor: { x: 1890, y: 830 } },
   ananindeua: { x: 1948.4, y: 156.5, scale: 0.9297, labelAnchor: { x: 2230, y: 440 } },
   moju: { x: 469.5, y: 980.1, scale: 0.8728, labelAnchor: { x: 760, y: 1500 } },
 }

@@ -152,7 +152,7 @@ export function updateLabels(
     child.dataset.px = String(px)
     child.dataset.py = String(py)
   }
-  const pushes = resolveLabelPush(rects)
+  const pushes = resolveEdgeClamp(rects, vw, vh, resolveLabelPush(rects))
   for (const child of el.children) {
     if (!(child instanceof HTMLDivElement)) continue
     const px = Number(child.dataset.px)
@@ -222,6 +222,38 @@ export function resolveLabelPush(rects: LabelRect[]): Map<string, number> {
     placed.push({ x: r.x, y: r.y + dy, w: r.w, h: r.h })
   }
   return push
+}
+
+/** Viewport edge margin (px) kept by resolveEdgeClamp on every side. */
+export const LABEL_EDGE_MARGIN = 8
+
+/**
+ * Pure viewport edge clamp (unit-tested, no DOM): a second pass over the
+ * static-overlap pushes that keeps every box fully inside the viewport
+ * (LABEL_EDGE_MARGIN). A totem may sit at the slice-crop edge, but its name
+ * must stay legible — legibility wins over totem clearance, so a box may be
+ * pushed up over its own totem rather than hang clipped below the fold.
+ * Vertical only (the anchor translate pushes on y); degenerate vw/vh (0 in
+ * non-window environments) passes the inputs through untouched.
+ */
+export function resolveEdgeClamp(
+  rects: LabelRect[],
+  vw: number,
+  vh: number,
+  pushes: Map<string, number>,
+): Map<string, number> {
+  const out = new Map(pushes)
+  if (vw <= 0 || vh <= 0) return out
+  for (const r of rects) {
+    const push = out.get(r.id) ?? 0
+    const top = r.y + push
+    if (top + r.h > vh - LABEL_EDGE_MARGIN) {
+      out.set(r.id, push - (top + r.h - (vh - LABEL_EDGE_MARGIN)))
+    } else if (top < LABEL_EDGE_MARGIN) {
+      out.set(r.id, push + (LABEL_EDGE_MARGIN - top))
+    }
+  }
+  return out
 }
 
 /**

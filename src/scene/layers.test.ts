@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import rawData from '../../data.json'
 import { validateComiteData } from '../data/schema'
 import type { ComiteData } from '../data/types'
-import { renderLabels, resolveLabelPush, updateLabels } from './labels'
+import { renderLabels, resolveEdgeClamp, resolveLabelPush, updateLabels } from './labels'
 import { ARTIFACT_BOB_STEP, mountCalibratedLayers, orgProjects, rSceneFor } from './layers'
 import type { Camera } from './types'
 
@@ -298,6 +298,36 @@ describe('labels', () => {
       { id: 'b', x: 131, y: 0, w: 130, h: 56 },
     ])
     expect(pushes.size).toBe(0)
+  })
+
+  it('resolveEdgeClamp: a rect hanging below vh is pushed up into view', () => {
+    // QUILOMBO case: box top at 897 on a 900px viewport (h 30) — clamped so
+    // its bottom sits at vh - 8, even though the push goes negative (over
+    // its own totem): legibility wins.
+    const pushes = resolveEdgeClamp(
+      [{ id: 'quilombo', x: 700, y: 897, w: 130, h: 30 }],
+      1600,
+      900,
+      new Map(),
+    )
+    expect(pushes.get('quilombo')).toBe(900 - 8 - 30 - 897)
+  })
+
+  it('resolveEdgeClamp: a rect already inside the viewport is untouched', () => {
+    const prior = new Map([['a', 12]])
+    const pushes = resolveEdgeClamp([{ id: 'a', x: 100, y: 300, w: 130, h: 30 }], 1600, 900, prior)
+    expect(pushes).toEqual(prior)
+    expect(pushes.get('a')).toBe(12)
+  })
+
+  it('resolveEdgeClamp: a rect hanging above y=0 is pushed down', () => {
+    const pushes = resolveEdgeClamp(
+      [{ id: 'top', x: 100, y: -20, w: 130, h: 30 }],
+      1600,
+      900,
+      new Map(),
+    )
+    expect(pushes.get('top')).toBe(8 - -20)
   })
 
   it('updateLabels applies the resolved push on the anchor, base offset kept', () => {
