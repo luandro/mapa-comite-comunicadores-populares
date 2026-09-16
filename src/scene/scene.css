@@ -39,8 +39,8 @@
 }
 
 /* Labels: JS writes `transform: translate(px, py)` on each .label anchor per
-   frame; the inner class owns the offset around the anchor point — two
-   transform owners, two nodes (SPEC §3). Pills are pure decoration. */
+   frame; GSAP owns the inner label's offset around the anchor point — two
+   transform owners, two nodes (SPEC §3). Labels are pure decoration. */
 .label {
   position: absolute;
   left: 0;
@@ -94,19 +94,29 @@ g[data-artifact-id]:focus-visible {
 .label-pill.is-far {
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
 }
 
 .label-pill {
   /* offset around the anchor is GSAP property (labels.ts) — not CSS transform */
-  transform-origin: center;
+  transform-origin: center top;
   pointer-events: none;
-  background: #fdf6e3;
-  color: #304e23;
-  border-radius: 999px;
-  padding: 2px 10px;
-  font-family: system-ui, sans-serif;
-  font-size: 14px;
-  white-space: nowrap;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 130px;
+  padding: 4px 7px;
+  background: #513822;
+  color: #fdf6e3;
+  border-radius: 3px;
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: normal;
+  overflow-wrap: anywhere;
   transition:
     opacity 0.3s ease,
     visibility 0.3s ease;

@@ -1,7 +1,7 @@
 {
   "maps": {
     "ananindeua": {
-      "name": "Mapa de Ananindeua",
+      "name": "Ananindeua",
       "projects": {
         "rede_casacura": {
           "name": "REDE CASACURA (Comunidade do Açaizal / Jaderlândia)",
@@ -81,8 +81,8 @@
             "y": 306,
             "from": [
               {
-                "x": 2514,
-                "y": 341
+                "x": 2508,
+                "y": 345
               }
             ]
           },
@@ -123,8 +123,8 @@
           "name": "CENTRO DE EDUCAÇÃO POPULAR E CULTURA DOMINGOS DA SILVA (C.E.P.C.D.S)",
           "icon": "icone-6",
           "pos": {
-            "x": 2351,
-            "y": 970,
+            "x": 2358,
+            "y": 1012,
             "from": [
               {
                 "x": 2282,
@@ -159,7 +159,7 @@
       }
     },
     "belem": {
-      "name": "Mapa de Belém",
+      "name": "Belém",
       "projects": {
         "museu_memorial_vila_da_barca": {
           "name": "MUSEU MEMORIAL VILA DA BARCA (MMVB)",
@@ -169,8 +169,8 @@
             "y": 950,
             "from": [
               {
-                "x": 1490,
-                "y": 700
+                "x": 1609,
+                "y": 666
               }
             ]
           },
@@ -233,12 +233,12 @@
           "name": "COOPERATIVA DE AUDIOVISUAL, BEM VIVER E ARTE (CABA)",
           "icon": "icone-6",
           "pos": {
-            "x": 1401,
-            "y": 835,
+            "x": 1291,
+            "y": 812,
             "from": [
               {
-                "x": 1470,
-                "y": 850
+                "x": 1590,
+                "y": 872
               }
             ]
           },
@@ -315,8 +315,8 @@
             "y": 1680,
             "from": [
               {
-                "x": 912,
-                "y": 1787
+                "x": 906,
+                "y": 1790
               }
             ]
           },
@@ -375,8 +375,8 @@
             "y": 544,
             "from": [
               {
-                "x": 2515,
-                "y": 452
+                "x": 2509,
+                "y": 448
               }
             ]
           },
@@ -490,6 +490,10 @@
           ]
         }
       }
+    },
+    "moju": {
+      "name": "Moju",
+      "projects": {}
     }
   }
 }

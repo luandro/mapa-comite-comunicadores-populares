@@ -126,13 +126,13 @@ export function arrowPathLength(path: SVGPathElement): number {
   return quadLength(path.getAttribute('d') ?? '')
 }
 
-/** Totem height in scene units — first-pass sizing, recalibrated in Phase 1.5. */
-const TOTEM_HEIGHT = 110
+/** Totem height in scene units — poster-scale, anchored at each base point. */
+const TOTEM_HEIGHT = 190
 /** Arrowhead stops this many scene units above the totem base point. */
 const ARROW_END_LIFT = 40
 /** Control-point perpendicular offset as a fraction of the from→end distance. */
 const ARROW_BOW = 0.3
-const ARROW_COLOR = '#EDE5CE'  // poster arrows: warm cream (sampled 236,233,214)
+const ARROW_COLOR = '#EDE5CE' // poster arrows: warm cream (sampled 236,233,214)
 const ARROW_STROKE = 6
 
 const CITY_ASSETS = { belem: cityBelem, ananindeua: cityAnanindeua, moju: cityMoju }

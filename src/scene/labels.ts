@@ -39,8 +39,8 @@ export function createLabelsLayer(parent: HTMLElement): {
 /**
  * One label = outer `.label` anchor (JS writes `transform: translate(px,py)`
  * on it per frame) wrapping the inner `.label-pill`/`.label-city` div whose
- * CSS class owns the offset around the anchor point — two transform owners,
- * two nodes (SPEC §3).
+ * GSAP properties own the offset around the anchor point — two transform
+ * owners, two nodes (SPEC §3).
  */
 function appendLabel(
   el: HTMLElement,
@@ -57,13 +57,16 @@ function appendLabel(
   const label = document.createElement('div')
   label.className = kind
   label.textContent = text // structured fields only — never HTML from data (SPEC §3)
-  // The offset around the anchor is GSAP property (percent-based) — NOT CSS
+  // The offset around the anchor is a GSAP property (percent-based) — NOT CSS
   // `transform` on the same node. The intro tweens scale on these divs, and
   // GSAP bakes any pre-existing CSS transform to px on first touch (fractional
   // widths round wrong + font-swap reflows would de-center labels permanently —
   // opus P1). One owner: JS per-frame on the anchor, GSAP property on the div.
   if (kind === 'label-pill') {
-    gsap.set(label, { xPercent: -50, yPercent: -100, y: -8 })
+    // Org boxes are anchored to the totem BASE and grow below it. Keeping the
+    // top edge as the transform origin means the intro pop does not pull the
+    // box back over the totem while it scales in.
+    gsap.set(label, { xPercent: -50, yPercent: 0, y: 8 })
   } else {
     gsap.set(label, { xPercent: -50, yPercent: -50 })
   }

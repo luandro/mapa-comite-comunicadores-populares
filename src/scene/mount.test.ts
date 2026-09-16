@@ -23,7 +23,7 @@ if (typeof ResizeObserver === 'undefined') {
 const data: ComiteData = {
   maps: {
     belem: {
-      name: 'Mapa de Belém',
+      name: 'Belém',
       projects: {
         na_cuia: {
           name: 'NA CUIA (BELÉM)',
@@ -122,7 +122,7 @@ describe('mountScene', () => {
     // The fixture's one map renders its city name label AND one org pill
     // (both fixture orgs carry pos → two pills) + the city name label.
     expect(labels!.childElementCount).toBe(3)
-    expect(labels!.querySelector('.label-city')!.textContent).toBe('Mapa de Belém')
+    expect(labels!.querySelector('.label-city')!.textContent).toBe('Belém')
     expect(labels!.querySelectorAll('.label-pill')).toHaveLength(2)
     c.destroy()
   })
@@ -218,6 +218,8 @@ describe('mountScene', () => {
     c.skipIntro()
     const pill = document.querySelector<HTMLElement>('.label-pill')!
     expect(pill.style.transform).toContain('-50%')
+    expect(pill.style.transform).toContain('translate(-50%, 0%)')
+    expect(pill.style.transform).toContain('8px')
     expect(getComputedStyle(pill).transform).not.toBe('none')
     c.destroy()
   })

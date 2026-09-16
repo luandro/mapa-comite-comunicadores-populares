@@ -97,11 +97,11 @@ describe('mountCalibratedLayers', () => {
       expect(interaction.getAttribute('data-interactive')).toBe('city')
       expect(interaction.getAttribute('data-city-id')).toBe(id)
       // Phase 4 (SPEC §9): real button semantics — focusable, labeled from
-      // data.json (moju has no map entry yet → id fallback), starts at rest.
+      // data.json, starts at rest.
       const labels: Record<string, string> = {
-        belem: 'Mapa de Belém',
-        ananindeua: 'Mapa de Ananindeua',
-        moju: 'moju',
+        belem: 'Belém',
+        ananindeua: 'Ananindeua',
+        moju: 'Moju',
       }
       expect(interaction.getAttribute('tabindex')).toBe('0')
       expect(interaction.getAttribute('role')).toBe('button')
@@ -172,17 +172,17 @@ describe('mountCalibratedLayers', () => {
     })
   })
 
-  it('places each totem with pos as its BASE point at ≈110 scene units tall', () => {
+  it('places each totem with pos as its BASE point at ≈190 scene units tall', () => {
     const { layers } = mountLayers()
     // icone-6 viewBox ground truth: 337.23 × 618.08 (SPEC §1)
-    const scale = 110 / 618.08
+    const scale = 190 / 618.08
     const placement = layers.artifacts.na_cuia.parentElement! // pos from data.json
     const pos = realData.maps.belem.projects.na_cuia.pos!
     const match = placement
       .getAttribute('transform')!
       .match(/^translate\((-?[\d.]+),(-?[\d.]+)\) scale\([\d.]+\)$/)!
     expect(Number(match[1])).toBeCloseTo(pos.x - (337.23 * scale) / 2, 2)
-    expect(Number(match[2])).toBeCloseTo(pos.y - 110, 1)
+    expect(Number(match[2])).toBeCloseTo(pos.y - 190, 1)
   })
 
   it('defaults an unknown icon to icone-6 with a console warning', () => {
@@ -239,7 +239,7 @@ describe('mountCalibratedLayers', () => {
 })
 
 describe('labels', () => {
-  it('renders org pills + city labels and positions them through the full transform', () => {
+  it('renders poster org labels below totems + city labels through the full transform', () => {
     const el = document.createElement('div')
     const anchors: Record<string, { x: number; y: number }> = {}
     for (const [orgId, project] of orgProjects(realData)) {
@@ -247,10 +247,14 @@ describe('labels', () => {
     }
     renderLabels(el, realData, anchors)
     expect(el.querySelectorAll('.label-pill')).toHaveLength(11)
-    expect(el.querySelectorAll('.label-city')).toHaveLength(2) // ananindeua + belem
-    const firstPill = el.querySelector<HTMLElement>('.label-pill')!
-    expect(firstPill.textContent).toBe('REDE CASACURA (Comunidade do Açaizal / Jaderlândia)')
-    expect(el.querySelector('[data-label-id="city:belem"]')!.textContent).toBe('Mapa de Belém')
+    expect(el.querySelectorAll('.label-city')).toHaveLength(3)
+    const firstLabel = el.querySelector<HTMLElement>('.label-pill')!
+    expect(firstLabel.textContent).toBe('REDE CASACURA (Comunidade do Açaizal / Jaderlândia)')
+    expect(firstLabel.style.transform).toContain('translate(-50%, 0%)')
+    expect(firstLabel.style.transform).toContain('8px')
+    expect(
+      Array.from(el.querySelectorAll<HTMLElement>('.label-city'), (label) => label.textContent),
+    ).toEqual(['Ananindeua', 'Belém', 'Moju'])
 
     // sx = 1.5·pos.x + 100; sy = 1.5·pos.y + 50 (pos from data.json)
     const pos = realData.maps.belem.projects.na_cuia.pos!
