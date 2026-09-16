@@ -25,7 +25,7 @@ export interface CityPlacement extends Placement {
  * keeps all 11 orgs on the 16:9 first paint (slice-crop shows ~1700 of 2021
  * scene units vertically; y only clamps in landscape, x only in portrait).
  */
-export const initialFraming: Point = { x: 1750, y: 850 }
+export const initialFraming: Point = { x: 1900, y: 850 }
 
 /**
  * City land-mass placements — calibrated against `Mapa.jpeg` (post-ship v1.0.1
