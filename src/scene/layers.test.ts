@@ -1,12 +1,23 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import rawData from '../../data.json'
 import { validateComiteData } from '../data/schema'
 import type { ComiteData } from '../data/types'
 import { renderLabels, resolveEdgeClamp, resolveLabelPush, updateLabels } from './labels'
-import { ARTIFACT_BOB_STEP, mountCalibratedLayers, orgProjects, rSceneFor } from './layers'
+import {
+  arrowEndPoint,
+  ARTIFACT_BOB_STEP,
+  ARROWHEAD_SCENE,
+  ARROW_TIP_CLEARANCE,
+  mountCalibratedLayers,
+  orgProjects,
+  PILL_BAND_SCENE,
+  rSceneFor,
+  TOTEM_HEIGHT,
+  TOTEM_WIDTH,
+} from './layers'
 import type { Camera } from './types'
 
 const realData: ComiteData = validateComiteData(rawData)
@@ -209,13 +220,13 @@ describe('mountCalibratedLayers', () => {
     expect(cameraNode.querySelectorAll('#layer-arrows > path')).toHaveLength(10)
   })
 
-  it('authors one Bézier per from point, stroke poster cream, no source dots', () => {
+  it('authors one Bézier per from point, stroke poster cream, tail dot on each hub', () => {
     const { cameraNode } = mountLayers()
     const layer = cameraNode.querySelector('#layer-arrows')!
     const paths = layer.querySelectorAll(':scope > path')
     const dots = layer.querySelectorAll(':scope > circle')
     expect(paths).toHaveLength(11) // one per org; each ships exactly one from point
-    expect(dots).toHaveLength(0) // mock has no source dots (SPEC §3, v1.0.1)
+    expect(dots).toHaveLength(11) // poster tail dot on each from point (user QA 2026-09-16)
     for (const path of paths) {
       expect(path.getAttribute('stroke')).toBe('#EDE5CE')
       expect(path.getAttribute('fill')).toBe('none')
@@ -223,11 +234,62 @@ describe('mountCalibratedLayers', () => {
       expect(path.getAttribute('marker-end')).toBe('url(#arrowhead)')
       expect(path.getAttribute('d')).toMatch(/^M-?[\d.]+,-?[\d.]+ Q-?[\d.]+,-?[\d.]+ /)
     }
+    for (const dot of dots) {
+      expect(dot.getAttribute('fill')).toBe('#EDE5CE')
+      expect(Number(dot.getAttribute('r'))).toBeGreaterThan(0)
+    }
     const marker = layer.querySelector('defs marker#arrowhead')!
     expect(marker.querySelector('path')!.getAttribute('fill')).toBe('#EDE5CE')
   })
 
-  it('draws one arrow per from point for multi-source orgs', () => {
+  it('arrowhead tip stops outside the totem art box — head never touches the art', () => {
+    const { cameraNode } = mountLayers()
+    const layer = cameraNode.querySelector('#layer-arrows')!
+    for (const [orgId, project] of orgProjects(realData)) {
+      const pos = project.pos!
+      for (const from of pos.from) {
+        const end = arrowEndPoint(from, { x: pos.x, y: pos.y })
+        // The TIP (end + one head length along the from→base direction) must
+        // clear the art box (TOTEM_WIDTH × TOTEM_HEIGHT, bottom-center at pos)
+        // by ARROW_TIP_CLEARANCE: shrink the box by that margin and assert the
+        // tip is outside it. Direction-agnostic — side approaches included.
+        const len = Math.hypot(pos.x - from.x, pos.y - from.y)
+        const ux = (pos.x - from.x) / len
+        const uy = (pos.y - from.y) / len
+        const tip = { x: end.x + ux * ARROWHEAD_SCENE, y: end.y + uy * ARROWHEAD_SCENE }
+        // Clear the ART box (shrunk by the clearance)…
+        const inBoxX = Math.abs(tip.x - pos.x) < TOTEM_WIDTH / 2 - ARROW_TIP_CLEARANCE
+        const inBoxY = tip.y > pos.y - TOTEM_HEIGHT + ARROW_TIP_CLEARANCE && tip.y < pos.y
+        // …and the TITLE-PILL band hanging below the base (heads behind the
+        // title are exactly the bug — user QA round 3).
+        const halfBand = PILL_BAND_SCENE / 2
+        const inBandX = Math.abs(tip.x - pos.x) < halfBand
+        const inBandY = tip.y > pos.y && tip.y < pos.y + PILL_BAND_SCENE
+        expect(`${orgId} art=${inBoxX && inBoxY} pill=${inBandX && inBandY}`).toBe(
+          `${orgId} art=false pill=false`,
+        )
+      }
+    }
+    const layerPaths = layer.querySelectorAll(':scope > path')
+    expect(layerPaths.length).toBeGreaterThan(0)
+  })
+
+  it('arrowEndPoint: axis-aligned rays stay finite and clear the rects', () => {
+    // Exactly vertical approach from below: crosses the pill band's bottom
+    // face (review round 1 — Infinity-on-zero-direction poisoning).
+    const base = { x: 1500, y: 1000 }
+    const end = arrowEndPoint({ x: 1500, y: 1700 }, base)
+    const len = Math.hypot(base.x - 1500, base.y - 1700)
+    const uy = (base.y - 1700) / len
+    const tipY = end.y + uy * ARROWHEAD_SCENE
+    // Ray from below: the band face sits at base.y + band depth; the tip stops
+    // ARROW_TIP_CLEARANCE OUTSIDE it (below the face).
+    expect(Number.isFinite(tipY)).toBe(true)
+    expect(tipY).toBeGreaterThan(base.y)
+    expect(tipY).toBeCloseTo(base.y + 260 + ARROW_TIP_CLEARANCE, 5)
+  })
+
+  it('draws one arrow + one tail dot per from point for multi-source orgs', () => {
     const data = structuredClone(realData)
     data.maps.belem.projects.fogo_no_rabo.pos!.from = [
       { x: 1200, y: 1600 },
@@ -236,7 +298,7 @@ describe('mountCalibratedLayers', () => {
     const { cameraNode } = mountLayers(data)
     const layer = cameraNode.querySelector('#layer-arrows')!
     expect(layer.querySelectorAll(':scope > path')).toHaveLength(12)
-    expect(layer.querySelectorAll(':scope > circle')).toHaveLength(0)
+    expect(layer.querySelectorAll(':scope > circle')).toHaveLength(12)
   })
 })
 
@@ -320,24 +382,24 @@ describe('labels', () => {
     expect(pushes.get('a')).toBe(12)
   })
 
-  it('resolveEdgeClamp: the anchor guard supersedes the top-edge branch', () => {
-    // r.y = py + PILL_BASE_OFFSET(8) by construction, so with the anchor on
-    // screen (py >= 0) the box top is always >= the 8px margin — the top-edge
-    // branch can only fire when the anchor is off-screen, which the guard
-    // now skips. Lock that invariant in: an above-the-fold box is untouched.
+  it('resolveEdgeClamp: an anchor above the fold is pulled down to the margin', () => {
+    // Anchor at y −28 (within the ±PILL_ANCHOR_SLACK reach): the box top
+    // (−20) sits above the 8px margin → pulled down by 8 − (−20) = 28 so the
+    // box is fully visible. A cropped top-row totem keeps its title on-screen.
     const pushes = resolveEdgeClamp(
       [{ id: 'top', x: 100, y: -20, w: 130, h: 30 }],
       1600,
       900,
       new Map(),
     )
-    expect(pushes.size).toBe(0)
+    expect(pushes.get('top')).toBeCloseTo(28, 0)
   })
 
-  it('resolveEdgeClamp: a pill whose anchor is off-screen is never clamped', () => {
+  it('resolveEdgeClamp: a pill whose anchor is far off-screen is never clamped', () => {
     // Zoomed into Belém: Moju labels land ~1000px below the fold — dragging
     // them up would orphan them from their totems along the bottom edge.
-    // y 2000 - PILL_BASE_OFFSET 8 = anchor 1992, outside vh 900 → untouched.
+    // y 2000 - PILL_BASE_OFFSET 8 = anchor 1992, beyond vh 900 + slack 140
+    // → untouched.
     const pushes = resolveEdgeClamp(
       [{ id: 'far-below', x: 700, y: 2000, w: 130, h: 30 }],
       1600,
@@ -345,6 +407,21 @@ describe('labels', () => {
       new Map(),
     )
     expect(pushes.size).toBe(0)
+  })
+
+  it('resolveEdgeClamp: a cropped bottom totem keeps its title in view', () => {
+    // The slice crop leaves a totem's base below the fold while its upper art
+    // is still visible (na_cuia/fogo/hip_hop/quilombo at 16:9 first paint):
+    // anchor within vh + slack → the pill is pulled up to sit fully inside
+    // the viewport instead of vanishing (user QA 2026-09-16).
+    const pushes = resolveEdgeClamp(
+      [{ id: 'edge', x: 700, y: 1080 + 120, w: 130, h: 30 }], // anchor 1192
+      1920,
+      1080,
+      new Map(),
+    )
+    // pulled UP so top + h = vh − margin: push = −(1112 + 30 − 1072) = −158
+    expect(pushes.get('edge')).toBeCloseTo(-158, 0)
   })
 
   it('resolveEdgeClamp: a pill fully past the left edge is never clamped', () => {
@@ -407,11 +484,10 @@ describe('scene.css layer rules', () => {
     // #layer-arrows above the city interaction groups, and without this rule
     // its <path> elements hijack taps on painted hub pixels (CodeRabbit P2 /
     // qodo Medium on PR #1).
-    // Vite statically rewrites the literal `new URL('./scene.css',
-    // import.meta.url)` into an http asset URL (then fileURLToPath throws),
-    // so import.meta.url is captured through a variable first.
-    const here = import.meta.url
-    const css = readFileSync(fileURLToPath(new URL('./scene.css', here)), 'utf8')
+    // Vite statically rewrites `new URL('./scene.css', import.meta.url)` into
+    // an http asset URL, which fileURLToPath rejects — resolve from the repo
+    // root instead (vitest always runs with the repo root as cwd).
+    const css = readFileSync(resolve(process.cwd(), 'src/scene/scene.css'), 'utf8')
     expect(css).toMatch(/#layer-arrows\s*\{[^}]*pointer-events:\s*none/)
   })
 })

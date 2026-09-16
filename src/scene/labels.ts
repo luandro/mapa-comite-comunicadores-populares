@@ -228,13 +228,27 @@ export function resolveLabelPush(rects: LabelRect[]): Map<string, number> {
 export const LABEL_EDGE_MARGIN = 8
 
 /**
+ * How far past the viewport edge (px) an anchor may sit and still get clamped
+ * into view: a totem's art box is TOTEM_HEIGHT scene units tall, so at the
+ * slice crop its upper half stays on-screen long after its base (the pill
+ * anchor) slipped below the fold — the pill is then pulled up to hug the
+ * visible art instead of vanishing with the base (2026-09-16 user QA: the
+ * bottom-row totems lost their titles). Generous fixed slack ≈ half the
+ * totem height in CSS px at k = 1 on a phone.
+ */
+export const PILL_ANCHOR_SLACK = 140
+
+/**
  * Pure viewport edge clamp (unit-tested, no DOM): a second pass over the
  * static-overlap pushes that keeps every box fully inside the viewport
  * (LABEL_EDGE_MARGIN). A totem may sit at the slice-crop edge, but its name
  * must stay legible — legibility wins over totem clearance, so a box may be
  * pushed up over its own totem rather than hang clipped below the fold.
  * Vertical only (the anchor translate pushes on y); degenerate vw/vh (0 in
- * non-window environments) passes the inputs through untouched.
+ * non-window environments) passes the inputs through untouched. The clamp
+ * reaches ±PILL_ANCHOR_SLACK past the edges (anchors of slice-cropped totems)
+ * and leaves anchors beyond it alone — a pill whose totem scrolled fully
+ * off-screen must not orphan at the edge (v1.0.1 anchor-on-screen rule).
  */
 export function resolveEdgeClamp(
   rects: LabelRect[],
@@ -250,7 +264,8 @@ export function resolveEdgeClamp(
     // r.y - PILL_BASE_OFFSET is the anchor y; horizontal misses (x fully
     // outside vw) are skipped too since the pill would be invisible anyway.
     const anchorY = r.y - PILL_BASE_OFFSET
-    if (r.x + r.w < 0 || r.x > vw || anchorY < 0 || anchorY > vh) continue
+    if (r.x + r.w < 0 || r.x > vw) continue
+    if (anchorY < -PILL_ANCHOR_SLACK || anchorY > vh + PILL_ANCHOR_SLACK) continue
     const push = out.get(r.id) ?? 0
     const top = r.y + push
     if (top + r.h > vh - LABEL_EDGE_MARGIN) {

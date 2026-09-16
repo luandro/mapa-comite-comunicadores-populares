@@ -7,12 +7,12 @@
           "name": "REDE CASACURA (Comunidade do Açaizal / Jaderlândia)",
           "icon": "icone-6",
           "pos": {
-            "x": 2160,
-            "y": 900,
+            "x": 2465,
+            "y": 1115,
             "from": [
               {
-                "x": 2282,
-                "y": 982
+                "x": 2019,
+                "y": 1002
               }
             ]
           },
@@ -77,12 +77,12 @@
           "name": "REDE AFROAMAZÔNIDA",
           "icon": "icone-6",
           "pos": {
-            "x": 2574,
-            "y": 306,
+            "x": 2799,
+            "y": 223,
             "from": [
               {
-                "x": 2508,
-                "y": 345
+                "x": 2243,
+                "y": 300
               }
             ]
           },
@@ -123,12 +123,12 @@
           "name": "CENTRO DE EDUCAÇÃO POPULAR E CULTURA DOMINGOS DA SILVA (C.E.P.C.D.S)",
           "icon": "icone-6",
           "pos": {
-            "x": 2358,
-            "y": 1012,
+            "x": 2818,
+            "y": 915,
             "from": [
               {
-                "x": 2282,
-                "y": 973
+                "x": 2264,
+                "y": 600
               }
             ]
           },
@@ -155,6 +155,53 @@
           ],
           "memoria": [],
           "identidade": ["Eliana", "Raimundo", "Júlia Seffer"]
+        },
+        "chibe": {
+          "name": "CHIBÉ",
+          "icon": "icone-6",
+          "pos": {
+            "x": 2617,
+            "y": 1474,
+            "from": [
+              {
+                "x": 2019,
+                "y": 1002
+              }
+            ]
+          },
+          "conflitos": [
+            "Mobilidade Urbana (Transporte, Ciclofaixa, Sinalizações)",
+            "Saneamento básica (Poluição de rios e falta de água)",
+            "Lugares de lazer"
+          ],
+          "acao": ["Semana do Hip-Hop Pai d’égua", "Formação", "Oficinas", "Militância Política"],
+          "identificacao_e_territorio": [
+            "Coisas de Negro",
+            "Feira de Artesanato do Paracuri",
+            "Ninho de Caba",
+            "Na Casa do Artista",
+            "Orla de Icoaraci",
+            "Círio de Icoaraci"
+          ],
+          "futuro": ["Continuar existindo", "Se regularizar", "Se manter financeiramente"],
+          "memoria": [
+            "Infância em movimento",
+            "Carta de direitos climáticos de Icoaraci",
+            "Icoaracine",
+            "Clube do Livro"
+          ],
+          "identidade": [
+            "Espaço Cultural e Biblioteca Comunitária",
+            "Lutas/Propostas",
+            "Equidade Ambiental",
+            "Infâncias em movimento",
+            "Catarina (São Braz)",
+            "Talita (Agulha)",
+            "Yasmin (Maracacuera)",
+            "Silvia (Cruzeiro)",
+            "Andressa (Águas negras)",
+            "Tayna (Tenoné)"
+          ]
         }
       }
     },
@@ -165,12 +212,12 @@
           "name": "MUSEU MEMORIAL VILA DA BARCA (MMVB)",
           "icon": "icone-6",
           "pos": {
-            "x": 1100,
-            "y": 950,
+            "x": 982,
+            "y": 603,
             "from": [
               {
-                "x": 1609,
-                "y": 666
+                "x": 1546,
+                "y": 898
               }
             ]
           },
@@ -206,12 +253,12 @@
           "name": "NA CUIA",
           "icon": "icone-6",
           "pos": {
-            "x": 1639,
-            "y": 1254,
+            "x": 1599,
+            "y": 1798,
             "from": [
               {
-                "x": 1648,
-                "y": 1185
+                "x": 1702,
+                "y": 1026
               }
             ]
           },
@@ -233,12 +280,12 @@
           "name": "COOPERATIVA DE AUDIOVISUAL, BEM VIVER E ARTE (CABA)",
           "icon": "icone-6",
           "pos": {
-            "x": 1291,
-            "y": 812,
+            "x": 392,
+            "y": 855,
             "from": [
               {
-                "x": 1590,
-                "y": 872
+                "x": 1596,
+                "y": 1101
               }
             ]
           },
@@ -276,12 +323,12 @@
           "name": "FOGO NO RABO",
           "icon": "icone-6",
           "pos": {
-            "x": 1885,
-            "y": 1237,
+            "x": 1972,
+            "y": 1876,
             "from": [
               {
-                "x": 1867,
-                "y": 1170
+                "x": 1780,
+                "y": 1079
               }
             ]
           },
@@ -312,11 +359,11 @@
           "icon": "icone-6",
           "pos": {
             "x": 1150,
-            "y": 1680,
+            "y": 1873,
             "from": [
               {
-                "x": 906,
-                "y": 1790
+                "x": 869,
+                "y": 1558
               }
             ]
           },
@@ -371,12 +418,12 @@
           "name": "ESPAÇO CULTURAL RUTH COSTA",
           "icon": "icone-6",
           "pos": {
-            "x": 2649,
-            "y": 544,
+            "x": 2610,
+            "y": 586,
             "from": [
               {
-                "x": 2509,
-                "y": 448
+                "x": 2227,
+                "y": 556
               }
             ]
           },
@@ -408,12 +455,12 @@
           "name": "HIP-HOP",
           "icon": "icone-6",
           "pos": {
-            "x": 2280,
-            "y": 1250,
+            "x": 2322,
+            "y": 1850,
             "from": [
               {
-                "x": 2251,
-                "y": 1000
+                "x": 1889,
+                "y": 1086
               }
             ]
           },
@@ -441,53 +488,6 @@
           ],
           "memoria": ["Festival Hip-Hop Pai d’égua em novembro"],
           "identidade": ["Roberta", "RMY", "Larix", "Tinta Preta", "Mina Ribeirinha"]
-        },
-        "chibe": {
-          "name": "CHIBÉ",
-          "icon": "icone-6",
-          "pos": {
-            "x": 2350,
-            "y": 1150,
-            "from": [
-              {
-                "x": 2280,
-                "y": 984
-              }
-            ]
-          },
-          "conflitos": [
-            "Mobilidade Urbana (Transporte, Ciclofaixa, Sinalizações)",
-            "Saneamento básica (Poluição de rios e falta de água)",
-            "Lugares de lazer"
-          ],
-          "acao": ["Semana do Hip-Hop Pai d’égua", "Formação", "Oficinas", "Militância Política"],
-          "identificacao_e_territorio": [
-            "Coisas de Negro",
-            "Feira de Artesanato do Paracuri",
-            "Ninho de Caba",
-            "Na Casa do Artista",
-            "Orla de Icoaraci",
-            "Círio de Icoaraci"
-          ],
-          "futuro": ["Continuar existindo", "Se regularizar", "Se manter financeiramente"],
-          "memoria": [
-            "Infância em movimento",
-            "Carta de direitos climáticos de Icoaraci",
-            "Icoaracine",
-            "Clube do Livro"
-          ],
-          "identidade": [
-            "Espaço Cultural e Biblioteca Comunitária",
-            "Lutas/Propostas",
-            "Equidade Ambiental",
-            "Infâncias em movimento",
-            "Catarina (São Braz)",
-            "Talita (Agulha)",
-            "Yasmin (Maracacuera)",
-            "Silvia (Cruzeiro)",
-            "Andressa (Águas negras)",
-            "Tayna (Tenoné)"
-          ]
         }
       }
     },

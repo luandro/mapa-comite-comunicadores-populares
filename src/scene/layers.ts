@@ -127,14 +127,36 @@ export function arrowPathLength(path: SVGPathElement): number {
 }
 
 /** Totem height in scene units — poster-scale, anchored at each base point. */
-const TOTEM_HEIGHT = 190
-/** Arrowhead stops this many scene units above the totem base point. */
-const ARROW_END_LIFT = 40
+export const TOTEM_HEIGHT = 190
+/** Totem art box width in scene units (icons are near-square poles). */
+export const TOTEM_WIDTH = 110
+/**
+ * Clearance (scene units) between the arrowhead TIP and the totem art box:
+ * the head must never touch the art (2026-09-16 user QA, twice — the first
+ * fix lifted vertically only, which still clipped tall poles approached
+ * from the side).
+ */
+export const ARROW_TIP_CLEARANCE = 24
+/** Extra stroke back-off so the head BODY (30 units) stays out of the box too. */
+export const ARROWHEAD_SCENE = 30
+/**
+ * Title-pill exclusion zone under the totem base (scene units, width AND
+ * depth). Real pill: 130px wide × ~53px tall (offset 8 + 2 lines). At the
+ * k=1 slice scale 0.635 that is ~205×84 scene units; the tip additionally
+ * sits ARROW_TIP_CLEARANCE (24) outside and the head body (30) behind it,
+ * so the zone needs half-width 102 + 24 ≈ 126 → 260 covers width with
+ * margin, and depth 260u ≈ 165px clears the 53px pill + 15px tip gap +
+ * 19px head. Arrows approaching from below must stop short of this zone or
+ * their heads hide behind the title (user QA rounds 3–4). Worst case at
+ * k=1; at k>1 the zone shrinks in scene units, so k=1 sizing suffices.
+ */
+export const PILL_BAND_SCENE = 260
 /** Control-point perpendicular offset as a fraction of the from→end distance. */
 const ARROW_BOW = 0.3
 const ARROW_COLOR = '#EDE5CE' // poster arrows: warm cream (sampled 236,233,214)
 const ARROW_STROKE = 6
-
+/** Poster-tail dot radius at the from[] end of every arrow (scene units). */
+const ARROW_TAIL_R = 9
 const CITY_ASSETS = { belem: cityBelem, ananindeua: cityAnanindeua, moju: cityMoju }
 const CITY_IDS = ['belem', 'ananindeua', 'moju'] as const
 
@@ -216,6 +238,69 @@ function arrowPath(from: Point, end: Point): string {
   const cx = (from.x + end.x) / 2 - dy * ARROW_BOW
   const cy = (from.y + end.y) / 2 + dx * ARROW_BOW
   return `M${from.x},${from.y} Q${cx},${cy} ${end.x},${end.y}`
+}
+
+/**
+ * Where an arrow from `from` must stop so its marker-end TIP clears the
+ * totem art box (bottom-center anchored at `base`, TOTEM_WIDTH ×
+ * TOTEM_HEIGHT): march along the straight from→base line to the box
+ * boundary, then back off clearance + head length. Direction-agnostic —
+ * the old vertical-only lift clipped every pole approached from the side
+ * (user QA 2026-09-16, CHIBÉ case). Degenerate from==base falls back to a
+ * plain vertical lift above the base.
+ */
+export function arrowEndPoint(from: Point, base: Point): Point {
+  const halfW = TOTEM_WIDTH / 2
+  const dx = base.x - from.x
+  const dy = base.y - from.y
+  const len = Math.hypot(dx, dy)
+  if (len < 1) return { x: base.x, y: base.y - TOTEM_HEIGHT - ARROW_TIP_CLEARANCE }
+  const ux = dx / len
+  const uy = dy / len
+  /**
+   * Ray/AABB entry param for one rect: the t where the from→base ray first
+   * sits inside [x0,x1]×[y0,y1] — max of the per-axis entry params (a ray is
+   * inside once past BOTH faces). Infinity on an axis it never crosses.
+   */
+  const rectEntry = (x0: number, x1: number, y0: number, y1: number): number => {
+    // Axis-parallel rays: inside the slab → already at it (0); outside →
+    // never crosses (Infinity). Plain Infinity for both would poison a
+    // perfectly vertical/horizontal arrow (review round 1).
+    const tx =
+      ux > 0
+        ? (x0 - from.x) / ux
+        : ux < 0
+          ? (x1 - from.x) / ux
+          : from.x >= x0 && from.x <= x1
+            ? 0
+            : Infinity
+    const ty =
+      uy > 0
+        ? (y0 - from.y) / uy
+        : uy < 0
+          ? (y1 - from.y) / uy
+          : from.y >= y0 && from.y <= y1
+            ? 0
+            : Infinity
+    return Math.max(tx, ty, 0)
+  }
+  // Two obstacles stacked on the base: the art box above it and the title
+  // pill band below it (pills hang under the base — an arrowhead stopping
+  // inside the band hides behind the title, user QA round 3). The FIRST face
+  // the ray crosses wins (min of the two entries; both are ≥ 0).
+  const tArt = rectEntry(base.x - halfW, base.x + halfW, base.y - TOTEM_HEIGHT, base.y)
+  const tBand = rectEntry(
+    base.x - PILL_BAND_SCENE / 2,
+    base.x + PILL_BAND_SCENE / 2,
+    base.y,
+    base.y + PILL_BAND_SCENE,
+  )
+  const tEntry = Math.min(tArt, tBand)
+  // The TIP sits ARROW_TIP_CLEARANCE before that face; the stroke ends one
+  // head-length further back so the marker BODY never overlaps either rect.
+  const tTip = Math.max(0, tEntry - ARROW_TIP_CLEARANCE)
+  const tEnd = Math.max(0, tTip - ARROWHEAD_SCENE)
+  return { x: from.x + ux * tEnd, y: from.y + uy * tEnd }
 }
 
 function mountWaves(cameraNode: SVGGElement): SVGGElement {
@@ -392,8 +477,14 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
   const marker = svg('marker')
   marker.id = 'arrowhead'
   marker.setAttribute('viewBox', '0 0 10 10')
-  marker.setAttribute('refX', '9')
+  // refX = 10 puts the head's TIP on the path end point — the stroke is
+  // authored to stop one head-length outside the totem art box
+  // (arrowEndPoint), so the tip sits ARROW_TIP_CLEARANCE short of the art and
+  // the head never overlays it (2026-09-16 user QA).
+  marker.setAttribute('refX', '10')
   marker.setAttribute('refY', '5')
+  // markerUnits = strokeWidth (default): head scene size = 10/10 × 6 × 5 = 30
+  // scene units long, ≈1/6 of the totem height — poster-proportioned.
   marker.setAttribute('markerWidth', '5')
   marker.setAttribute('markerHeight', '5')
   marker.setAttribute('orient', 'auto')
@@ -408,7 +499,11 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
     if (!pos) continue
     for (const from of pos.from) {
       const path = svg('path')
-      path.setAttribute('d', arrowPath(from, { x: pos.x, y: pos.y - ARROW_END_LIFT }))
+      // Stroke stops one head-length outside the art box: the marker-end TIP
+      // lands ARROW_TIP_CLEARANCE short of the box — head and art never touch
+      // (user QA 2026-09-16, direction-agnostic arrowEndPoint).
+      const end = arrowEndPoint(from, { x: pos.x, y: pos.y })
+      path.setAttribute('d', arrowPath(from, end))
       path.setAttribute('fill', 'none')
       path.setAttribute('stroke', ARROW_COLOR)
       path.setAttribute('stroke-width', String(ARROW_STROKE))
@@ -417,6 +512,15 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
       // Phase 5: org ownership lets mount.ts redraw one org's arrows on tap.
       path.setAttribute('data-arrow-org', orgId)
       layer.appendChild(path)
+      // Poster tail dot: the little circle where the arrow leaves the hub
+      // (user QA 2026-09-16). Own hit-transparent, decorative sibling.
+      const tail = svg('circle')
+      tail.setAttribute('cx', String(from.x))
+      tail.setAttribute('cy', String(from.y))
+      tail.setAttribute('r', String(ARROW_TAIL_R))
+      tail.setAttribute('fill', ARROW_COLOR)
+      tail.setAttribute('data-arrow-org', orgId)
+      layer.appendChild(tail)
     }
   }
   cameraNode.appendChild(layer)

@@ -48,7 +48,7 @@ export interface IntroTargets {
   cities: SVGGElement[]
   /** Inner `.label-city` divs (outer anchors are per-frame positioned). */
   cityLabels: HTMLElement[]
-  arrows: { paths: SVGPathElement[] }
+  arrows: { paths: SVGPathElement[]; tails: SVGCircleElement[] }
   /** Artifact interaction `<g>`s (no transform attribute — the GSAP target). */
   artifacts: SVGGElement[]
   /** Inner `.label-pill` divs (outer anchors are per-frame positioned). */
@@ -115,7 +115,7 @@ export function primeIntroTargets(targets: IntroTargets): void {
       path.setAttribute('stroke-dasharray', String(length))
       path.setAttribute('stroke-dashoffset', String(length))
     }
-    gsap.set(targets.arrows.paths, { opacity: 0 })
+    gsap.set([...targets.arrows.paths, ...targets.arrows.tails], { opacity: 0 })
   }
   if (targets.artifacts.length) gsap.set(targets.artifacts, { opacity: 0, y: ARTIFACT_DROP_FROM })
   if (targets.pills.length) gsap.set(targets.pills, { opacity: 0, scale: LABEL_POP_FROM })
@@ -159,16 +159,24 @@ export function buildIntroTimeline(
     // Dash-draw: the ONE non-transform/opacity animation (documented exception).
     // Each path's opacity ramps over its FULL draw duration so the marker-end
     // arrowhead only becomes visible as the stroke reaches it (markers ignore
-    // dash state — opus P2).
-    tl.to(
-      targets.arrows.paths,
-      { attr: { 'stroke-dashoffset': 0 }, duration: 0.55, stagger: 0.05, ease: 'power1.inOut' },
-      1.3,
-    )
-    tl.to(targets.arrows.paths, { opacity: 1, duration: 0.55, stagger: 0.05 }, 1.3)
+    // dash state — opus P2). Each tail dot fades with its OWN path — a shared
+    // stagger over paths-then-tails desyncs them (review round 1): the tail
+    // tweens run pairwise (path i, tail i) at the same slot.
+    const n = targets.arrows.paths.length
+    for (let i = 0; i < n; i++) {
+      const path = targets.arrows.paths[i]
+      const tail = targets.arrows.tails[i]
+      tl.to(
+        path,
+        { attr: { 'stroke-dashoffset': 0 }, duration: 0.55, ease: 'power1.inOut' },
+        1.3 + 0.05 * i,
+      )
+      tl.to(path, { opacity: 1, duration: 0.55 }, 1.3 + 0.05 * i)
+      if (tail) tl.to(tail, { opacity: 1, duration: 0.55 }, 1.3 + 0.05 * i)
+    }
     // Clear the dash scaffolding once every path finished drawing (last draw
     // ends at 1.3 + 0.55 + 0.05·(n−1)).
-    tl.call(() => settleArrows(targets), undefined, 1.3 + 0.55 + 0.05 * targets.arrows.paths.length)
+    tl.call(() => settleArrows(targets), undefined, 1.3 + 0.55 + 0.05 * n)
   }
   if (targets.artifacts.length) {
     tl.to(targets.artifacts, { opacity: 1, y: 0, duration: 0.45, stagger: 0.06 }, 1.9)
@@ -190,7 +198,7 @@ export function finalizeIntroTargets(targets: IntroTargets): void {
   if (targets.cityLabels.length) gsap.set(targets.cityLabels, { opacity: 1, scale: 1 })
   if (targets.arrows.paths.length) {
     settleArrows(targets)
-    gsap.set(targets.arrows.paths, { opacity: 1 })
+    gsap.set([...targets.arrows.paths, ...targets.arrows.tails], { opacity: 1 })
   }
   if (targets.artifacts.length) gsap.set(targets.artifacts, { opacity: 1, y: 0 })
   if (targets.pills.length) gsap.set(targets.pills, { opacity: 1, scale: 1 })

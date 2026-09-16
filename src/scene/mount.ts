@@ -185,7 +185,10 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     // jsdom ships no getScreenCTM at all (and browsers return null pre-layout)
     // — IDENTITY_CTM keeps the math defined either way.
     const measureCtm = measureSvg.getScreenCTM?.() ?? IDENTITY_CTM
-    updateLabels(labels.el, state, measureCtm, mobile)
+    // Distance gate OFF (user QA round 4): top/bottom totems lost their titles
+    // on mobile — every org title must stay visible; the zoom gate below still
+    // hides pills zoomed out.
+    updateLabels(labels.el, state, measureCtm, false)
     // Phase 5 (SPEC §5, mobile only): zoom-gated pill fade with ±10%
     // hysteresis inside updatePillFade — opacity/visibility only.
     if (mobile) updatePillFade(labels.el, state.k)
@@ -480,6 +483,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     cityLabels: Array.from(labels.el.querySelectorAll<HTMLElement>('.label-city')),
     arrows: {
       paths: Array.from(calibrated.arrows.querySelectorAll<SVGPathElement>(':scope > path')),
+      tails: Array.from(calibrated.arrows.querySelectorAll<SVGCircleElement>(':scope > circle')),
     },
     artifacts: Object.values(calibrated.artifacts),
     pills: Array.from(labels.el.querySelectorAll<HTMLElement>('.label-pill')),
