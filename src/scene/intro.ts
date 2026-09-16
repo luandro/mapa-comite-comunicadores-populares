@@ -1,8 +1,9 @@
 /**
  * Phase 3 entrance choreography (SPEC §5) — the poster waking up, atmospheric
  * restraint over spectacle: ONE ~3 s GSAP timeline fading/rising the map in
- * layer order (water rect is the ever-visible stage; waves → land/roads →
- * water-detail → cities → arrows → artifacts → pills → title).
+ * layer order (the CSS background is the ever-visible stage; land/roads →
+ * water-detail → squiggles-family fade → cities → arrows → artifacts → pills →
+ * title).
  *
  * Rules honored here:
  * - transform/opacity ONLY, except the arrow dash-draw (stroke-dashoffset —
@@ -10,9 +11,7 @@
  * - GSAP touches only nodes with no transform attribute and no CSS animation:
  *   base layer groups, calibrated interaction `<g>`s, the inner label divs
  *   (the outer `.label` anchor is rewritten per frame by `updateLabels` — two
- *   owners, two nodes, SPEC §3) and the wave band placement `<g>`s with
- *   OPACITY ONLY (their `transform` attribute is placement property —
- *   invariant 6).
+ *   owners, two nodes, SPEC §3).
  * - `getTotalLength()` is measured ONCE at build time, never inside the
  *   timeline (no layout-thrashing reads mid-animation).
  * - prefers-reduced-motion: no timeline, no priming — static final state and
@@ -37,8 +36,6 @@ export function prefersReducedMotion(): boolean {
 
 /** Everything the entrance animates. All group wrappers, never painted nodes. */
 export interface IntroTargets {
-  /** Wave band placement `<g>`s — opacity only (transform is placement property). */
-  waves: SVGGElement[]
   /** `layer-squiggles` group — not in the SPEC §5 sentence, fades with the water family. */
   squiggles: SVGGElement
   land: SVGGElement
@@ -104,7 +101,6 @@ function measureArrowLength(path: SVGPathElement): number {
 
 /** Hide every animated target at its entrance start state (build time, sync). */
 export function primeIntroTargets(targets: IntroTargets): void {
-  if (targets.waves.length) gsap.set(targets.waves, { opacity: 0 })
   gsap.set([targets.land, targets.roads], { opacity: 0, y: LAND_RISE_FROM })
   gsap.set([targets.squiggles, targets.waterDetail], { opacity: 0 })
   if (targets.cities.length) gsap.set(targets.cities, { opacity: 0, y: CITY_RISE_FROM })
@@ -145,8 +141,7 @@ export function buildIntroTimeline(
   onComplete: () => void,
 ): gsap.core.Timeline {
   const tl = gsap.timeline({ defaults: { ease: 'power1.out' }, onComplete })
-  // The water rect never animates — it is the stage the poster wakes up on.
-  if (targets.waves.length) tl.to(targets.waves, { opacity: 1, duration: 0.5, stagger: 0.1 }, 0)
+  // The CSS background never animates — it is the stage the poster wakes up on.
   tl.to([targets.land, targets.roads], { opacity: 1, y: 0, duration: 0.6, stagger: 0.15 }, 0.2)
   tl.to([targets.squiggles, targets.waterDetail], { opacity: 1, duration: 0.5, stagger: 0.1 }, 0.55)
   if (targets.cities.length) {
@@ -191,7 +186,6 @@ export function buildIntroTimeline(
 
 /** Jump every animated target to its final state — used by skipIntro(). */
 export function finalizeIntroTargets(targets: IntroTargets): void {
-  if (targets.waves.length) gsap.set(targets.waves, { opacity: 1 })
   gsap.set([targets.land, targets.roads], { opacity: 1, y: 0 })
   gsap.set([targets.squiggles, targets.waterDetail], { opacity: 1 })
   if (targets.cities.length) gsap.set(targets.cities, { opacity: 1, y: 0 })

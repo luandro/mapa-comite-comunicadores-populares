@@ -10,14 +10,11 @@
 import { SCENE_WIDTH } from '../data/constants'
 import { DEFAULT_ICON } from '../data/schema'
 import type { ComiteData, Point, Project } from '../data/types'
-import { cityPlacements, squigglePlacement, wavePlacements } from './placements'
+import { cityPlacements, squigglePlacement } from './placements'
 import type { Camera } from './types'
 import cityAnanindeua from '/na cuia/icons/svg/mapa ananindeua.svg?scene'
 import cityBelem from '/na cuia/icons/svg/mapa belém.svg?scene'
 import cityMoju from '/na cuia/icons/svg/mapa moju.svg?scene'
-import onda1 from '/na cuia/icons/svg/onda 1.svg?scene'
-import onda2 from '/na cuia/icons/svg/onda 2.svg?scene'
-import onda4 from '/na cuia/icons/svg/onda 4.svg?scene'
 import ondinhas from '/na cuia/icons/svg/ondinhas mapa geral.svg?scene'
 
 /** Icon artifacts resolve through the glob (AGENTS invariant 10 — data promise). */
@@ -28,7 +25,6 @@ const iconModules = import.meta.glob('/na cuia/icons/svg/icone *.svg', {
 }) as Record<string, string>
 
 export interface CalibratedLayers {
-  waves: SVGGElement
   squiggles: SVGGElement
   cities: Record<string, SVGGElement>
   artifacts: Record<string, SVGGElement>
@@ -39,28 +35,6 @@ export interface CalibratedLayers {
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
-/** SPEC §1 ground truth: every band (and the squiggle texture) is 2160.32 wide. */
-const BAND_WIDTH = 2160.32
-/** SPEC §5 waveScale — uniform on both axes: scene width / band width ≈ 1.3994. */
-const BAND_SCALE = SCENE_WIDTH / BAND_WIDTH
-/** Source band opacities resolved by the pipeline onto the asset root (SPEC §1). */
-const BAND_OPACITY = { onda1: null, onda2: 0.8, onda4: 0.2 } as const
-
-/**
- * Phase 2 ambient motion (SPEC §5). The [A][A′][A] chain inside each ambient
- * g has period 2W, so the seamless drift distance is 2 × 2160.32 = 4320.64
- * band-local units (keyframes `wave-drift` in scene.css). Each band gets its
- * own duration and a negative phase delay so the bands never sync visually.
- */
-export const WAVE_DRIFT_DISTANCE = 2 * BAND_WIDTH // 4320.64
-export const WAVE_DRIFT_BY_BAND: Record<
-  'onda1' | 'onda2' | 'onda4',
-  { duration: number; delay: number }
-> = {
-  onda1: { duration: 8, delay: -2.7 },
-  onda2: { duration: 11, delay: -5.3 },
-  onda4: { duration: 14, delay: -9.1 },
-}
 /** Ondinhas drift ±40 band-local units + opacity pulse, both alternate. */
 export const SQUIGGLE_MOTION = { duration: 12, pulseDuration: 6 } as const
 
@@ -210,9 +184,9 @@ function parseViewBox(processed: string): { width: number; height: number } {
 
 /**
  * Move a processed asset's element children into `target`. Top-level `id`s are
- * stripped: the same processed asset inlines more than once (3-copy wave
- * chains, the default totem per org) and duplicate ids would poison url(#…)
- * lookups — none of these assets reference their own ids (empty `<defs/>`).
+ * stripped: the same processed asset inlines more than once (the default totem
+ * per org) and duplicate ids would poison url(#…) lookups — none of these
+ * assets reference their own ids (empty `<defs/>`).
  */
 function adoptChildren(target: SVGGElement, processed: string): void {
   const root = new DOMParser().parseFromString(processed, 'image/svg+xml').documentElement
@@ -301,54 +275,6 @@ export function arrowEndPoint(from: Point, base: Point): Point {
   const tTip = Math.max(0, tEntry - ARROW_TIP_CLEARANCE)
   const tEnd = Math.max(0, tTip - ARROWHEAD_SCENE)
   return { x: from.x + ux * tEnd, y: from.y + uy * tEnd }
-}
-
-function mountWaves(cameraNode: SVGGElement): SVGGElement {
-  const layer = svg('g')
-  layer.id = 'layer-waves'
-  const bands = [
-    { id: 'onda1', content: onda1 },
-    { id: 'onda2', content: onda2 },
-    { id: 'onda4', content: onda4 },
-  ] as const
-  for (const band of bands) {
-    const row = wavePlacements[band.id]
-    const placement = svg('g')
-    placement.setAttribute('data-band', band.id)
-    placement.setAttribute(
-      'transform',
-      `translate(${row.x},${row.y}) scale(${(row.scale ?? 1) * BAND_SCALE})`,
-    )
-    // Ambient g owns the Phase 2 CSS drift — placement keeps its transform,
-    // never two owners on one node (AGENTS invariant 6). Class + inline
-    // duration/delay come from WAVE_DRIFT_BY_BAND; keyframes are in scene.css.
-    const ambient = svg('g')
-    ambient.classList.add('wave-drift')
-    const { duration, delay } = WAVE_DRIFT_BY_BAND[band.id]
-    ambient.style.animationDuration = `${duration}s`
-    ambient.style.animationDelay = `${delay}s`
-    const opacity = BAND_OPACITY[band.id]
-    if (opacity !== null) ambient.setAttribute('opacity', String(opacity))
-    // Copy A — raw band content at band-local 0.
-    adoptChildren(ambient, band.content)
-    // Copy A′ — mirrored INTO the second slot: translate(2W)·scale(-1,1) maps
-    // x → 2W − x, so the band (viewBox [0,W]) lands on [W,2W] — the chain is
-    // truly [A][A′][A] (a 1W offset would stack A′ on top of A — opus P0).
-    // Junctions are exact: A right edge (x=W) meets A′ mirrored right edge;
-    // A′ mirrored left edge (x=2W) meets trailing A left edge; wrap exact.
-    const mirrored = svg('g')
-    mirrored.setAttribute('transform', `translate(${BAND_WIDTH * 2},0) scale(-1,1)`)
-    adoptChildren(mirrored, band.content)
-    // Copy A — third, two band widths right; at wrap it sits where A was.
-    const trailing = svg('g')
-    trailing.setAttribute('transform', `translate(${BAND_WIDTH * 2},0)`)
-    adoptChildren(trailing, band.content)
-    ambient.append(mirrored, trailing)
-    placement.appendChild(ambient)
-    layer.appendChild(placement)
-  }
-  cameraNode.appendChild(layer)
-  return layer
 }
 
 function mountSquiggles(cameraNode: SVGGElement): SVGGElement {
@@ -529,9 +455,10 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
 
 /**
  * Mount every calibrated layer above `layer-water-detail`, in SPEC §4 order:
- * waves → squiggles → city-{belem,ananindeua,moju} → artifacts → arrows.
- * `cities`/`artifacts` map ids to their interaction groups (the Phase 4/5
- * GSAP targets); `waves`/`squiggles`/`arrows` are the layer groups.
+ * squiggles → city-{belem,ananindeua,moju} → artifacts → arrows. The wave
+ * bands retired in v1.1 (user scope) and the sea is the `.scene-root` CSS
+ * background. `cities`/`artifacts` map ids to their interaction groups (the
+ * Phase 4/5 GSAP targets); `squiggles`/`arrows` are the layer groups.
  */
 export function mountCalibratedLayers(
   cameraNode: SVGGElement,
@@ -539,10 +466,9 @@ export function mountCalibratedLayers(
   // Reserved for Phase 5 hit sizing (r_scene ≥ 12/u); intentionally unread.
   _camera: Camera,
 ): CalibratedLayers {
-  const waves = mountWaves(cameraNode)
   const squiggles = mountSquiggles(cameraNode)
   const cities = mountCities(cameraNode, data)
   const { artifacts, hitCircles } = mountArtifacts(cameraNode, data)
   const arrows = mountArrows(cameraNode, data)
-  return { waves, squiggles, cities, artifacts, hitCircles, arrows }
+  return { squiggles, cities, artifacts, hitCircles, arrows }
 }

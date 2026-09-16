@@ -15,10 +15,10 @@ Decisions locked in the grilling session (2026-09-14); spec revised through dual
 | `mapa belém.svg` | 1157.53×1026.18 | City land mass (fill `#52b04e`, outline `#27642d`) | Layer: city |
 | `mapa ananindeua.svg` | 625.23×618.08 | City land mass | Layer: city |
 | `mapa moju.svg` | 741.70×1131.89 | City land mass (Moju Barcarena) | Layer: city |
-| `onda 1.svg` | 2160.32×108.01 | Wave band `#d9effd`; **start/end contours differ — not natively tileable** | Layer: waves |
-| `onda 2.svg` | 2160.32×118.73 | Wave band `#f1f9fe` **at `opacity: .8`**; same caveat | Layer: waves |
-| `onda 4.svg` | 2160.32×140.94 | Wave band `#d9effd` **at `opacity: .2`**; same caveat | Layer: waves |
-| `onda 3.svg`, `onda 5.svg` | — | **Empty files. Ship with bands 1/2/4** | — |
+| `onda 1.svg` | 2160.32×108.01 | Wave band `#d9effd`; **not natively tileable** | **v1.1: retired** — not shipped |
+| `onda 2.svg` | 2160.32×118.73 | Wave band `#f1f9fe` at `opacity: .8` | **v1.1: retired** — not shipped |
+| `onda 4.svg` | 2160.32×140.94 | Wave band `#d9effd` at `opacity: .2` | **v1.1: retired** — not shipped |
+| `onda 3.svg`, `onda 5.svg` | — | Empty files | — |
 | `ondinhas mapa geral.svg` | 2160.32×1026.18 | Water squiggle texture `#509393`/`#99d3d8` | Layer: water texture |
 | `icone 1.svg` | 289.46×618.08 | Lightning bolt `#2e5124`/`#f7ae0d` | Panel icon: `conflitos` |
 | `icone 2.svg` | 345.40×618.08 | Atabaque drum | Panel icon: `memoria` (+`identidade` reuse) |
@@ -40,7 +40,7 @@ Stylesheet ground truth: `.cls-1{#5da9a9} .cls-2{#95c98e} .cls-3{#58b254} .cls-4
 
 | Resolved fill | Nodes | Group (DOM order matters, §4) |
 |---|---|---|
-| `#5da9a9` | **1 `<rect>`** (not a path) | `layer-water` |
+| `#5da9a9` | **1 `<rect>`** (not a path) | **v1.1: not mounted** — the `.scene-root` CSS background (`#5da9a9`, §3) is the ocean |
 | `#95c98e` | 42 (41 `<path>` + 1 `<polygon>`) | `layer-land` |
 | `#58b254` | 5 | `layer-roads` |
 | `#509393` + `#99d3d8` | 17 | `layer-water-detail` |
@@ -48,8 +48,8 @@ Stylesheet ground truth: `.cls-1{#5da9a9} .cls-2{#95c98e} .cls-3{#58b254} .cls-4
 
 Rules:
 - Partition **by resolved fill hex** (styles resolved to attributes at build), never by class name — `prefixIds` may rename classes and silently break a `cls-*` selector.
-- **Resolve every declared property** (`fill`, `opacity`, …), not just fill — `onda 2` ships `opacity:.8`, `onda 4` `opacity:.2`; fill-only resolution changes the look.
-- Mount asserts counts `1 / 42 / 5 / 20` (total 68); mismatch = hard error.
+- **Resolve every declared property** (`fill`, `opacity`, …), not just fill — `onda 2` ships `opacity:.8`, `onda 4` `opacity:.2`; fill-only resolution changes the look. (Bands are retired in v1.1; the rule stays for every future asset.)
+- Mount asserts counts `42 / 5 / 20` (total 67 above the cut sea); mismatch = hard error.
 - **Paint order**: in the source, marks (`cls-4/5`) and river (`cls-6`) paint **after** land — sinking them under land would occlude the river visible in `Mapa.jpeg`. Hence `layer-water-detail` sits **above** roads. Hoisting all 5 roads above all 42 land nodes is an accepted z-change (verify visually at calibration).
 
 ## 3. Scene architecture
@@ -65,29 +65,28 @@ Rules:
 - Arrows exist in no reusable asset — **authored in code**: quadratic Bézier from a **source point on its city mass edge** (Belém / Ananindeua / Moju — multiple arrows fan outward, per the poster) to the artifact, stroke **`#EDE5CE` warm cream**, 6 scene units wide, round cap, same-color arrowhead marker, dash-offset draw. `pos.from` points are calibrated on their corresponding city mass, independently of `pos`; no source dots. Org base anchors sit on dry land; the corrected CABA and Centro de Educação Popular anchors retain at least 15 scene units of shoreline clearance. Validate all org anchors against freshly rendered sea/city masks and the portrait composition gate after coordinate edits.
 - Org label boxes use dark brown (`#513822`) with cream (`#fdf6e3`) text, centered below each totem base, with compact multiline wrapping. Where two boxes would statically overlap at a given camera state, the lower one is pushed straight down until clear (pure `resolveLabelPush`, applied on the anchor translate — the inner div's GSAP offset stays single-owner); the push shrinks back to 0 as zoom separates the anchors. Pills are also clamped fully inside the viewport (8px margin) by a pure edge-clamp pass — a totem may sit at the crop edge but its name must stay legible. City display names come from `data.json`: Belém, Ananindeua and Moju (an empty projects map still renders its city label). Totems are 190 scene units tall, anchored at their base.
 - Title backing blob: broad aqua authored SVG path in code, not sourced from any file. The responsive navy heading reads “Mapeamento de 25 Coletivos do” / “Comitê de Comunicadores Populares” on two lines where space permits. Title, pills, panel, controls = HTML overlay.
-- Responsive: the scene wrapper fills the viewport (`100% × 100dvh`, `background: #5da9a9` — the sea color, so pan-reveal past the sea rect, which extends to x = 3027.66, never shows blank); `slice` cover does the fitting; no separate portrait layout.
+- Responsive: the scene wrapper fills the viewport (`100% × 100dvh`, `background: #5da9a9` — since v1.1 THE OCEAN: the sea rect is unmounted and this background carries it, so panning anywhere never shows blank); `slice` cover does the fitting; no separate portrait layout.
 
 ## 4. Layer stack (bottom → top)
 
-1. `layer-water` (1 rect)
-2. `layer-land` (42)
-3. `layer-roads` (5)
-4. `layer-water-detail` (17 marks + 3 river — preserves source paint order over land)
-5. `layer-waves` (`onda 1/2/4`)
-6. `layer-squiggles` (`ondinhas`)
-7. `layer-city-{belem,ananindeua,moju}` (city name labels render in `#labels`, controller-owned)
-8. `layer-artifacts` (totems + invisible hit circles; taps) < `layer-arrows` (authored paths, `pointer-events: none` — decorative, never intercepts taps)
-9. HTML overlay (paints above the whole SVG): `#labels` (controller-owned pills) < title < zoom controls / skip button — explicit z-index in that order.
+0. (v1.1) `.scene-root` CSS background `#5da9a9` — the ocean (below the SVG, never a scene node)
+1. `layer-land` (42)
+2. `layer-roads` (5)
+3. `layer-water-detail` (17 marks + 3 river — preserves source paint order over land)
+4. `layer-squiggles` (`ondinhas`)
+5. `layer-city-{belem,ananindeua,moju}` (city name labels render in `#labels`, controller-owned)
+6. `layer-artifacts` (totems + invisible hit circles; taps) < `layer-arrows` (authored paths, `pointer-events: none` — decorative, never intercepts taps)
+7. HTML overlay (paints above the whole SVG): `#labels` (controller-owned pills) < title < zoom controls / skip button — explicit z-index in that order.
 
 ## 5. Motion design
 
 **Ambient — CSS keyframes, whole-group, `transform`/`opacity` only:**
-- Waves: uniform `waveScale = 3023.11/2160.32 ≈ 1.3994` on **both axes** (never non-uniform stretch). **Tile = three copies `[A][A′][A]` (A′ = `scaleX(-1)` mirror) → period 2W = 4320.64 band-local units**: animate `translateX` 0 → −4320.64, linear, infinite; at wrap the third copy sits exactly where the first was (a 2-copy pair has period 2W but only 1 copy-step of travel before it runs out — the 3-copy chain is the minimum seamless linear loop). Durations 8–14 s per band, offset phases. Opacities .8/.2 preserved from source. Bands calibrated at x = 0; a calibrated x-shift ≥ W/2 requires a 4th copy.
-- `layer-squiggles`: slow drift + opacity pulse.
+- **v1.1 (user scope): the big wave-band system is removed.** The onda 1/2/4 bands, their 3-copy mirror chains and the `wave-drift` keyframes retired; the sea is the `.scene-root` CSS background (§3). A future CSS water animation (gradients/ripples) is explicitly deferred, not dropped.
+- `layer-squiggles` (ondinhas): slow drift + opacity pulse — KEPT unchanged.
 - Artifacts: shared bob rule, per-child `animation-delay` (composited).
 - Ambient is the only always-on animation; dash-offset draws and shadow growth are **interaction-transient effects** — the explicit, documented exception to the transform/opacity rule.
 
-water rect → waves start → land + roads fade/rise → water-detail → cities staggered rise → arrows dash-draw → artifacts drop + bob → pills that pass the mobile gate (`labelK = 1` default — distance gate only) pop → title letters. React's skip button calls `controller.skipIntro()`. `prefers-reduced-motion: reduce` → final state, no loops. **Tone: atmospheric, not spectacular** — the poster waking up; restraint constrains timing/easing, it is not an invitation for more effects.
+CSS background (no node) → land + roads fade/rise → water-detail → squiggles-family fade → cities staggered rise → arrows dash-draw → artifacts drop + bob → pills that pass the mobile gate (`labelK = 1` default — distance gate only) pop → title letters. React's skip button calls `controller.skipIntro()`. `prefers-reduced-motion: reduce` → final state, no loops. **Tone: atmospheric, not spectacular** — the poster waking up; restraint constrains timing/easing, it is not an invitation for more effects.
 
 **City tap:** GSAP timeline: camera fly → interaction-`<g>` lift (`translateY` ≈ −20, `transform-box: fill-box`) + growing soft shadow + cloned-path outline draw (`getTotalLength()` dash) → siblings dim 0.35. Desktop hover = preview lift. Tap empty = settle + reset.
 
@@ -152,7 +151,7 @@ interface SceneController {
 ## 11. Performance budget
 
 - Shipped assets ≈ **131 KB gz** (§1, decimal) + fonts: Fraunces + Archivo **latin subsets only**, target ≤ 100 KB gz combined; total ≤ ~300 KB gz.
-- Ambient loops: transform/opacity only, whole-group. Budget: 3 wave bands × **3 copies** (one transform per copy) + 1 squiggle group + 1 artifact-bob group rule.
+- Ambient loops: transform/opacity only, whole-group. Budget (v1.1, post band retirement): 1 squiggle group + 1 artifact-bob group rule.
 - Interaction transients (dash draw, shadow) allowed; ≤ 4 concurrently tweened groups.
 - Panel decoration: inline-SVG textures ≤ ~5 KB, no raster textures; body text ≥ 16 px / 1.6 — readability beats decoration.
 - Named perf gate in Phase 2: DevTools paint-flash + frame timing on a real mid-tier Android (or CPU-throttled desktop ×6) — if inner-SVG transforms repaint full-width, adopt the §3 compositing fallback (sibling SVGs + shared camera wrapper). Pause all loops on `document.hidden`.
@@ -160,7 +159,7 @@ interface SceneController {
 ## 12. Risks / open items
 
 1. **Calibration is manual** — review pass with user against `Mapa.jpeg`.
-2. Wave bands are not natively tileable — 3-copy mirror chain is v1; designer re-export of a truly tileable band remains the clean upgrade.
+2. ~~Wave bands are not natively tileable — 3-copy mirror chain is v1~~ **v1.1: the wave-band system was removed** (user scope); the ocean is CSS. A designed CSS water layer (gradients/ripples) is the potential future upgrade.
 3. Per-org icons are placeholders (default = icone 6) until per-org art arrives via `data.json`.
 4. Fonts: Fraunces (title) + Archivo (UI), Google Fonts, latin subset, pt-BR confirmed.
 5. Cover-only camera (no k < 1): portrait users pan instead of seeing the whole map — accepted design choice (map-app convention).
@@ -171,7 +170,7 @@ interface SceneController {
 ## 13. Acceptance criteria
 
 - Entrance choreography plays ~3 s; skip works; reduced-motion renders static final state.
-- Water reads as water: seamless band drift across the full 2W period (no seam/step at wrap), squiggle pulse, artifact bob; band opacities match source (.8/.2).
+- Water reads as water: v1.1 the ocean is the `.scene-root` CSS background (visually identical to the retired sea rect, full-bleed at every pan/zoom); the ondinhas squiggle keeps its drift + pulse; artifact bob unchanged.
 - Tap city → camera flies, landmass raises (lift + shadow + outline draw), others dim; tap empty resets.
 - Tap artifact → pulse + panel with the six whitelisted sections (empty hidden). Desktop: artifact visible at `k ≥ min(1.6, k_max = 4)` beside the drawer (obstruction-aware clamp, §6). Mobile: occlusion intentional; close returns to context.
 - Camera: pinch/drag/wheel/double-tap on touch + desktop; **slice cover** fills portrait and landscape at k = 1; per-frame clamped; targets reachable after resize/orientation/panel-open; fly-to cancelled by user gesture; no state jump after gesture; hit circles ≥ 24 CSS px at every zoom (CTM-measured).

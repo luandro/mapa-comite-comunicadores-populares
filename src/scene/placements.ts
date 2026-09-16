@@ -42,19 +42,6 @@ export const cityPlacements: Record<'belem' | 'ananindeua' | 'moju', CityPlaceme
 }
 
 /**
- * Wave band ROW placements (x/y + uniform row scale). The band scale
- * ×1.3994 (SCENE_WIDTH / 2160.32, uniform on BOTH axes — SPEC §5) COMPOSES
- * with `scale` here: the mounted band transform is
- * `translate(x,y) scale((scale ?? 1) × 1.3994)`. Bands calibrate at x = 0
- * (SPEC §5); first-pass rows sit in the upper-left sea per `Mapa.jpeg`.
- */
-export const wavePlacements: Record<'onda1' | 'onda2' | 'onda4', Placement> = {
-  onda1: { x: 0, y: 330 },
-  onda2: { x: 0, y: 490 },
-  onda4: { x: 0, y: 650 },
-}
-
-/**
  * Water squiggle texture. Like the wave bands, the width-fit scale
  * (SCENE_WIDTH / viewBox width ≈ 1.3994) composes with `scale`.
  */

@@ -2,6 +2,15 @@
 
 Order matters: each layer lands animated and verified before the next starts. "Done" = acceptance met in the running app.
 
+## v1.1 water rework (2026-09-16, post v1.0.2)
+
+User-locked scope: REMOVE the big wave-band animation (`onda 1/2/4` bands, mirror
+chains, `wave-drift`), KEEP the ondinhas squiggle with its animations, CUT the
+sea rect — `.scene-root { background: #5da9a9 }` is now THE ocean. waterDetail
+(rivers/marks) stays; a CSS water animation is deferred. Note: AGENTS.md
+invariants 4/5 still carry the pre-v1.1 counts/band text (protected-file edit
+pending user approval) — SPEC.md is updated and wins (SPEC-wins rule).
+
 ## HANDOFF STATE (2026-09-15 · energy outage — resumed on coder.luandro.com)
 
 Phases 0 + 1 are committed, senior-APPROVED (codex / opus respectively) and pushed. Phase 1.5 is mid-flight: chunks A (static layers) + B (DEV calibration tool) are implemented and green (build/lint/test 71/71/prettier + composite renders all layer types), committed as WIP — **the calibration loop itself has NOT run**. Remaining Phase 1.5 work, in order:

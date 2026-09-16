@@ -70,7 +70,7 @@ export function attachCalibration(sceneRoot: HTMLElement, sceneSvg: SVGSVGElemen
   underlayImg.setAttribute('pointer-events', 'none')
   underlayImg.setAttribute('data-calibration-underlay', '')
   underlayImg.setAttribute('transform', placementTransform(current))
-  // first child of #camera: below layer-water (SPEC §4 stack bottom)
+  // first child of #camera: bottom of the §4 stack (above the CSS ocean bg)
   camera.insertBefore(underlayImg, camera.firstChild)
 
   // --- toolbar DOM -----------------------------------------------------------
@@ -96,7 +96,6 @@ export function attachCalibration(sceneRoot: HTMLElement, sceneSvg: SVGSVGElemen
   for (const [groupLabel, kind] of [
     ['Underlay', 'underlay'],
     ['Cidades', 'city'],
-    ['Ondas', 'wave'],
     ['Textura', 'squiggle'],
   ] as const) {
     const optgroup = document.createElement('optgroup')

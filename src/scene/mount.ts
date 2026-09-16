@@ -1,8 +1,9 @@
 /**
- * DOM: .scene-root > svg#scene > g#camera > 4 base layers + calibrated
- * composite (SPEC §4: waves, squiggles, cities, artifacts, arrows); plus
- * svg#measure and the #labels div as siblings of the scene SVG — outside any
- * camera transform.
+ * DOM: .scene-root > svg#scene > g#camera > 3 base layers + calibrated
+ * composite (SPEC §4: squiggles, cities, artifacts, arrows; the sea rect is
+ * unmounted — the .scene-root CSS background is the ocean); plus svg#measure
+ * and the #labels div as siblings of the scene SVG — outside any camera
+ * transform.
  * Scene island (SPEC §3/§10): the animated map lives entirely outside the
  * React tree. `mountScene` builds the composed SVG imperatively inside `el`,
  * wires the camera, and returns the single controller React talks to.
@@ -103,7 +104,7 @@ const ARROW_REDRAW_DURATION = 0.6 // per-org dash-draw re-run on tap
 const ARTIFACT_FOCUS_BOX = 120
 
 export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
-  // DOM: .scene-root > svg#scene > g#camera > 4 base layers; plus svg#measure and
+  // DOM: .scene-root > svg#scene > g#camera > 3 base layers; plus svg#measure and
   // the #labels div as siblings of the scene SVG — outside any camera transform.
   const root = document.createElement('div')
   root.className = 'scene-root'
@@ -127,14 +128,14 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   assertBaseCounts(layers)
 
   // SPEC §4 order — water-detail sits ABOVE roads (source paint order, §2).
-  // The group wrappers are the Phase 3 entrance targets (opacity/translateY).
+  // The sea rect is not mounted (v1.1): the .scene-root CSS background is the
+  // ocean. The group wrappers are the Phase 3 entrance targets.
   const layerGroups: {
     land: SVGGElement
     roads: SVGGElement
     waterDetail: SVGGElement
   } = { land: null!, roads: null!, waterDetail: null! }
   const layerStack: Array<[id: string, nodes: Element[]]> = [
-    ['layer-water', layers.water],
     ['layer-land', layers.land],
     ['layer-roads', layers.roads],
     ['layer-water-detail', layers.waterDetail],
@@ -474,7 +475,6 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   // INNER divs — the outer .label anchors are rewritten per frame by
   // updateLabels, never two transform owners on one node.
   const introTargets: IntroTargets = {
-    waves: Array.from(calibrated.waves.querySelectorAll<SVGGElement>(':scope > g[data-band]')),
     squiggles: calibrated.squiggles,
     land: layerGroups.land,
     roads: layerGroups.roads,
