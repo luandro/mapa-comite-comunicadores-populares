@@ -568,8 +568,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       camera.reset()
     },
     focusCity(id) {
-      // Gate on the MOUNTED set (cityPlacements), not data.maps — Moju has no
-      // data.json map entry but IS a mounted, raisable city (opus round-2 P2).
+      // Gate on the MOUNTED set (cityPlacements), not data.maps — placements,
+      // not data presence, decide raisability (Moju ships an empty projects
+      // map and is still a mounted, raisable city; opus round-2 P2).
       if (!(id in cityPlacements)) {
         if (import.meta.env.DEV) console.warn(`[scene] focusCity('${id}'): unknown city`)
         return

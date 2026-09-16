@@ -278,7 +278,8 @@ describe('labels', () => {
 
   it('resolveLabelPush: pushes a colliding box straight down until clear', () => {
     // 'b' starts 10px lower but fully inside a's column → must clear a's
-    // bottom + gap; 'c' overlaps b ONLY and stacks below b's pushed position.
+    // bottom + gap; 'c' (x 20..150) overlaps BOTH a (0..130) and b (10..140) —
+    // its dy clears b's pushed position, which already sits below a.
     const pushes = resolveLabelPush([
       { id: 'a', x: 0, y: 0, w: 130, h: 80 },
       { id: 'b', x: 10, y: 10, w: 130, h: 20 },

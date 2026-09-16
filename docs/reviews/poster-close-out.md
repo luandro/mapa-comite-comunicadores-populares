@@ -35,8 +35,30 @@ Defects addressed:
   three org anchors; it does not require both historical hubs in view.
 - Existing icon artwork remains a placeholder. 190-unit sizing is shipped;
   replacing the artwork or matching each poster illustration is separate work.
-- Labels wrap the canonical full organization names. A collision-avoidance
-  system or editorial short-name field remains outside this close-out scope.
+- Labels wrap the canonical full organization names; static box collisions
+  are resolved by `resolveLabelPush` (pure function in `labels.ts`: sort
+  boxes by top y, push colliders straight down until clear with a 4px gap).
+  The push is applied on the anchor translate — not the pill's GSAP
+  properties — and decays to 0 as zoom separates the anchors. An editorial
+  short-name field remains outside this close-out scope.
 
-Validation and final metrics are recorded below after the fresh-mask and
-visual comparison gates complete.
+## Validation
+
+Numeric gate (ceil in parentheses):
+
+- belem: IoU 0.589 (0.589), centroid 76, area 0.788, seaΔ 0.026
+- ananindeua: IoU 0.816 (0.816), centroid 9, area 1.026, seaΔ 0.033
+- moju: IoU 0.818 (0.818), centroid 12, area 1.012, seaΔ 0.000
+- E portrait check: pass
+
+App gates all green: build, lint, 117 vitest tests, `prettier --check`,
+smoke suite.
+
+Final comparison sheet: `/tmp/sbs-3.png`.
+
+Accepted deviations:
+
+- Belém mass ~20% thinner than the poster (asset shape; needs a user-approved
+  SPEC §3 exception).
+- Poster totems are drawn larger than app icons (UX).
+- Mobile k=1 crop clips the right cluster (pan/zoom affordance).

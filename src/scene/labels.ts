@@ -66,7 +66,7 @@ function appendLabel(
     // Org boxes are anchored to the totem BASE and grow below it. Keeping the
     // top edge as the transform origin means the intro pop does not pull the
     // box back over the totem while it scales in.
-    gsap.set(label, { xPercent: -50, yPercent: 0, y: 8 })
+    gsap.set(label, { xPercent: -50, yPercent: 0, y: PILL_BASE_OFFSET })
   } else {
     gsap.set(label, { xPercent: -50, yPercent: -50 })
   }
@@ -186,7 +186,7 @@ export interface LabelRect {
   h: number
 }
 
-/** Org boxes grow below the totem base — offset from anchor y to box top (px, matches labels.ts y: 8). */
+/** Org boxes grow below the totem base — offset from anchor y to box top (px); this IS the base offset appendLabel applies as the pill's GSAP `y`. */
 export const PILL_BASE_OFFSET = 8
 
 /** Vertical gap kept between stacked boxes (px). */
