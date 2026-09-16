@@ -48,7 +48,7 @@ export interface IntroTargets {
   cities: SVGGElement[]
   /** Inner `.label-city` divs (outer anchors are per-frame positioned). */
   cityLabels: HTMLElement[]
-  arrows: { paths: SVGPathElement[] }
+  arrows: { paths: SVGPathElement[]; tails: SVGCircleElement[] }
   /** Artifact interaction `<g>`s (no transform attribute — the GSAP target). */
   artifacts: SVGGElement[]
   /** Inner `.label-pill` divs (outer anchors are per-frame positioned). */
@@ -115,7 +115,7 @@ export function primeIntroTargets(targets: IntroTargets): void {
       path.setAttribute('stroke-dasharray', String(length))
       path.setAttribute('stroke-dashoffset', String(length))
     }
-    gsap.set(targets.arrows.paths, { opacity: 0 })
+    gsap.set([...targets.arrows.paths, ...targets.arrows.tails], { opacity: 0 })
   }
   if (targets.artifacts.length) gsap.set(targets.artifacts, { opacity: 0, y: ARTIFACT_DROP_FROM })
   if (targets.pills.length) gsap.set(targets.pills, { opacity: 0, scale: LABEL_POP_FROM })
@@ -165,7 +165,11 @@ export function buildIntroTimeline(
       { attr: { 'stroke-dashoffset': 0 }, duration: 0.55, stagger: 0.05, ease: 'power1.inOut' },
       1.3,
     )
-    tl.to(targets.arrows.paths, { opacity: 1, duration: 0.55, stagger: 0.05 }, 1.3)
+    tl.to(
+      [...targets.arrows.paths, ...targets.arrows.tails],
+      { opacity: 1, duration: 0.55, stagger: 0.05 },
+      1.3,
+    )
     // Clear the dash scaffolding once every path finished drawing (last draw
     // ends at 1.3 + 0.55 + 0.05·(n−1)).
     tl.call(() => settleArrows(targets), undefined, 1.3 + 0.55 + 0.05 * targets.arrows.paths.length)
@@ -190,7 +194,7 @@ export function finalizeIntroTargets(targets: IntroTargets): void {
   if (targets.cityLabels.length) gsap.set(targets.cityLabels, { opacity: 1, scale: 1 })
   if (targets.arrows.paths.length) {
     settleArrows(targets)
-    gsap.set(targets.arrows.paths, { opacity: 1 })
+    gsap.set([...targets.arrows.paths, ...targets.arrows.tails], { opacity: 1 })
   }
   if (targets.artifacts.length) gsap.set(targets.artifacts, { opacity: 1, y: 0 })
   if (targets.pills.length) gsap.set(targets.pills, { opacity: 1, scale: 1 })

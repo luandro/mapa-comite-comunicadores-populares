@@ -128,12 +128,21 @@ export function arrowPathLength(path: SVGPathElement): number {
 
 /** Totem height in scene units — poster-scale, anchored at each base point. */
 const TOTEM_HEIGHT = 190
-/** Arrowhead stops this many scene units above the totem base point. */
+/**
+ * Arrow END lift above the totem base point (scene units): the marker-end
+ * arrowhead's TIP lands exactly here, one head-length + half stroke short of
+ * the base so the head paints beside the totem art and never over it
+ * (2026-09-16 user QA). The poster's tip sits ~40 units off the base.
+ */
 const ARROW_END_LIFT = 40
 /** Control-point perpendicular offset as a fraction of the from→end distance. */
 const ARROW_BOW = 0.3
 const ARROW_COLOR = '#EDE5CE' // poster arrows: warm cream (sampled 236,233,214)
 const ARROW_STROKE = 6
+/** Poster-tail dot radius at the from[] end of every arrow (scene units). */
+const ARROW_TAIL_R = 9
+/** Arrowhead length in marker units (viewBox 0 0 10 10) — scene = ×(stroke/10×5)=×3. */
+const ARROWHEAD_SCENE = 30
 
 const CITY_ASSETS = { belem: cityBelem, ananindeua: cityAnanindeua, moju: cityMoju }
 const CITY_IDS = ['belem', 'ananindeua', 'moju'] as const
@@ -392,8 +401,14 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
   const marker = svg('marker')
   marker.id = 'arrowhead'
   marker.setAttribute('viewBox', '0 0 10 10')
-  marker.setAttribute('refX', '9')
+  // refX = 10 puts the head's TIP on the path end point — the stroke is then
+  // authored to stop ARROW_END_LIFT short of the totem base, so the tip (not
+  // the head body) touches the lift point and the head never overlays the
+  // totem art (2026-09-16 user QA).
+  marker.setAttribute('refX', '10')
   marker.setAttribute('refY', '5')
+  // markerUnits = strokeWidth (default): head scene size = 10/10 × 6 × 5 = 30
+  // scene units long, ≈1/6 of the totem height — poster-proportioned.
   marker.setAttribute('markerWidth', '5')
   marker.setAttribute('markerHeight', '5')
   marker.setAttribute('orient', 'auto')
@@ -408,7 +423,12 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
     if (!pos) continue
     for (const from of pos.from) {
       const path = svg('path')
-      path.setAttribute('d', arrowPath(from, { x: pos.x, y: pos.y - ARROW_END_LIFT }))
+      // End ABOVE the lift point by half the head's stroke-relative size so
+      // the marker-end TIP lands exactly on (pos - LIFT): the head sits beside
+      // the totem, never over its art (user QA 2026-09-16).
+      const headHalf = (ARROWHEAD_SCENE / ARROW_STROKE / 2) * ARROW_STROKE // = 15
+      const end = { x: pos.x, y: pos.y - ARROW_END_LIFT - headHalf }
+      path.setAttribute('d', arrowPath(from, end))
       path.setAttribute('fill', 'none')
       path.setAttribute('stroke', ARROW_COLOR)
       path.setAttribute('stroke-width', String(ARROW_STROKE))
@@ -417,6 +437,15 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
       // Phase 5: org ownership lets mount.ts redraw one org's arrows on tap.
       path.setAttribute('data-arrow-org', orgId)
       layer.appendChild(path)
+      // Poster tail dot: the little circle where the arrow leaves the hub
+      // (user QA 2026-09-16). Own hit-transparent, decorative sibling.
+      const tail = svg('circle')
+      tail.setAttribute('cx', String(from.x))
+      tail.setAttribute('cy', String(from.y))
+      tail.setAttribute('r', String(ARROW_TAIL_R))
+      tail.setAttribute('fill', ARROW_COLOR)
+      tail.setAttribute('data-arrow-org', orgId)
+      layer.appendChild(tail)
     }
   }
   cameraNode.appendChild(layer)
