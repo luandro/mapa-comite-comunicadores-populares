@@ -37,7 +37,7 @@ export const initialFraming: Point = { x: 1900, y: 850 }
  * elongated mass lower left (per poster composition).
  */
 export const cityPlacements: Record<'belem' | 'ananindeua' | 'moju', CityPlacement> = {
-  belem: { x: 1445.1, y: 406.9, scale: 0.7247, labelAnchor: { x: 1890, y: 830 } },
+  belem: { x: 1440.1, y: 388.9, scale: 0.7247, labelAnchor: { x: 1890, y: 830 } },
   ananindeua: { x: 1948.4, y: 156.5, scale: 0.9297, labelAnchor: { x: 2230, y: 440 } },
   moju: { x: 469.5, y: 980.1, scale: 0.8728, labelAnchor: { x: 760, y: 1500 } },
 }
