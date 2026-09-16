@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import rawData from '../../data.json'
 import { validateComiteData } from '../data/schema'
 import type { ComiteData } from '../data/types'
-import { renderLabels, updateLabels } from './labels'
+import { renderLabels, resolveLabelPush, updateLabels } from './labels'
 import { ARTIFACT_BOB_STEP, mountCalibratedLayers, orgProjects, rSceneFor } from './layers'
 import type { Camera } from './types'
 
@@ -265,5 +265,77 @@ describe('labels', () => {
     const sy = 1.5 * pos.y + 50
     // px = 2·sx + 10;  py = 2·sy + 20
     expect(anchor.style.transform).toBe(`translate(${2 * sx + 10}px, ${2 * sy + 20}px)`)
+  })
+
+  it('resolveLabelPush: passes non-overlapping boxes through untouched', () => {
+    const pushes = resolveLabelPush([
+      { id: 'a', x: 0, y: 0, w: 100, h: 30 },
+      { id: 'b', x: 200, y: 5, w: 100, h: 30 },
+      { id: 'c', x: 50, y: 100, w: 100, h: 30 },
+    ])
+    expect(pushes.size).toBe(0)
+  })
+
+  it('resolveLabelPush: pushes a colliding box straight down until clear', () => {
+    // 'b' starts 10px lower but fully inside a's column → must clear a's
+    // bottom + gap; 'c' overlaps b ONLY and stacks below b's pushed position.
+    const pushes = resolveLabelPush([
+      { id: 'a', x: 0, y: 0, w: 130, h: 80 },
+      { id: 'b', x: 10, y: 10, w: 130, h: 20 },
+      { id: 'c', x: 20, y: 20, w: 130, h: 20 },
+    ])
+    expect(pushes.get('b')).toBe(80 + 4 - 10)
+    expect(pushes.get('c')).toBe(10 + (80 + 4 - 10) + 20 + 4 - 20)
+    expect(pushes.get('a')).toBeUndefined()
+  })
+
+  it('resolveLabelPush: side-by-side boxes (no x overlap) never push', () => {
+    const pushes = resolveLabelPush([
+      { id: 'a', x: 0, y: 0, w: 130, h: 56 },
+      { id: 'b', x: 131, y: 0, w: 130, h: 56 },
+    ])
+    expect(pushes.size).toBe(0)
+  })
+
+  it('updateLabels applies the resolved push on the anchor, base offset kept', () => {
+    const el = document.createElement('div')
+    const anchors: Record<string, { x: number; y: number }> = {}
+    for (const [orgId, project] of orgProjects(realData)) {
+      anchors[orgId] = { x: project.pos!.x, y: project.pos!.y }
+    }
+    renderLabels(el, realData, anchors)
+    // jsdom has no layout: offsetWidth is 0 → zero pushes; the anchor keeps
+    // the bare base point (the +8px grow-below offset is GSAP-owned on the
+    // inner div — labels.ts — not on the anchor).
+    const ctm = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 } as DOMMatrix
+    updateLabels(el, { x: 0, y: 0, k: 1 }, ctm)
+    const pos = realData.maps.belem.projects.na_cuia.pos!
+    const anchor = el.querySelector<HTMLDivElement>('[data-label-id="na_cuia"]')!
+    expect(anchor.style.transform).toBe(`translate(${pos.x}px, ${pos.y}px)`)
+  })
+
+  it('updateLabels pushes the lower of two static colliders down (layout mocked)', () => {
+    const el = document.createElement('div')
+    // Two org anchors 12 px apart vertically at this fake camera → their
+    // boxes (mocked 20px tall) genuinely overlap by 8px, same 130px column.
+    const anchors: Record<string, { x: number; y: number }> = {}
+    let i = 0
+    for (const [orgId] of orgProjects(realData)) {
+      anchors[orgId] = { x: 100 + (i % 2) * 40, y: 100 + i * 12 }
+      i++
+    }
+    renderLabels(el, realData, anchors)
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(130)
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(20)
+    const ctm = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 } as DOMMatrix
+    updateLabels(el, { x: 0, y: 0, k: 1 }, ctm)
+    const ids = Array.from(el.children, (c) => (c as HTMLElement).dataset.labelId!)
+    const a = el.querySelector<HTMLDivElement>(`[data-label-id="${ids[0]}"]`)!
+    const b = el.querySelector<HTMLDivElement>(`[data-label-id="${ids[1]}"]`)!
+    const ya = Number(a.style.transform.match(/, (\d+(?:\.\d+)?)px\)/)![1])
+    const yb = Number(b.style.transform.match(/, (\d+(?:\.\d+)?)px\)/)![1])
+    // b's box (top = yb + 8) must clear a's box bottom (ya + 8 + 20) + gap 4.
+    expect(yb - ya).toBeGreaterThanOrEqual(20 + 4)
+    vi.restoreAllMocks()
   })
 })

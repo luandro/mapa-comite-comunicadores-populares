@@ -121,6 +121,12 @@ export function updateLabels(
   const cx = vw / 2
   const cy = vh / 2
   const radius = PILL_CENTER_R * Math.min(vw, vh)
+  // Static-overlap resolution (poster close-out): org boxes are anchored
+  // below their totems; in dense clusters (e.g. east Belém) two boxes can
+  // collide at k=1. The push is applied on the ANCHOR translate — the inner
+  // div's GSAP properties stay single-owner (SPEC §3) — and shrinks back to
+  // 0 as zoom separates the anchors (box px size is camera-independent).
+  const rects: LabelRect[] = []
   for (const child of el.children) {
     if (!(child instanceof HTMLDivElement)) continue
     const x = Number(child.dataset.x)
@@ -130,7 +136,30 @@ export function updateLabels(
     const sy = state.k * y + state.y
     const px = measureCtm.a * sx + measureCtm.c * sy + measureCtm.e
     const py = measureCtm.b * sx + measureCtm.d * sy + measureCtm.f
-    child.style.transform = `translate(${px}px, ${py}px)`
+    const pill = child.querySelector<HTMLElement>('.label-pill')
+    if (pill) {
+      const w = pill.offsetWidth
+      const h = pill.offsetHeight
+      if (w > 0 && h > 0)
+        rects.push({
+          id: child.dataset.labelId ?? '',
+          x: px - w / 2,
+          y: py + PILL_BASE_OFFSET,
+          w,
+          h,
+        })
+    }
+    child.dataset.px = String(px)
+    child.dataset.py = String(py)
+  }
+  const pushes = resolveLabelPush(rects)
+  for (const child of el.children) {
+    if (!(child instanceof HTMLDivElement)) continue
+    const px = Number(child.dataset.px)
+    const py = Number(child.dataset.py)
+    if (!Number.isFinite(px) || !Number.isFinite(py)) continue
+    const push = pushes.get(child.dataset.labelId ?? '') ?? 0
+    child.style.transform = `translate(${px}px, ${py + push}px)`
     // Per-pill distance gate (mobile only): the ANCHOR carries the screen
     // position; the inner .label-pill gains/loses .is-far with ±10%
     // hysteresis. Opacity/visibility only — hit targets and aria untouched.
@@ -147,6 +176,52 @@ export function updateLabels(
 }
 
 /* Phase 5: zoom-gated pill fade (SPEC §5 / TODO Phase 5, mobile only). */
+
+/** Static-collision input for resolveLabelPush (screen px, box top-left). */
+export interface LabelRect {
+  id: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/** Org boxes grow below the totem base — offset from anchor y to box top (px, matches labels.ts y: 8). */
+export const PILL_BASE_OFFSET = 8
+
+/** Vertical gap kept between stacked boxes (px). */
+export const LABEL_STACK_GAP = 4
+
+/**
+ * Pure static-overlap resolution (unit-tested, no DOM): sort boxes by top y,
+ * then push any box that overlaps an already-placed one straight down until
+ * clear (LABEL_STACK_GAP). Horizontal overlap is required (>1px) so boxes
+ * merely side by side never trigger pushes. Only downward moves — a box never
+ * covers its totem; deterministic order keeps per-frame positions stable.
+ */
+export function resolveLabelPush(rects: LabelRect[]): Map<string, number> {
+  const push = new Map<string, number>()
+  const sorted = [...rects].sort((a, b) => a.y - b.y || a.x - b.x)
+  const placed: Array<{ x: number; y: number; w: number; h: number }> = []
+  for (const r of sorted) {
+    let dy = 0
+    let clear = false
+    while (!clear) {
+      clear = true
+      for (const p of placed) {
+        const ox = Math.min(r.x + r.w, p.x + p.w) - Math.max(r.x, p.x)
+        const oy = Math.min(r.y + dy + r.h, p.y + p.h) - Math.max(r.y + dy, p.y)
+        if (ox > 1 && oy > 0) {
+          dy = p.y + p.h + LABEL_STACK_GAP - r.y
+          clear = false
+        }
+      }
+    }
+    if (dy > 0) push.set(r.id, dy)
+    placed.push({ x: r.x, y: r.y + dy, w: r.w, h: r.h })
+  }
+  return push
+}
 
 /**
  * Distance-from-center gate radius as a fraction of min(vw, vh) — the primary
