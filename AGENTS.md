@@ -38,7 +38,7 @@ bun run test       # Vitest
   "<id>": {
     "name": "ORG NAME",
     "icon": "icone-6",                                   // unknown id → default totem + warning
-    "pos": { "x": 0, "y": 0, "from": [{ "x": 0, "y": 0 }] }, // from = Point[] (multi-dot sources)
+    "pos": { "x": 0, "y": 0, "from": [{ "x": 0, "y": 0 }] }, // from = Point[] (hub sources — SPEC §3)
     "conflitos": [], "acao": [], "identificacao_e_territorio": [],
     "futuro": [], "memoria": [], "identidade": []
   }

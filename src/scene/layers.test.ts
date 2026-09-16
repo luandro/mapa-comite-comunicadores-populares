@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import rawData from '../../data.json'
 import { validateComiteData } from '../data/schema'
 import type { ComiteData } from '../data/types'
-import { renderLabels, updateLabels } from './labels'
+import { renderLabels, resolveEdgeClamp, resolveLabelPush, updateLabels } from './labels'
 import { ARTIFACT_BOB_STEP, mountCalibratedLayers, orgProjects, rSceneFor } from './layers'
 import type { Camera } from './types'
 
@@ -97,11 +99,11 @@ describe('mountCalibratedLayers', () => {
       expect(interaction.getAttribute('data-interactive')).toBe('city')
       expect(interaction.getAttribute('data-city-id')).toBe(id)
       // Phase 4 (SPEC §9): real button semantics — focusable, labeled from
-      // data.json (moju has no map entry yet → id fallback), starts at rest.
+      // data.json, starts at rest.
       const labels: Record<string, string> = {
-        belem: 'Mapa de Belém',
-        ananindeua: 'Mapa de Ananindeua',
-        moju: 'moju',
+        belem: 'Belém',
+        ananindeua: 'Ananindeua',
+        moju: 'Moju',
       }
       expect(interaction.getAttribute('tabindex')).toBe('0')
       expect(interaction.getAttribute('role')).toBe('button')
@@ -172,17 +174,17 @@ describe('mountCalibratedLayers', () => {
     })
   })
 
-  it('places each totem with pos as its BASE point at ≈110 scene units tall', () => {
+  it('places each totem with pos as its BASE point at ≈190 scene units tall', () => {
     const { layers } = mountLayers()
     // icone-6 viewBox ground truth: 337.23 × 618.08 (SPEC §1)
-    const scale = 110 / 618.08
+    const scale = 190 / 618.08
     const placement = layers.artifacts.na_cuia.parentElement! // pos from data.json
     const pos = realData.maps.belem.projects.na_cuia.pos!
     const match = placement
       .getAttribute('transform')!
       .match(/^translate\((-?[\d.]+),(-?[\d.]+)\) scale\([\d.]+\)$/)!
     expect(Number(match[1])).toBeCloseTo(pos.x - (337.23 * scale) / 2, 2)
-    expect(Number(match[2])).toBeCloseTo(pos.y - 110, 1)
+    expect(Number(match[2])).toBeCloseTo(pos.y - 190, 1)
   })
 
   it('defaults an unknown icon to icone-6 with a console warning', () => {
@@ -207,29 +209,22 @@ describe('mountCalibratedLayers', () => {
     expect(cameraNode.querySelectorAll('#layer-arrows > path')).toHaveLength(10)
   })
 
-  it('authors one Bézier + source dot per from point, stroke #F2DCB0', () => {
+  it('authors one Bézier per from point, stroke poster cream, no source dots', () => {
     const { cameraNode } = mountLayers()
     const layer = cameraNode.querySelector('#layer-arrows')!
     const paths = layer.querySelectorAll(':scope > path')
     const dots = layer.querySelectorAll(':scope > circle')
     expect(paths).toHaveLength(11) // one per org; each ships exactly one from point
-    expect(dots).toHaveLength(11)
+    expect(dots).toHaveLength(0) // mock has no source dots (SPEC §3, v1.0.1)
     for (const path of paths) {
-      expect(path.getAttribute('stroke')).toBe('#F2DCB0')
+      expect(path.getAttribute('stroke')).toBe('#EDE5CE')
       expect(path.getAttribute('fill')).toBe('none')
       expect(path.getAttribute('stroke-width')).toBe('6')
       expect(path.getAttribute('marker-end')).toBe('url(#arrowhead)')
       expect(path.getAttribute('d')).toMatch(/^M-?[\d.]+,-?[\d.]+ Q-?[\d.]+,-?[\d.]+ /)
     }
     const marker = layer.querySelector('defs marker#arrowhead')!
-    expect(marker.querySelector('path')!.getAttribute('fill')).toBe('#F2DCB0')
-    // dots sit at the from points, in data order
-    const [firstOrgId] = orgProjects(realData).next().value!
-    const firstFrom = realData.maps.ananindeua.projects[firstOrgId].pos!.from[0]
-    expect(dots[0].getAttribute('cx')).toBe(String(firstFrom.x))
-    expect(dots[0].getAttribute('cy')).toBe(String(firstFrom.y))
-    expect(dots[0].getAttribute('r')).toBe('8')
-    expect(dots[0].getAttribute('tabindex')).toBeNull() // decorative (SPEC §9)
+    expect(marker.querySelector('path')!.getAttribute('fill')).toBe('#EDE5CE')
   })
 
   it('draws one arrow per from point for multi-source orgs', () => {
@@ -241,12 +236,12 @@ describe('mountCalibratedLayers', () => {
     const { cameraNode } = mountLayers(data)
     const layer = cameraNode.querySelector('#layer-arrows')!
     expect(layer.querySelectorAll(':scope > path')).toHaveLength(12)
-    expect(layer.querySelectorAll(':scope > circle')).toHaveLength(12)
+    expect(layer.querySelectorAll(':scope > circle')).toHaveLength(0)
   })
 })
 
 describe('labels', () => {
-  it('renders org pills + city labels and positions them through the full transform', () => {
+  it('renders poster org labels below totems + city labels through the full transform', () => {
     const el = document.createElement('div')
     const anchors: Record<string, { x: number; y: number }> = {}
     for (const [orgId, project] of orgProjects(realData)) {
@@ -254,10 +249,14 @@ describe('labels', () => {
     }
     renderLabels(el, realData, anchors)
     expect(el.querySelectorAll('.label-pill')).toHaveLength(11)
-    expect(el.querySelectorAll('.label-city')).toHaveLength(2) // ananindeua + belem
-    const firstPill = el.querySelector<HTMLElement>('.label-pill')!
-    expect(firstPill.textContent).toBe('REDE CASACURA (Comunidade do Açaizal / Jaderlândia)')
-    expect(el.querySelector('[data-label-id="city:belem"]')!.textContent).toBe('Mapa de Belém')
+    expect(el.querySelectorAll('.label-city')).toHaveLength(3)
+    const firstLabel = el.querySelector<HTMLElement>('.label-pill')!
+    expect(firstLabel.textContent).toBe('REDE CASACURA (Comunidade do Açaizal / Jaderlândia)')
+    expect(firstLabel.style.transform).toContain('translate(-50%, 0%)')
+    expect(firstLabel.style.transform).toContain('8px')
+    expect(
+      Array.from(el.querySelectorAll<HTMLElement>('.label-city'), (label) => label.textContent),
+    ).toEqual(['Ananindeua', 'Belém', 'Moju'])
 
     // sx = 1.5·pos.x + 100; sy = 1.5·pos.y + 50 (pos from data.json)
     const pos = realData.maps.belem.projects.na_cuia.pos!
@@ -268,5 +267,151 @@ describe('labels', () => {
     const sy = 1.5 * pos.y + 50
     // px = 2·sx + 10;  py = 2·sy + 20
     expect(anchor.style.transform).toBe(`translate(${2 * sx + 10}px, ${2 * sy + 20}px)`)
+  })
+
+  it('resolveLabelPush: passes non-overlapping boxes through untouched', () => {
+    const pushes = resolveLabelPush([
+      { id: 'a', x: 0, y: 0, w: 100, h: 30 },
+      { id: 'b', x: 200, y: 5, w: 100, h: 30 },
+      { id: 'c', x: 50, y: 100, w: 100, h: 30 },
+    ])
+    expect(pushes.size).toBe(0)
+  })
+
+  it('resolveLabelPush: pushes a colliding box straight down until clear', () => {
+    // 'b' starts 10px lower but fully inside a's column → must clear a's
+    // bottom + gap; 'c' (x 20..150) overlaps BOTH a (0..130) and b (10..140) —
+    // its dy clears b's pushed position, which already sits below a.
+    const pushes = resolveLabelPush([
+      { id: 'a', x: 0, y: 0, w: 130, h: 80 },
+      { id: 'b', x: 10, y: 10, w: 130, h: 20 },
+      { id: 'c', x: 20, y: 20, w: 130, h: 20 },
+    ])
+    expect(pushes.get('b')).toBe(80 + 4 - 10)
+    expect(pushes.get('c')).toBe(10 + (80 + 4 - 10) + 20 + 4 - 20)
+    expect(pushes.get('a')).toBeUndefined()
+  })
+
+  it('resolveLabelPush: side-by-side boxes (no x overlap) never push', () => {
+    const pushes = resolveLabelPush([
+      { id: 'a', x: 0, y: 0, w: 130, h: 56 },
+      { id: 'b', x: 131, y: 0, w: 130, h: 56 },
+    ])
+    expect(pushes.size).toBe(0)
+  })
+
+  it('resolveEdgeClamp: a rect hanging below vh is pushed up into view', () => {
+    // QUILOMBO case: box top at 897 on a 900px viewport (h 30) — clamped so
+    // its bottom sits at vh - 8, even though the push goes negative (over
+    // its own totem): legibility wins.
+    const pushes = resolveEdgeClamp(
+      [{ id: 'quilombo', x: 700, y: 897, w: 130, h: 30 }],
+      1600,
+      900,
+      new Map(),
+    )
+    expect(pushes.get('quilombo')).toBe(900 - 8 - 30 - 897)
+  })
+
+  it('resolveEdgeClamp: a rect already inside the viewport is untouched', () => {
+    const prior = new Map([['a', 12]])
+    const pushes = resolveEdgeClamp([{ id: 'a', x: 100, y: 300, w: 130, h: 30 }], 1600, 900, prior)
+    expect(pushes).toEqual(prior)
+    expect(pushes.get('a')).toBe(12)
+  })
+
+  it('resolveEdgeClamp: the anchor guard supersedes the top-edge branch', () => {
+    // r.y = py + PILL_BASE_OFFSET(8) by construction, so with the anchor on
+    // screen (py >= 0) the box top is always >= the 8px margin — the top-edge
+    // branch can only fire when the anchor is off-screen, which the guard
+    // now skips. Lock that invariant in: an above-the-fold box is untouched.
+    const pushes = resolveEdgeClamp(
+      [{ id: 'top', x: 100, y: -20, w: 130, h: 30 }],
+      1600,
+      900,
+      new Map(),
+    )
+    expect(pushes.size).toBe(0)
+  })
+
+  it('resolveEdgeClamp: a pill whose anchor is off-screen is never clamped', () => {
+    // Zoomed into Belém: Moju labels land ~1000px below the fold — dragging
+    // them up would orphan them from their totems along the bottom edge.
+    // y 2000 - PILL_BASE_OFFSET 8 = anchor 1992, outside vh 900 → untouched.
+    const pushes = resolveEdgeClamp(
+      [{ id: 'far-below', x: 700, y: 2000, w: 130, h: 30 }],
+      1600,
+      900,
+      new Map(),
+    )
+    expect(pushes.size).toBe(0)
+  })
+
+  it('resolveEdgeClamp: a pill fully past the left edge is never clamped', () => {
+    const pushes = resolveEdgeClamp(
+      [{ id: 'off-left', x: -204, y: 300, w: 130, h: 44 }],
+      1600,
+      900,
+      new Map(),
+    )
+    expect(pushes.size).toBe(0)
+  })
+
+  it('updateLabels applies the resolved push on the anchor, base offset kept', () => {
+    const el = document.createElement('div')
+    const anchors: Record<string, { x: number; y: number }> = {}
+    for (const [orgId, project] of orgProjects(realData)) {
+      anchors[orgId] = { x: project.pos!.x, y: project.pos!.y }
+    }
+    renderLabels(el, realData, anchors)
+    // jsdom has no layout: offsetWidth is 0 → zero pushes; the anchor keeps
+    // the bare base point (the +8px grow-below offset is GSAP-owned on the
+    // inner div — labels.ts — not on the anchor).
+    const ctm = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 } as DOMMatrix
+    updateLabels(el, { x: 0, y: 0, k: 1 }, ctm)
+    const pos = realData.maps.belem.projects.na_cuia.pos!
+    const anchor = el.querySelector<HTMLDivElement>('[data-label-id="na_cuia"]')!
+    expect(anchor.style.transform).toBe(`translate(${pos.x}px, ${pos.y}px)`)
+  })
+
+  it('updateLabels pushes the lower of two static colliders down (layout mocked)', () => {
+    const el = document.createElement('div')
+    // Two org anchors 12 px apart vertically at this fake camera → their
+    // boxes (mocked 20px tall) genuinely overlap by 8px, same 130px column.
+    const anchors: Record<string, { x: number; y: number }> = {}
+    let i = 0
+    for (const [orgId] of orgProjects(realData)) {
+      anchors[orgId] = { x: 100 + (i % 2) * 40, y: 100 + i * 12 }
+      i++
+    }
+    renderLabels(el, realData, anchors)
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(130)
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(20)
+    const ctm = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 } as DOMMatrix
+    updateLabels(el, { x: 0, y: 0, k: 1 }, ctm)
+    const ids = Array.from(el.children, (c) => (c as HTMLElement).dataset.labelId!)
+    const a = el.querySelector<HTMLDivElement>(`[data-label-id="${ids[0]}"]`)!
+    const b = el.querySelector<HTMLDivElement>(`[data-label-id="${ids[1]}"]`)!
+    const ya = Number(a.style.transform.match(/, (\d+(?:\.\d+)?)px\)/)![1])
+    const yb = Number(b.style.transform.match(/, (\d+(?:\.\d+)?)px\)/)![1])
+    // b's box (top = yb + 8) must clear a's box bottom (ya + 8 + 20) + gap 4.
+    expect(yb - ya).toBeGreaterThanOrEqual(20 + 4)
+    vi.restoreAllMocks()
+  })
+})
+
+describe('scene.css layer rules', () => {
+  it('decorative arrows never intercept pointer events (city taps pass through)', () => {
+    // jsdom never applies the imported stylesheet (vitest stubs CSS imports),
+    // so the contract is asserted on the CSS source itself: mountArrows draws
+    // #layer-arrows above the city interaction groups, and without this rule
+    // its <path> elements hijack taps on painted hub pixels (CodeRabbit P2 /
+    // qodo Medium on PR #1).
+    // Vite statically rewrites the literal `new URL('./scene.css',
+    // import.meta.url)` into an http asset URL (then fileURLToPath throws),
+    // so import.meta.url is captured through a variable first.
+    const here = import.meta.url
+    const css = readFileSync(fileURLToPath(new URL('./scene.css', here)), 'utf8')
+    expect(css).toMatch(/#layer-arrows\s*\{[^}]*pointer-events:\s*none/)
   })
 })

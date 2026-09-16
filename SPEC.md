@@ -1,7 +1,7 @@
 # SPEC — Na Cuia · Mapa do Comitê de Comunicadores Populares
 
 Interactive animated map of popular communicators' collectives (Belém, Ananindeua, Moju/Barcarena).
-Hand-illustrated SVG collage — **no map library**. Target look: `na cuia/Mapa.jpeg` (scene) and `na cuia/modal.jpeg` (content panel).
+Hand-illustrated SVG collage — **no map library**. Target look: `graft/.cache/gate/ref/poster.jpg` (scene; supersedes `na cuia/Mapa.jpeg`) and `na cuia/modal.jpeg` (content panel).
 
 Decisions locked in the grilling session (2026-09-14); spec revised through dual adversarial review rounds (gpt-5.6-sol + opus 5) and an external advisory fold (rev 5: Phase 1.5 fidelity checkpoint, calibration tool, controller-owned label layer, mobile label declutter, panel art direction, asymmetry criterion). `data.json` is canonical; mockup discrepancies are ignored.
 
@@ -62,8 +62,9 @@ Rules:
 - **Label layer (controller-owned)**: an HTML `#labels` div — **sibling of the camera wrapper and of `#measure`, outside any camera transform in both modes** — is created, owned and destroyed by `SceneController`, never React. The controller renders label pills **and city name labels** from `ComiteData` (structured fields only — names, tone; never arbitrary HTML) and positions them per frame with the full camera transform: `screen = measureCTM · (k·point + [tx, ty])` — translation included, or pans drift. Pills are `aria-hidden="true"` decoration (`pointer-events: none`; taps land on scene hit circles — the SVG button is the single focusable control per org, §9). `destroy()` removes the layer; remount recreates exactly one (no leaks, no duplicates); title/controls carry explicit z-index above `#labels`; panel `inert` wraps it.
 - **Calibration**: cities, waves, squiggles, artifacts each get a one-time `<g transform>` in `src/scene/placements.ts`, placed against a `Mapa.jpeg`/`Mapa geral` underlay and reviewed with the user. `placements.ts` also exports `initialFraming {x, y}` — a **scene-coordinate focus point**: at k=1 the viewport centers on it (then clamps), all aspects; `reset()` returns to it. Chosen at calibration so portrait first paint centers the densest org cluster, not open water.
 - **Nested transform wrappers (mandatory)**: `placement <g transform=attr>` → `interaction <g>` (GSAP target) → `ambient <g>` (CSS animation target). CSS animations win the cascade over GSAP/attribute transforms on the same node — never share a node between two transform owners. Camera transform lives on a separate ancestor.
-- Arrows exist in no reusable asset — **authored in code**: quadratic Bézier from source dot to artifact, stroke `#F2DCB0`, round cap, arrowhead marker, dash-offset draw.
-- Title backing blob: authored SVG path in code (matched to mockup), not sourced from any file. Title, pills, panel, controls = HTML overlay.
+- Arrows exist in no reusable asset — **authored in code**: quadratic Bézier from a **source point on its city mass edge** (Belém / Ananindeua / Moju — multiple arrows fan outward, per the poster) to the artifact, stroke **`#EDE5CE` warm cream**, 6 scene units wide, round cap, same-color arrowhead marker, dash-offset draw. `pos.from` points are calibrated on their corresponding city mass, independently of `pos`; no source dots. Org base anchors sit on dry land; the corrected CABA and Centro de Educação Popular anchors retain at least 15 scene units of shoreline clearance. Validate all org anchors against freshly rendered sea/city masks and the portrait composition gate after coordinate edits.
+- Org label boxes use dark brown (`#513822`) with cream (`#fdf6e3`) text, centered below each totem base, with compact multiline wrapping. Where two boxes would statically overlap at a given camera state, the lower one is pushed straight down until clear (pure `resolveLabelPush`, applied on the anchor translate — the inner div's GSAP offset stays single-owner); the push shrinks back to 0 as zoom separates the anchors. Pills are also clamped fully inside the viewport (8px margin) by a pure edge-clamp pass — a totem may sit at the crop edge but its name must stay legible. City display names come from `data.json`: Belém, Ananindeua and Moju (an empty projects map still renders its city label). Totems are 190 scene units tall, anchored at their base.
+- Title backing blob: broad aqua authored SVG path in code, not sourced from any file. The responsive navy heading reads “Mapeamento de 25 Coletivos do” / “Comitê de Comunicadores Populares” on two lines where space permits. Title, pills, panel, controls = HTML overlay.
 - Responsive: the scene wrapper fills the viewport (`100% × 100dvh`, `background: #5da9a9` — the sea color, so pan-reveal past the sea rect, which extends to x = 3027.66, never shows blank); `slice` cover does the fitting; no separate portrait layout.
 
 ## 4. Layer stack (bottom → top)
@@ -75,7 +76,7 @@ Rules:
 5. `layer-waves` (`onda 1/2/4`)
 6. `layer-squiggles` (`ondinhas`)
 7. `layer-city-{belem,ananindeua,moju}` (city name labels render in `#labels`, controller-owned)
-8. `layer-arrows` (authored paths + source dots + invisible hit circles)
+8. `layer-artifacts` (totems + invisible hit circles; taps) < `layer-arrows` (authored paths, `pointer-events: none` — decorative, never intercepts taps)
 9. HTML overlay (paints above the whole SVG): `#labels` (controller-owned pills) < title < zoom controls / skip button — explicit z-index in that order.
 
 ## 5. Motion design
@@ -112,7 +113,7 @@ Extensions (top-level project fields — same shape as AGENTS.md):
   "name": "NA CUIA (BELÉM)",
   "icon": "icone-6",                     // artifact id; unknown id → default totem + console warning
   "pos": { "x": 1600, "y": 1480,
-           "from": [{ "x": 1710, "y": 1310 }] },  // scene coords; from = Point[] (multi-dot sources)
+           "from": [{ "x": 1351, "y": 721 }] },  // scene coords; from = Point[] (hub source — §3)
   "conflitos": [], "acao": [], "…": []
 }
 ```
@@ -129,7 +130,7 @@ Extensions (top-level project fields — same shape as AGENTS.md):
 
 ## 9. Accessibility
 
-Artifacts and cities are real buttons semantically: `role="button"`, `tabindex="0"` (SVG children), Enter/Space activation, visible **stroke-based** focus ring (no `outline` dependency), deterministic tab order (**cities → artifacts**; arrow source dots are decorative anchors with `tabindex="-1"`), keyboard focus triggers camera fly-to. Label pills are `aria-hidden` decoration owned by the controller (§3) — exactly one focusable control per org/city. Panel per §8. `prefers-reduced-motion` static mode. Zoom controls ARIA-labelled. pt-BR UI throughout.
+Artifacts and cities are real buttons semantically: `role="button"`, `tabindex="0"` (SVG children), Enter/Space activation, visible **stroke-based** focus ring (no `outline` dependency), deterministic tab order (**cities → artifacts**; `pos.from` hub points are decorative, never focusable), keyboard focus triggers camera fly-to. Label pills are `aria-hidden` decoration owned by the controller (§3) — exactly one focusable control per org/city. Panel per §8. `prefers-reduced-motion` static mode. Zoom controls ARIA-labelled. pt-BR UI throughout.
 
 ## 10. Scene controller API (single owner of the imperative world)
 
@@ -174,10 +175,10 @@ interface SceneController {
 - Tap city → camera flies, landmass raises (lift + shadow + outline draw), others dim; tap empty resets.
 - Tap artifact → pulse + panel with the six whitelisted sections (empty hidden). Desktop: artifact visible at `k ≥ min(1.6, k_max = 4)` beside the drawer (obstruction-aware clamp, §6). Mobile: occlusion intentional; close returns to context.
 - Camera: pinch/drag/wheel/double-tap on touch + desktop; **slice cover** fills portrait and landscape at k = 1; per-frame clamped; targets reachable after resize/orientation/panel-open; fly-to cancelled by user gesture; no state jump after gesture; hit circles ≥ 24 CSS px at every zoom (CTM-measured).
-- Keyboard: full tour of cities + artifacts (`tabindex=0`, Enter/Space, focus → fly; dots `tabindex="-1"`), panel focus lifecycle complete with `aria-labelledby`.
+- Keyboard: full tour of cities + artifacts (`tabindex=0`, Enter/Space, focus → fly), panel focus lifecycle complete with `aria-labelledby`.
 - Org addition: dummy org with default icon + calibration-tool-authored `pos` renders with **zero TypeScript edits**; schema violations (incl. out-of-rect `from` points) fail loudly.
 - Camera extent/obstruction unit-tested for 16:9 and 9:19.5 aspect ratios (Vitest, per §6).
 - Perf gate (§11) passes on mid-tier Android profile — else §3 fallback adopted and re-gated.
-- **Phase 1.5 fidelity checkpoint**: static composite of all layers matches `Mapa.jpeg` side-by-side (overlay diff) with irregular spacing preserved — asymmetry is a criterion; normalization is a defect.
+- **Phase 1.5 fidelity checkpoint**: static composite of all layers is compared to `graft/.cache/gate/ref/poster.jpg` side-by-side (overlay diff; supersedes `Mapa.jpeg`) with irregular spacing preserved — asymmetry is a criterion; normalization is a defect.
 - Labels track the camera with zero visible drift at every zoom; mobile pill fade engages with hysteresis and never removes a hit target or a focusable control.
 - Panel matches the `modal.jpeg` art direction (palette, icons, typography) and passes long-text overflow at `max-height: 80dvh`.

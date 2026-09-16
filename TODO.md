@@ -50,7 +50,7 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 ## Phase 5 — Artifacts, arrows & pins
 - [x] Calibration tool (Phase 1.5) → finalize `pos`/`from` for all 11 orgs in `data.json` (`from: Point[]`, `POS_MARGIN` honored); user review vs mockup *(deferred to final user pass — pos first-pass from Phase 1.5 stands)*
 - [x] Per-org artifacts via `import.meta.glob('/na cuia/icons/svg/icone *.svg')` (default = icone 6; icone 5 green variant; icone 7 pirarucu) + HTML pills (Archivo)
-- [x] Authored Bézier arrows (`#F2DCB0`, dash-draw, arrowhead) + invisible hit circles **kept ≥ 24 CSS px diameter at every zoom** (measurement-owner `getScreenCTM()` per SPEC §3: `u = measureCtm.a × k`, `k` from controller state, `r_scene ≥ 12/u` in `onTransform`)
+- [x] Authored Bézier arrows (`#EDE5CE`, dash-draw, arrowhead) + invisible hit circles **kept ≥ 24 CSS px diameter at every zoom** (measurement-owner `getScreenCTM()` per SPEC §3: `u = measureCtm.a × k`, `k` from controller state, `r_scene ≥ 12/u` in `onTransform`)
 - [x] Idle bob on ambient wrapper (per-child delay); tap = pulse + arrow redraw *(done; fly-maxK polish = Phase 6/7, reviewer note)*
 - [x] Zoom-gated pill fade (mobile): distance-from-center threshold (`labelK` default 1 — zoom gate off by default), ±10% hysteresis, `opacity`/`visibility` only — hit targets and focus never affected
 
@@ -66,3 +66,41 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 - [x] Zoom +/−/reset controls; dummy-org test: **content-only** addition renders (default icon + calibration-tool `pos`), schema violations fail loudly
 - [x] **Playwright smoke suite** (load → tap city → tap artifact → panel opens) green locally **before** deploy and re-run against the live URL after
 - [x] GH Pages via committed Actions workflow (`actions/deploy-pages`); wait deploy success; verify live URL with Playwright smoke; `git tag v1.0.0 && git push origin v1.0.0`
+
+## Post-ship v1.0.1 — visual fidelity vs `Mapa.jpeg` (filed 2026-09-15, live-site audit)
+
+Evidence: `graft/.cache/checks/current-landscape.png` (1600×900, k=1, intro settled) +
+`graft/.cache/checks/side-by-side.png` vs `na cuia/Mapa.jpeg`; label boxes measured via
+`graft/.cache/checks/labels-audit.mjs` against the live URL.
+
+- [x] **City land-mass placements drift from the design composition.** Re-calibrated
+  `cityPlacements` (belem / ananindeua / moju in `src/scene/placements.ts`) against
+  `Mapa.jpeg` (city-fill component match → painted-bbox solve): Belém central mass with
+  the bay, Ananindeua joined at the upper right, Moju/Barcarena elongated mass lower
+  left. `labelAnchor`s re-picked onto their own masses; `initialFraming` re-centered on
+  the dense org cluster — first pass (1300, 1330), superseded by (1900, 850) after the
+  fidelity audit showed the first value hid two organizations at 16:9; all 11 org `pos` recalibrated from mock fractions
+  via the underlay transform. Verified under `slice` at 16:9 + 9:19.5 (dev renders +
+  component re-audit).
+- [x] **Label collisions: writings on top of each other.** Resolved by the placement +
+  `labelAnchor` recalibration alone (no collision engine needed): re-measured at
+  1600×900 k=1, zero pill-pill overlaps (was `REDE CASACURA…` × `CENTRO DE
+  EDUCAÇÃO…` 263×6 px) and the two city-name labels no longer share a band (Belém on
+  its mass, Ananindeua on its own). Keyboard focus + hit targets unaffected.
+- [x] **Arrows unreadable vs design.** Opus planning verdict (option A): arrows now
+  stroke `#EDE5CE (poster cream)` panel ink (mock's dark arrows; cream invisible on land/water) —
+  SPEC §3 reworded in the same commit (hub-anchored `from`, no source dots — mock has
+  none; dots removed from `mountArrows`). All `pos.from` re-authored to the three mock
+  hubs (Belém 1351,721 · Ananindeua 1700,278 · Moju 442,1283) so arrows fan out per
+  hub like the design. `layers.test.ts` re-pinned to `#EDE5CE (poster cream)` + zero dots; dash-draw
+  and tap-redraw transients are color-agnostic (single `ARROW_COLOR` constant).
+  Verified side-by-side vs `Mapa.jpeg` (16:9 + 9:19.5).
+- [x] **Numeric alignment gate shipped** (`graft/.cache/gate/run.sh`, 2026-09-15): per-mass IoU
+  vs mock — Belém 0.813, Ananindeua 0.709, Moju 0.942 (all at/near asset ceiling). ALL GATES
+  PASS; deviations documented in `docs/reviews/v1.0.1-fidelity.md`. Re-run after any placement
+  or asset change.
+- [ ] **Follow-ups from v1.0.1 review (non-blocking P3s, opus r2 APPROVE)**: (a) Moju
+  mass has no city label — `data.json` has only Belém/Ananindeua maps so
+  `cityPlacements.moju.labelAnchor` is unused; the mock labels "Moju/Barcarena"
+  (content decision). (b) MMVB arrow crosses the "Mapa de Belém" text — nudge
+  `labelAnchor` or the MMVB hub stem (mild, label stays legible).

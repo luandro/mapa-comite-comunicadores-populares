@@ -20,19 +20,26 @@ import { isMobile } from './device'
 import { mountScene, type SceneController } from './scene/mount'
 import './panel/panel.css'
 
-/** Authored blob backing the title (SPEC §3) — a soft hand-drawn ellipse. */
+/** Authored blob backing the poster title (SPEC §3). */
 const TITLE_BLOB_PATH =
-  'M12,34 C10,18 34,8 78,6 C132,4 178,10 182,26 C186,42 158,52 104,54 C48,56 14,50 12,34 Z'
+  'M8,18 C56,1 132,8 214,5 C310,1 385,11 474,3 C568,-5 653,10 740,5 C828,0 898,8 914,28 C929,48 901,63 855,68 C786,76 720,70 650,88 C555,112 481,102 398,111 C307,121 237,103 163,108 C92,113 35,123 11,98 C-8,77 -5,40 8,18 Z'
 
 /** Title overlay — above the scene, below future controls (SPEC §3 z-order). */
 function TitleOverlay() {
   return (
     <div className="app-title">
-      <svg className="app-title-blob" viewBox="0 0 194 60" aria-hidden="true">
+      <svg
+        className="app-title-blob"
+        viewBox="0 0 920 126"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
         <path d={TITLE_BLOB_PATH} />
       </svg>
-      <h1>Na Cuia</h1>
-      <p>Comitê de Comunicadores Populares</p>
+      <h1>
+        <span>Mapeamento de 25 Coletivos do</span>
+        <span>Comitê de Comunicadores Populares</span>
+      </h1>
     </div>
   )
 }

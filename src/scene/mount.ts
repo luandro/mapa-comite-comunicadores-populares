@@ -201,6 +201,11 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   }
   const offLabels = transformHub.on(positionLabels)
   positionLabels(camera.getState()) // camera's initial frame predated this subscription
+  // Font swap (display=swap) changes pill metrics after first paint; pushes
+  // are layout-derived, so recompute once webfonts settle (opus r2 P1).
+  if (typeof document !== 'undefined' && 'fonts' in document) {
+    void document.fonts.ready.then(() => positionLabels(camera.getState()))
+  }
 
   // DEV-only calibration tool (Phase 1.5): the dynamic import keeps its bytes
   // out of production bundles entirely (AGENTS invariant 3).
@@ -475,7 +480,6 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     cityLabels: Array.from(labels.el.querySelectorAll<HTMLElement>('.label-city')),
     arrows: {
       paths: Array.from(calibrated.arrows.querySelectorAll<SVGPathElement>(':scope > path')),
-      dots: Array.from(calibrated.arrows.querySelectorAll<SVGCircleElement>(':scope > circle')),
     },
     artifacts: Object.values(calibrated.artifacts),
     pills: Array.from(labels.el.querySelectorAll<HTMLElement>('.label-pill')),
@@ -569,8 +573,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       camera.reset()
     },
     focusCity(id) {
-      // Gate on the MOUNTED set (cityPlacements), not data.maps — Moju has no
-      // data.json map entry but IS a mounted, raisable city (opus round-2 P2).
+      // Gate on the MOUNTED set (cityPlacements), not data.maps — placements,
+      // not data presence, decide raisability (Moju ships an empty projects
+      // map and is still a mounted, raisable city; opus round-2 P2).
       if (!(id in cityPlacements)) {
         if (import.meta.env.DEV) console.warn(`[scene] focusCity('${id}'): unknown city`)
         return

@@ -39,8 +39,8 @@ export function createLabelsLayer(parent: HTMLElement): {
 /**
  * One label = outer `.label` anchor (JS writes `transform: translate(px,py)`
  * on it per frame) wrapping the inner `.label-pill`/`.label-city` div whose
- * CSS class owns the offset around the anchor point — two transform owners,
- * two nodes (SPEC §3).
+ * GSAP properties own the offset around the anchor point — two transform
+ * owners, two nodes (SPEC §3).
  */
 function appendLabel(
   el: HTMLElement,
@@ -57,13 +57,16 @@ function appendLabel(
   const label = document.createElement('div')
   label.className = kind
   label.textContent = text // structured fields only — never HTML from data (SPEC §3)
-  // The offset around the anchor is GSAP property (percent-based) — NOT CSS
+  // The offset around the anchor is a GSAP property (percent-based) — NOT CSS
   // `transform` on the same node. The intro tweens scale on these divs, and
   // GSAP bakes any pre-existing CSS transform to px on first touch (fractional
   // widths round wrong + font-swap reflows would de-center labels permanently —
   // opus P1). One owner: JS per-frame on the anchor, GSAP property on the div.
   if (kind === 'label-pill') {
-    gsap.set(label, { xPercent: -50, yPercent: -100, y: -8 })
+    // Org boxes are anchored to the totem BASE and grow below it. Keeping the
+    // top edge as the transform origin means the intro pop does not pull the
+    // box back over the totem while it scales in.
+    gsap.set(label, { xPercent: -50, yPercent: 0, y: PILL_BASE_OFFSET })
   } else {
     gsap.set(label, { xPercent: -50, yPercent: -50 })
   }
@@ -118,6 +121,12 @@ export function updateLabels(
   const cx = vw / 2
   const cy = vh / 2
   const radius = PILL_CENTER_R * Math.min(vw, vh)
+  // Static-overlap resolution (poster close-out): org boxes are anchored
+  // below their totems; in dense clusters (e.g. east Belém) two boxes can
+  // collide at k=1. The push is applied on the ANCHOR translate — the inner
+  // div's GSAP properties stay single-owner (SPEC §3) — and shrinks back to
+  // 0 as zoom separates the anchors (box px size is camera-independent).
+  const rects: LabelRect[] = []
   for (const child of el.children) {
     if (!(child instanceof HTMLDivElement)) continue
     const x = Number(child.dataset.x)
@@ -127,7 +136,30 @@ export function updateLabels(
     const sy = state.k * y + state.y
     const px = measureCtm.a * sx + measureCtm.c * sy + measureCtm.e
     const py = measureCtm.b * sx + measureCtm.d * sy + measureCtm.f
-    child.style.transform = `translate(${px}px, ${py}px)`
+    const pill = child.querySelector<HTMLElement>('.label-pill')
+    if (pill) {
+      const w = pill.offsetWidth
+      const h = pill.offsetHeight
+      if (w > 0 && h > 0)
+        rects.push({
+          id: child.dataset.labelId ?? '',
+          x: px - w / 2,
+          y: py + PILL_BASE_OFFSET,
+          w,
+          h,
+        })
+    }
+    child.dataset.px = String(px)
+    child.dataset.py = String(py)
+  }
+  const pushes = resolveEdgeClamp(rects, vw, vh, resolveLabelPush(rects))
+  for (const child of el.children) {
+    if (!(child instanceof HTMLDivElement)) continue
+    const px = Number(child.dataset.px)
+    const py = Number(child.dataset.py)
+    if (!Number.isFinite(px) || !Number.isFinite(py)) continue
+    const push = pushes.get(child.dataset.labelId ?? '') ?? 0
+    child.style.transform = `translate(${px}px, ${py + push}px)`
     // Per-pill distance gate (mobile only): the ANCHOR carries the screen
     // position; the inner .label-pill gains/loses .is-far with ±10%
     // hysteresis. Opacity/visibility only — hit targets and aria untouched.
@@ -144,6 +176,91 @@ export function updateLabels(
 }
 
 /* Phase 5: zoom-gated pill fade (SPEC §5 / TODO Phase 5, mobile only). */
+
+/** Static-collision input for resolveLabelPush (screen px, box top-left). */
+export interface LabelRect {
+  id: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/** Org boxes grow below the totem base — offset from anchor y to box top (px);
+ * this IS the base offset appendLabel applies as the pill's GSAP `y`. */
+export const PILL_BASE_OFFSET = 8
+
+/** Vertical gap kept between stacked boxes (px). */
+export const LABEL_STACK_GAP = 4
+
+/**
+ * Pure static-overlap resolution (unit-tested, no DOM): sort boxes by top y,
+ * then push any box that overlaps an already-placed one straight down until
+ * clear (LABEL_STACK_GAP). Horizontal overlap is required (>1px) so boxes
+ * merely side by side never trigger pushes. Only downward moves — a box never
+ * covers its totem; deterministic order keeps per-frame positions stable.
+ */
+export function resolveLabelPush(rects: LabelRect[]): Map<string, number> {
+  const push = new Map<string, number>()
+  const sorted = [...rects].sort((a, b) => a.y - b.y || a.x - b.x)
+  const placed: Array<{ x: number; y: number; w: number; h: number }> = []
+  for (const r of sorted) {
+    let dy = 0
+    let clear = false
+    while (!clear) {
+      clear = true
+      for (const p of placed) {
+        const ox = Math.min(r.x + r.w, p.x + p.w) - Math.max(r.x, p.x)
+        const oy = Math.min(r.y + dy + r.h, p.y + p.h) - Math.max(r.y + dy, p.y)
+        if (ox > 1 && oy > 0) {
+          dy = p.y + p.h + LABEL_STACK_GAP - r.y
+          clear = false
+        }
+      }
+    }
+    if (dy > 0) push.set(r.id, dy)
+    placed.push({ x: r.x, y: r.y + dy, w: r.w, h: r.h })
+  }
+  return push
+}
+
+/** Viewport edge margin (px) kept by resolveEdgeClamp on every side. */
+export const LABEL_EDGE_MARGIN = 8
+
+/**
+ * Pure viewport edge clamp (unit-tested, no DOM): a second pass over the
+ * static-overlap pushes that keeps every box fully inside the viewport
+ * (LABEL_EDGE_MARGIN). A totem may sit at the slice-crop edge, but its name
+ * must stay legible — legibility wins over totem clearance, so a box may be
+ * pushed up over its own totem rather than hang clipped below the fold.
+ * Vertical only (the anchor translate pushes on y); degenerate vw/vh (0 in
+ * non-window environments) passes the inputs through untouched.
+ */
+export function resolveEdgeClamp(
+  rects: LabelRect[],
+  vw: number,
+  vh: number,
+  pushes: Map<string, number>,
+): Map<string, number> {
+  const out = new Map(pushes)
+  if (vw <= 0 || vh <= 0) return out
+  for (const r of rects) {
+    // Anchor-on-screen guard: a pill whose totem is off-screen (zoom/pan) is
+    // left alone — dragging it to an edge would orphan it from its totem.
+    // r.y - PILL_BASE_OFFSET is the anchor y; horizontal misses (x fully
+    // outside vw) are skipped too since the pill would be invisible anyway.
+    const anchorY = r.y - PILL_BASE_OFFSET
+    if (r.x + r.w < 0 || r.x > vw || anchorY < 0 || anchorY > vh) continue
+    const push = out.get(r.id) ?? 0
+    const top = r.y + push
+    if (top + r.h > vh - LABEL_EDGE_MARGIN) {
+      out.set(r.id, push - (top + r.h - (vh - LABEL_EDGE_MARGIN)))
+    } else if (top < LABEL_EDGE_MARGIN) {
+      out.set(r.id, push + (LABEL_EDGE_MARGIN - top))
+    }
+  }
+  return out
+}
 
 /**
  * Distance-from-center gate radius as a fraction of min(vw, vh) — the primary
