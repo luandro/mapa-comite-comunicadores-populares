@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import rawData from '../../data.json'
 import { validateComiteData } from '../data/schema'
@@ -350,7 +350,11 @@ describe('scene.css layer rules', () => {
     // #layer-arrows above the city interaction groups, and without this rule
     // its <path> elements hijack taps on painted hub pixels (CodeRabbit P2 /
     // qodo Medium on PR #1).
-    const css = readFileSync(resolve(process.cwd(), 'src/scene/scene.css'), 'utf8')
+    // Vite statically rewrites the literal `new URL('./scene.css',
+    // import.meta.url)` into an http asset URL (then fileURLToPath throws),
+    // so import.meta.url is captured through a variable first.
+    const here = import.meta.url
+    const css = readFileSync(fileURLToPath(new URL('./scene.css', here)), 'utf8')
     expect(css).toMatch(/#layer-arrows\s*\{[^}]*pointer-events:\s*none/)
   })
 })

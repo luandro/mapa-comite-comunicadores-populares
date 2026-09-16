@@ -1,5 +1,6 @@
 // Phase 7 Playwright smoke suite: load → tap city → tap artifact → panel
 // opens → Esc → reduced-motion end-to-end. Also used against the live URL.
+import { readFile } from 'node:fs/promises'
 import { chromium, devices } from '@playwright/test'
 
 const BASE = process.env.SMOKE_URL ?? 'http://localhost:5173'
@@ -50,6 +51,36 @@ const raised = await city.evaluate(
   (g) => new DOMMatrixReadOnly(getComputedStyle(g).transform).m42 < 0,
 )
 check('city tap: raise', raised)
+
+// Arrows never intercept taps (opus r2): each Belém `pos.from` hub point sits
+// on the painted city mass, so its projected pixel must route to the city
+// interaction group — not to #layer-arrows' decorative paths above it.
+// Projection mirrors the app: #camera's screen CTM already composes the
+// measurement owner's CTM with k/tx/ty (same viewBox/box, SPEC §3). Skips
+// (no fail) when no from-point lands on the 1600×900 viewport.
+const rawData = JSON.parse(await readFile(new URL('../data.json', import.meta.url), 'utf8'))
+const fromPoints = Object.values(rawData.maps.belem.projects).flatMap((p) => p.pos?.from ?? [])
+const { onScreen, routed } = await page.evaluate((pts) => {
+  // Manual a–f affine application: getScreenCTM() may return an SVGMatrix
+  // (matrixTransform) rather than a DOMMatrix (transformPoint) — the field
+  // math is identical for both.
+  const m = document.querySelector('#camera').getScreenCTM()
+  let onScreen = 0
+  for (const p of pts) {
+    const x = m.a * p.x + m.c * p.y + m.e
+    const y = m.b * p.x + m.d * p.y + m.f
+    if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue
+    onScreen++
+    if (document.elementFromPoint(x, y)?.closest('[data-city-id]'))
+      return { onScreen, routed: true }
+  }
+  return { onScreen, routed: false }
+}, fromPoints)
+check(
+  'arrows: hub pixel routes to city group',
+  onScreen === 0 || routed,
+  onScreen === 0 ? 'skipped — no on-screen from-point' : `${onScreen} on-screen`,
+)
 
 // artifact tap → panel
 await page.locator('#layer-artifacts circle[data-artifact-id]').first().click({ force: true })

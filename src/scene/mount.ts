@@ -201,6 +201,11 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   }
   const offLabels = transformHub.on(positionLabels)
   positionLabels(camera.getState()) // camera's initial frame predated this subscription
+  // Font swap (display=swap) changes pill metrics after first paint; pushes
+  // are layout-derived, so recompute once webfonts settle (opus r2 P1).
+  if (typeof document !== 'undefined' && 'fonts' in document) {
+    void document.fonts.ready.then(() => positionLabels(camera.getState()))
+  }
 
   // DEV-only calibration tool (Phase 1.5): the dynamic import keeps its bytes
   // out of production bundles entirely (AGENTS invariant 3).

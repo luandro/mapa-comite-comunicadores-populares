@@ -76,7 +76,7 @@ Rules:
 5. `layer-waves` (`onda 1/2/4`)
 6. `layer-squiggles` (`ondinhas`)
 7. `layer-city-{belem,ananindeua,moju}` (city name labels render in `#labels`, controller-owned)
-8. `layer-arrows` (authored paths + invisible hit circles)
+8. `layer-artifacts` (totems + invisible hit circles; taps) < `layer-arrows` (authored paths, `pointer-events: none` — decorative, never intercepts taps)
 9. HTML overlay (paints above the whole SVG): `#labels` (controller-owned pills) < title < zoom controls / skip button — explicit z-index in that order.
 
 ## 5. Motion design
