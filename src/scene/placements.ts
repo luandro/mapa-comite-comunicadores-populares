@@ -30,10 +30,9 @@ export const initialFraming: Point = { x: 1900, y: 850 }
 /**
  * City land-mass placements — calibrated against the real poster
  * (graft/.cache/gate/ref/poster.jpg); 2026-09-16 user QA nudged Belém
- * up-left twice (total −28,−52 from the original solve) to clear the
- * base-map islands — the asset's thinner fill keeps IoU ≈0.60 there.
- * Belém: big central mass
- * with the bay; Ananindeua: joined at upper right; Moju/Barcarena:
+ * up three times (net −33,−70 from the original solve) to clear the
+ * base-map islands — the asset's thinner fill keeps gate IoU ≈0.572 there
+ * (floor 0.57). Belém: big central mass with the bay; Ananindeua: joined at upper right; Moju/Barcarena:
  * elongated mass lower left (per poster composition).
  */
 export const cityPlacements: Record<'belem' | 'ananindeua' | 'moju', CityPlacement> = {

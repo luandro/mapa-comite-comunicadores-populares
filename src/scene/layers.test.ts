@@ -320,14 +320,41 @@ describe('labels', () => {
     expect(pushes.get('a')).toBe(12)
   })
 
-  it('resolveEdgeClamp: a rect hanging above y=0 is pushed down', () => {
+  it('resolveEdgeClamp: the anchor guard supersedes the top-edge branch', () => {
+    // r.y = py + PILL_BASE_OFFSET(8) by construction, so with the anchor on
+    // screen (py >= 0) the box top is always >= the 8px margin — the top-edge
+    // branch can only fire when the anchor is off-screen, which the guard
+    // now skips. Lock that invariant in: an above-the-fold box is untouched.
     const pushes = resolveEdgeClamp(
       [{ id: 'top', x: 100, y: -20, w: 130, h: 30 }],
       1600,
       900,
       new Map(),
     )
-    expect(pushes.get('top')).toBe(8 - -20)
+    expect(pushes.size).toBe(0)
+  })
+
+  it('resolveEdgeClamp: a pill whose anchor is off-screen is never clamped', () => {
+    // Zoomed into Belém: Moju labels land ~1000px below the fold — dragging
+    // them up would orphan them from their totems along the bottom edge.
+    // y 2000 - PILL_BASE_OFFSET 8 = anchor 1992, outside vh 900 → untouched.
+    const pushes = resolveEdgeClamp(
+      [{ id: 'far-below', x: 700, y: 2000, w: 130, h: 30 }],
+      1600,
+      900,
+      new Map(),
+    )
+    expect(pushes.size).toBe(0)
+  })
+
+  it('resolveEdgeClamp: a pill fully past the left edge is never clamped', () => {
+    const pushes = resolveEdgeClamp(
+      [{ id: 'off-left', x: -204, y: 300, w: 130, h: 44 }],
+      1600,
+      900,
+      new Map(),
+    )
+    expect(pushes.size).toBe(0)
   })
 
   it('updateLabels applies the resolved push on the anchor, base offset kept', () => {

@@ -245,6 +245,12 @@ export function resolveEdgeClamp(
   const out = new Map(pushes)
   if (vw <= 0 || vh <= 0) return out
   for (const r of rects) {
+    // Anchor-on-screen guard: a pill whose totem is off-screen (zoom/pan) is
+    // left alone — dragging it to an edge would orphan it from its totem.
+    // r.y - PILL_BASE_OFFSET is the anchor y; horizontal misses (x fully
+    // outside vw) are skipped too since the pill would be invisible anyway.
+    const anchorY = r.y - PILL_BASE_OFFSET
+    if (r.x + r.w < 0 || r.x > vw || anchorY < 0 || anchorY > vh) continue
     const push = out.get(r.id) ?? 0
     const top = r.y + push
     if (top + r.h > vh - LABEL_EDGE_MARGIN) {
