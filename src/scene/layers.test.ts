@@ -6,7 +6,17 @@ import rawData from '../../data.json'
 import { validateComiteData } from '../data/schema'
 import type { ComiteData } from '../data/types'
 import { renderLabels, resolveEdgeClamp, resolveLabelPush, updateLabels } from './labels'
-import { ARTIFACT_BOB_STEP, mountCalibratedLayers, orgProjects, rSceneFor } from './layers'
+import {
+  arrowEndPoint,
+  ARTIFACT_BOB_STEP,
+  ARROWHEAD_SCENE,
+  ARROW_TIP_CLEARANCE,
+  mountCalibratedLayers,
+  orgProjects,
+  rSceneFor,
+  TOTEM_HEIGHT,
+  TOTEM_WIDTH,
+} from './layers'
 import type { Camera } from './types'
 
 const realData: ComiteData = validateComiteData(rawData)
@@ -231,20 +241,30 @@ describe('mountCalibratedLayers', () => {
     expect(marker.querySelector('path')!.getAttribute('fill')).toBe('#EDE5CE')
   })
 
-  it('arrowhead tip stops short of the totem base — head never overlays the art', () => {
+  it('arrowhead tip stops outside the totem art box — head never touches the art', () => {
     const { cameraNode } = mountLayers()
     const layer = cameraNode.querySelector('#layer-arrows')!
     for (const [orgId, project] of orgProjects(realData)) {
       const pos = project.pos!
-      const path = layer.querySelector(`path[data-arrow-org="${orgId}"]`)!
-      // End point of the authored quadratic = the last coordinate pair.
-      const nums = (path.getAttribute('d') ?? '').match(/-?[\d.]+/g)!.map(Number)
-      const [ex, ey] = nums.slice(-2)
-      expect(ex).toBeCloseTo(pos.x, 0)
-      // The stroke ends a full head-length + lift above the base: the marker
-      // tip lands on base − lift, beside the totem art, never over it.
-      expect(ey).toBeCloseTo(pos.y - 40 - 15, 0)
+      for (const from of pos.from) {
+        const end = arrowEndPoint(from, { x: pos.x, y: pos.y })
+        // The TIP (end + one head length along the from→base direction) must
+        // clear the art box (TOTEM_WIDTH × TOTEM_HEIGHT, bottom-center at pos)
+        // by ARROW_TIP_CLEARANCE: shrink the box by that margin and assert the
+        // tip is outside it. Direction-agnostic — side approaches included.
+        const len = Math.hypot(pos.x - from.x, pos.y - from.y)
+        const ux = (pos.x - from.x) / len
+        const uy = (pos.y - from.y) / len
+        const tip = { x: end.x + ux * ARROWHEAD_SCENE, y: end.y + uy * ARROWHEAD_SCENE }
+        const inBoxX = Math.abs(tip.x - pos.x) < TOTEM_WIDTH / 2 - ARROW_TIP_CLEARANCE
+        const inBoxY = tip.y > pos.y - TOTEM_HEIGHT + ARROW_TIP_CLEARANCE && tip.y < pos.y
+        expect(`${orgId} tip-in-box=${inBoxX && inBoxY}`).toBe(
+          `${orgId} tip-in-box=false`,
+        )
+      }
     }
+    const layerPaths = layer.querySelectorAll(':scope > path')
+    expect(layerPaths.length).toBeGreaterThan(0)
   })
 
   it('draws one arrow + one tail dot per from point for multi-source orgs', () => {

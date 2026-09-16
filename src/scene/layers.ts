@@ -127,23 +127,24 @@ export function arrowPathLength(path: SVGPathElement): number {
 }
 
 /** Totem height in scene units — poster-scale, anchored at each base point. */
-const TOTEM_HEIGHT = 190
+export const TOTEM_HEIGHT = 190
+/** Totem art box width in scene units (icons are near-square poles). */
+export const TOTEM_WIDTH = 110
 /**
- * Arrow END lift above the totem base point (scene units): the marker-end
- * arrowhead's TIP lands exactly here, one head-length + half stroke short of
- * the base so the head paints beside the totem art and never over it
- * (2026-09-16 user QA). The poster's tip sits ~40 units off the base.
+ * Clearance (scene units) between the arrowhead TIP and the totem art box:
+ * the head must never touch the art (2026-09-16 user QA, twice — the first
+ * fix lifted vertically only, which still clipped tall poles approached
+ * from the side).
  */
-const ARROW_END_LIFT = 40
+export const ARROW_TIP_CLEARANCE = 24
+/** Extra stroke back-off so the head BODY (30 units) stays out of the box too. */
+export const ARROWHEAD_SCENE = 30
 /** Control-point perpendicular offset as a fraction of the from→end distance. */
 const ARROW_BOW = 0.3
 const ARROW_COLOR = '#EDE5CE' // poster arrows: warm cream (sampled 236,233,214)
 const ARROW_STROKE = 6
 /** Poster-tail dot radius at the from[] end of every arrow (scene units). */
 const ARROW_TAIL_R = 9
-/** Arrowhead length in marker units (viewBox 0 0 10 10) — scene = ×(stroke/10×5)=×3. */
-const ARROWHEAD_SCENE = 30
-
 const CITY_ASSETS = { belem: cityBelem, ananindeua: cityAnanindeua, moju: cityMoju }
 const CITY_IDS = ['belem', 'ananindeua', 'moju'] as const
 
@@ -225,6 +226,44 @@ function arrowPath(from: Point, end: Point): string {
   const cx = (from.x + end.x) / 2 - dy * ARROW_BOW
   const cy = (from.y + end.y) / 2 + dx * ARROW_BOW
   return `M${from.x},${from.y} Q${cx},${cy} ${end.x},${end.y}`
+}
+
+/**
+ * Where an arrow from `from` must stop so its marker-end TIP clears the
+ * totem art box (bottom-center anchored at `base`, TOTEM_WIDTH ×
+ * TOTEM_HEIGHT): march along the straight from→base line to the box
+ * boundary, then back off clearance + head length. Direction-agnostic —
+ * the old vertical-only lift clipped every pole approached from the side
+ * (user QA 2026-09-16, CHIBÉ case). Degenerate from==base falls back to a
+ * plain vertical lift above the base.
+ */
+export function arrowEndPoint(from: Point, base: Point): Point {
+  const halfW = TOTEM_WIDTH / 2
+  const dx = base.x - from.x
+  const dy = base.y - from.y
+  const len = Math.hypot(dx, dy)
+  if (len < 1) return { x: base.x, y: base.y - TOTEM_HEIGHT - ARROW_TIP_CLEARANCE }
+  const ux = dx / len
+  const uy = dy / len
+  // Ray param t where the from→base ray FIRST crosses the art box on each
+  // axis (approaching the base, the first face hit is the entry face).
+  const tx =
+    ux > 0 ? (base.x - halfW - from.x) / ux : ux < 0 ? (base.x + halfW - from.x) / ux : Infinity
+  const ty =
+    uy > 0
+      ? (base.y - TOTEM_HEIGHT - from.y) / uy
+      : uy < 0
+        ? (base.y - from.y) / uy
+        : Infinity
+  // Entry param: max of per-axis entries (the ray is inside the box once past
+  // both entry faces); the base sits inside the box, so it is always finite.
+  // Negative entries (from inside the box's x/y span) clamp at 0.
+  const tEntry = Math.max(tx, ty, 0)
+  // The TIP sits ARROW_TIP_CLEARANCE before the entry face; the stroke ends
+  // one head-length further back so the marker BODY never overlaps the art.
+  const tTip = Math.max(0, tEntry - ARROW_TIP_CLEARANCE)
+  const tEnd = Math.max(0, tTip - ARROWHEAD_SCENE)
+  return { x: from.x + ux * tEnd, y: from.y + uy * tEnd }
 }
 
 function mountWaves(cameraNode: SVGGElement): SVGGElement {
@@ -401,10 +440,10 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
   const marker = svg('marker')
   marker.id = 'arrowhead'
   marker.setAttribute('viewBox', '0 0 10 10')
-  // refX = 10 puts the head's TIP on the path end point — the stroke is then
-  // authored to stop ARROW_END_LIFT short of the totem base, so the tip (not
-  // the head body) touches the lift point and the head never overlays the
-  // totem art (2026-09-16 user QA).
+  // refX = 10 puts the head's TIP on the path end point — the stroke is
+  // authored to stop one head-length outside the totem art box
+  // (arrowEndPoint), so the tip sits ARROW_TIP_CLEARANCE short of the art and
+  // the head never overlays it (2026-09-16 user QA).
   marker.setAttribute('refX', '10')
   marker.setAttribute('refY', '5')
   // markerUnits = strokeWidth (default): head scene size = 10/10 × 6 × 5 = 30
@@ -423,11 +462,10 @@ function mountArrows(cameraNode: SVGGElement, data: ComiteData): SVGGElement {
     if (!pos) continue
     for (const from of pos.from) {
       const path = svg('path')
-      // End ABOVE the lift point by half the head's stroke-relative size so
-      // the marker-end TIP lands exactly on (pos - LIFT): the head sits beside
-      // the totem, never over its art (user QA 2026-09-16).
-      const headHalf = (ARROWHEAD_SCENE / ARROW_STROKE / 2) * ARROW_STROKE // = 15
-      const end = { x: pos.x, y: pos.y - ARROW_END_LIFT - headHalf }
+      // Stroke stops one head-length outside the art box: the marker-end TIP
+      // lands ARROW_TIP_CLEARANCE short of the box — head and art never touch
+      // (user QA 2026-09-16, direction-agnostic arrowEndPoint).
+      const end = arrowEndPoint(from, { x: pos.x, y: pos.y })
       path.setAttribute('d', arrowPath(from, end))
       path.setAttribute('fill', 'none')
       path.setAttribute('stroke', ARROW_COLOR)
