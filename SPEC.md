@@ -1,7 +1,7 @@
 # SPEC — Na Cuia · Mapa do Comitê de Comunicadores Populares
 
 Interactive animated map of popular communicators' collectives (Belém, Ananindeua, Moju/Barcarena).
-Hand-illustrated SVG collage — **no map library**. Target look: `na cuia/Mapa.jpeg` (scene) and `na cuia/modal.jpeg` (content panel).
+Hand-illustrated SVG collage — **no map library**. Target look: `graft/.cache/gate/ref/poster.jpg` (scene; supersedes `na cuia/Mapa.jpeg`) and `na cuia/modal.jpeg` (content panel).
 
 Decisions locked in the grilling session (2026-09-14); spec revised through dual adversarial review rounds (gpt-5.6-sol + opus 5) and an external advisory fold (rev 5: Phase 1.5 fidelity checkpoint, calibration tool, controller-owned label layer, mobile label declutter, panel art direction, asymmetry criterion). `data.json` is canonical; mockup discrepancies are ignored.
 
@@ -63,7 +63,7 @@ Rules:
 - **Calibration**: cities, waves, squiggles, artifacts each get a one-time `<g transform>` in `src/scene/placements.ts`, placed against a `Mapa.jpeg`/`Mapa geral` underlay and reviewed with the user. `placements.ts` also exports `initialFraming {x, y}` — a **scene-coordinate focus point**: at k=1 the viewport centers on it (then clamps), all aspects; `reset()` returns to it. Chosen at calibration so portrait first paint centers the densest org cluster, not open water.
 - **Nested transform wrappers (mandatory)**: `placement <g transform=attr>` → `interaction <g>` (GSAP target) → `ambient <g>` (CSS animation target). CSS animations win the cascade over GSAP/attribute transforms on the same node — never share a node between two transform owners. Camera transform lives on a separate ancestor.
 - Arrows exist in no reusable asset — **authored in code**: quadratic Bézier from a **hub source point** (Belém / Ananindeua / Moju center, per `Mapa.jpeg` — multiple arrows fan out of each hub) to the artifact, stroke **`#1c2b1c` ink** (the mock's dark arrows; the earlier cream `#F2DCB0` was invisible on land/water — v1.0.1 recalibration), round cap, same-color arrowhead marker, dash-offset draw. `pos.from` points are authored to the hub, not offset from `pos`; no source dots (mock has none).
-- Title backing blob: authored SVG path in code (matched to mockup), not sourced from any file. Title, pills, panel, controls = HTML overlay.
+- Title backing blob: broad aqua authored SVG path in code, not sourced from any file. The responsive navy heading reads “Mapeamento de 25 Coletivos do” / “Comitê de Comunicadores Populares” on two lines where space permits. Title, pills, panel, controls = HTML overlay.
 - Responsive: the scene wrapper fills the viewport (`100% × 100dvh`, `background: #5da9a9` — the sea color, so pan-reveal past the sea rect, which extends to x = 3027.66, never shows blank); `slice` cover does the fitting; no separate portrait layout.
 
 ## 4. Layer stack (bottom → top)
