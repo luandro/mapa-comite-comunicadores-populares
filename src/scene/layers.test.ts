@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import rawData from '../../data.json'
 import { validateComiteData } from '../data/schema'
@@ -338,5 +340,17 @@ describe('labels', () => {
     // b's box (top = yb + 8) must clear a's box bottom (ya + 8 + 20) + gap 4.
     expect(yb - ya).toBeGreaterThanOrEqual(20 + 4)
     vi.restoreAllMocks()
+  })
+})
+
+describe('scene.css layer rules', () => {
+  it('decorative arrows never intercept pointer events (city taps pass through)', () => {
+    // jsdom never applies the imported stylesheet (vitest stubs CSS imports),
+    // so the contract is asserted on the CSS source itself: mountArrows draws
+    // #layer-arrows above the city interaction groups, and without this rule
+    // its <path> elements hijack taps on painted hub pixels (CodeRabbit P2 /
+    // qodo Medium on PR #1).
+    const css = readFileSync(resolve(process.cwd(), 'src/scene/scene.css'), 'utf8')
+    expect(css).toMatch(/#layer-arrows\s*\{[^}]*pointer-events:\s*none/)
   })
 })

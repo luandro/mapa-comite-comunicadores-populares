@@ -78,7 +78,8 @@ Evidence: `graft/.cache/checks/current-landscape.png` (1600×900, k=1, intro set
   `Mapa.jpeg` (city-fill component match → painted-bbox solve): Belém central mass with
   the bay, Ananindeua joined at the upper right, Moju/Barcarena elongated mass lower
   left. `labelAnchor`s re-picked onto their own masses; `initialFraming` re-centered on
-  the dense org cluster (1300, 1330); all 11 org `pos` recalibrated from mock fractions
+  the dense org cluster — first pass (1300, 1330), superseded by (1900, 850) after the
+  fidelity audit showed the first value hid two organizations at 16:9; all 11 org `pos` recalibrated from mock fractions
   via the underlay transform. Verified under `slice` at 16:9 + 9:19.5 (dev renders +
   component re-audit).
 - [x] **Label collisions: writings on top of each other.** Resolved by the placement +

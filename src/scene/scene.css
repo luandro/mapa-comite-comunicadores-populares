@@ -193,6 +193,13 @@ g[data-artifact-id]:focus-visible {
   animation-play-state: paused;
 }
 
+/* Decorative arrows: never intercept taps — hub pixels sit over the city
+   masses, and an arrow-top click must land on the city's interaction group
+   (CodeRabbit P2 / qodo Medium on PR #1). */
+#layer-arrows {
+  pointer-events: none;
+}
+
 /* SPEC §5 static fallback: reduced motion disables every loop. animation-name
    (not the shorthand) so inline duration/delay longhands are simply ignored. */
 @media (prefers-reduced-motion: reduce) {

@@ -175,7 +175,7 @@ interface SceneController {
 - Tap city → camera flies, landmass raises (lift + shadow + outline draw), others dim; tap empty resets.
 - Tap artifact → pulse + panel with the six whitelisted sections (empty hidden). Desktop: artifact visible at `k ≥ min(1.6, k_max = 4)` beside the drawer (obstruction-aware clamp, §6). Mobile: occlusion intentional; close returns to context.
 - Camera: pinch/drag/wheel/double-tap on touch + desktop; **slice cover** fills portrait and landscape at k = 1; per-frame clamped; targets reachable after resize/orientation/panel-open; fly-to cancelled by user gesture; no state jump after gesture; hit circles ≥ 24 CSS px at every zoom (CTM-measured).
-- Keyboard: full tour of cities + artifacts (`tabindex=0`, Enter/Space, focus → fly; dots `tabindex="-1"`), panel focus lifecycle complete with `aria-labelledby`.
+- Keyboard: full tour of cities + artifacts (`tabindex=0`, Enter/Space, focus → fly), panel focus lifecycle complete with `aria-labelledby`.
 - Org addition: dummy org with default icon + calibration-tool-authored `pos` renders with **zero TypeScript edits**; schema violations (incl. out-of-rect `from` points) fail loudly.
 - Camera extent/obstruction unit-tested for 16:9 and 9:19.5 aspect ratios (Vitest, per §6).
 - Perf gate (§11) passes on mid-tier Android profile — else §3 fallback adopted and re-gated.

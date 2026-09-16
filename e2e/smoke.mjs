@@ -26,15 +26,20 @@ check(
 )
 
 // city tap raise — click a PAINTED point of the mass (the recalibrated Belém
-// bbox center is over the bay, which is a tap-empty reset target, not the city)
+// bbox center is over the bay, which is a tap-empty reset target, not the city).
+// Deterministic 10×10 grid, row-major, same offsets every run: an unseeded
+// random sample could miss the painted mass on a healthy build (CodeRabbit
+// Minor / qodo Medium on PR #1).
 const city = page.locator('[data-city-id="belem"]')
 const tapPoint = await city.evaluate((g) => {
   const r = g.getBoundingClientRect()
-  for (let i = 0; i < 60; i++) {
-    const x = r.x + r.width * (0.15 + 0.7 * Math.random())
-    const y = r.y + r.height * (0.15 + 0.7 * Math.random())
-    const el = document.elementFromPoint(x, y)
-    if (el && g.contains(el)) return { x, y }
+  for (let row = 0; row < 10; row++) {
+    for (let col = 0; col < 10; col++) {
+      const x = r.x + (r.width * (col + 0.5)) / 10
+      const y = r.y + (r.height * (row + 0.5)) / 10
+      const el = document.elementFromPoint(x, y)
+      if (el && g.contains(el)) return { x, y }
+    }
   }
   return null
 })
