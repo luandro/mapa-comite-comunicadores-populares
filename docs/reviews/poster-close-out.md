@@ -54,7 +54,7 @@ Numeric gate (ceil in parentheses):
 App gates all green: build, lint, 117 vitest tests, `prettier --check`,
 smoke suite.
 
-Final comparison sheet: `/tmp/sbs-3.png`.
+Final comparison sheet: `graft/.cache/gate/final-sheet-sbs-3.png`.
 
 Accepted deviations:
 

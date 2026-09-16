@@ -186,7 +186,8 @@ export interface LabelRect {
   h: number
 }
 
-/** Org boxes grow below the totem base — offset from anchor y to box top (px); this IS the base offset appendLabel applies as the pill's GSAP `y`. */
+/** Org boxes grow below the totem base — offset from anchor y to box top (px);
+ * this IS the base offset appendLabel applies as the pill's GSAP `y`. */
 export const PILL_BASE_OFFSET = 8
 
 /** Vertical gap kept between stacked boxes (px). */
