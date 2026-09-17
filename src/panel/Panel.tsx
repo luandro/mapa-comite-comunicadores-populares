@@ -72,20 +72,29 @@ const WAVE_INK_W = WAVE_INK_R - WAVE_INK_L
 /**
  * Overlay strip height (band units). The overlay straddles the card's bottom
  * edge (CSS `top: calc(100% - 60px)` inside .panel-frame): the first 60px of
- * bands paint over the cream, the remaining 40px flow over the live map and
+ * bands paint over the cream, the remaining 80px flow over the live map and
  * dissolve via the fade mask.
  */
-const WAVE_OVERLAY_H = 150
+const WAVE_OVERLAY_H = 300
 /**
- * Faintest on top, solid at the bottom edge (mock: densify downward). The
- * stack is positioned so the solid band sits just under the card's bottom
- * edge; the fade mask dissolves the lower bands into the background.
+ * Band cascade (design parity with modal.jpeg: ~12 stacked wave lines at ~9px
+ * mock pitch ≈ 18 band-units at card scale). Three assets alternate — onda4
+ * (faintest) near the card, onda2 mid, onda1 (solid) — repeated every 18
+ * units down the strip; the fade mask dissolves the tail into the map.
  */
-const ONDA_STACK = [
-  { body: innerSvg(onda4), offset: 0 }, // 0.2 — melts into the paper
-  { body: innerSvg(onda2), offset: 30 }, // 0.8
-  { body: innerSvg(onda1), offset: 58 }, // solid — bottom edge
-]
+const WAVE_BAND_PITCH = 18
+const ONDA_STACK: Array<{ body: string; offset: number }> = []
+for (let tier = 0; tier < 7; tier++) {
+  const base = tier * (WAVE_BAND_PITCH * 2) // 36-unit tier (18 pitch + 18 gap)
+  ONDA_STACK.push(
+    { body: innerSvg(onda4), offset: base },
+    { body: innerSvg(onda2), offset: base + WAVE_BAND_PITCH / 3 },
+    { body: innerSvg(onda1), offset: base + (2 * WAVE_BAND_PITCH) / 3 },
+    { body: innerSvg(onda4), offset: base + WAVE_BAND_PITCH },
+    { body: innerSvg(onda2), offset: base + WAVE_BAND_PITCH + WAVE_BAND_PITCH / 3 },
+    { body: innerSvg(onda1), offset: base + WAVE_BAND_PITCH + (2 * WAVE_BAND_PITCH) / 3 },
+  )
+}
 
 /**
  * One periodic tile = the full band stack, laid out as the 3-copy

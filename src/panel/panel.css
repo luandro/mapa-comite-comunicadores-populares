@@ -133,7 +133,8 @@
 /* Scrollable middle: vertical only — `overflow-x: hidden` + wrap-safe
    children guarantee zero horizontal scrolling (user directive).
    padding-bottom 72px: the wave overlay paints over the card's last 60px,
-   so the last list item must stay clear of it (review P1). */
+   so the last list item must stay clear of it (review P1). Mobile overlay
+   is bottom-anchored and 100px tall → 112px there. */
 .panel-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -141,6 +142,10 @@
   overflow-x: hidden;
   overscroll-behavior: contain;
   padding-bottom: 72px;
+}
+
+.panel-mobile .panel-body {
+  padding-bottom: 112px; /* bottom-anchored overlay covers the last 100px */
 }
 
 /* tabIndex=0 scroll container: keyboard users must be able to scroll the
