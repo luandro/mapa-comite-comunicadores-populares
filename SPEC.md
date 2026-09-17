@@ -15,9 +15,9 @@ Decisions locked in the grilling session (2026-09-14); spec revised through dual
 | `mapa belém.svg` | 1157.53×1026.18 | City land mass (fill `#52b04e`, outline `#27642d`) | Layer: city |
 | `mapa ananindeua.svg` | 625.23×618.08 | City land mass | Layer: city |
 | `mapa moju.svg` | 741.70×1131.89 | City land mass (Moju Barcarena) | Layer: city |
-| `onda 1.svg` | 2160.32×108.01 | Wave band `#d9effd`; **not natively tileable** | **v1.1: retired** — not shipped |
-| `onda 2.svg` | 2160.32×118.73 | Wave band `#f1f9fe` at `opacity: .8` | **v1.1: retired** — not shipped |
-| `onda 4.svg` | 2160.32×140.94 | Wave band `#d9effd` at `opacity: .2` | **v1.1: retired** — not shipped |
+| `onda 1.svg` | 2160.32×108.01 | Wave band `#d9effd`; **not natively tileable** | **v1.2: panel footer decoration only** (PR #7) — scene mount stays retired (v1.1) |
+| `onda 2.svg` | 2160.32×118.73 | Wave band `#f1f9fe` at `opacity: .8` | **v1.2: panel footer decoration only** — scene mount stays retired |
+| `onda 4.svg` | 2160.32×140.94 | Wave band `#d9effd` at `opacity: .2` | **v1.2: panel footer decoration only** — scene mount stays retired |
 | `onda 3.svg`, `onda 5.svg` | — | Empty files | — |
 | `ondinhas mapa geral.svg` | 2160.32×1026.18 | Water squiggle texture `#509393`/`#99d3d8` | Layer: water texture |
 | `icone 1.svg` | 289.46×618.08 | Lightning bolt `#2e5124`/`#f7ae0d` | Panel icon: `conflitos` |
@@ -81,7 +81,7 @@ Rules:
 ## 5. Motion design
 
 **Ambient — CSS keyframes, whole-group, `transform`/`opacity` only:**
-- **v1.1 (user scope): the big wave-band system is removed.** The onda 1/2/4 bands, their 3-copy mirror chains and the `wave-drift` keyframes retired; the sea is the `.scene-root` CSS background (§3). A future CSS water animation (gradients/ripples) is explicitly deferred, not dropped.
+- **v1.1 (user scope): the big wave-band system is removed.** The onda 1/2/4 bands, their 3-copy mirror chains and the `wave-drift` keyframes retired from the SCENE; the sea is the `.scene-root` CSS background (§3). A future CSS water animation (gradients/ripples) is explicitly deferred, not dropped. **v1.2 (PR #7): the onda ASSETS ship again as the panel footer's wave decoration (SPEC §8) — scene mounting, scene keyframes and the band table stay retired.**
 - `layer-squiggles` (ondinhas): slow drift + opacity pulse — KEPT unchanged.
 - Artifacts: shared bob rule, per-child `animation-delay` (composited).
 - Ambient is the only always-on animation; dash-offset draws and shadow growth are **interaction-transient effects** — the explicit, documented exception to the transform/opacity rule.

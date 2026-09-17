@@ -74,12 +74,20 @@ const ONDA_STACK = [
 /**
  * One periodic tile = the full band stack, laid out as the 3-copy
  * [A][A′][A] mirror chain (the proven seamless-tile pattern from the
- * retired scene bands): copies at x = 0, T (mirrored), 2T — adjacent
- * contours never jump at the wrap. Loop distance = 2 × WAVE_TILE_W (see
- * panel.css): after −2T the visible window holds copy 3 ≡ copy 1.
+ * retired scene bands). SVG geometry: `translate(T) scale(-1,1)` maps the
+ * asset ONTO 0…T (reflection about x=T), NOT to T…2T — so the mirrored
+ * copy needs `translate(2T) scale(-1,1)` (occupying T…2T) and the trailing
+ * plain copy sits at `translate(2T)` (occupying 2T…3T). Chain = [0…3T]
+ * contiguous. Loop distance = 2 × WAVE_TILE_W: after −2T the window holds
+ * copy 3 ≡ copy 1.
  */
-function waveTile(key: number, mirror: boolean): JSX.Element {
-  const x = WAVE_TILE_W * key
+const TILE_POSITIONS: Array<{ x: number; mirror: boolean }> = [
+  { x: 0, mirror: false },
+  { x: 2 * WAVE_TILE_W, mirror: true },
+  { x: 2 * WAVE_TILE_W, mirror: false },
+]
+function waveTile(key: number): JSX.Element {
+  const { x, mirror } = TILE_POSITIONS[key]
   return (
     <g key={key} transform={mirror ? `translate(${x},0) scale(-1,1)` : `translate(${x},0)`}>
       {ONDA_STACK.map(({ body, offset }, i) => (
@@ -244,10 +252,15 @@ export function Panel({
               <rect width={WAVE_TILE_W} height={WAVE_STRIP_H} fill="url(#panel-wave-fade)" />
             </mask>
           </defs>
-          <g className="panel-waves" mask="url(#panel-wave-mask)">
-            {waveTile(0, false)}
-            {waveTile(1, true)}
-            {waveTile(2, false)}
+          <g mask="url(#panel-wave-mask)">
+            {/* STATIC mask wrapper — the mask must NOT travel with the
+                animated group (it would slide out of the viewport mid-loop).
+                Only the inner .panel-waves group drifts. */}
+            <g className="panel-waves">
+              {waveTile(0)}
+              {waveTile(1)}
+              {waveTile(2)}
+            </g>
           </g>
         </svg>
       </div>
