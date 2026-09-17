@@ -17,6 +17,9 @@ import icone3 from '/na cuia/icons/svg/icone 3.svg?url'
 import icone4 from '/na cuia/icons/svg/icone 4.svg?url'
 import icone5 from '/na cuia/icons/svg/icone 5.svg?url'
 import icone7 from '/na cuia/icons/svg/icone 7.svg?url'
+import onda1 from '/na cuia/icons/svg/onda 1.svg?scene'
+import onda2 from '/na cuia/icons/svg/onda 2.svg?scene'
+import onda4 from '/na cuia/icons/svg/onda 4.svg?scene'
 
 /** pt-BR headings, whitelisted section keys in contract order (AGENTS §9). */
 const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
@@ -44,21 +47,76 @@ const SECTION_ICONS: Record<(typeof SECTION_KEYS)[number], string> = {
 }
 
 /**
- * Wave footer (SPEC §8 art direction): four stroked sine lines echoing the
- * `modal.jpeg` wave detail. Stroked paths (fill:none) so the lines can slide
- * horizontally in a seamless loop — each period is exactly WAVE_W wide, so a
- * one-period translate repeats perfectly.
+ * Wave footer (SPEC §8 art direction) — the REAL `onda` gradient bands from
+ * `na cuia/icons/svg/` (the same art the mock layers: onda 4 @ 0.2 → onda 2
+ * @ 0.8 → onda 1 solid, densifying downward, per the modal.jpeg scanlines).
+ * Imported through the `?scene` pipeline so Illustrator classes are resolved
+ * to attributes (AGENTS gotcha); decoration only, never mounted as scene
+ * layers (v1.1 removed the scene band system — this is panel art, SPEC §8).
  */
-const WAVE_W = 200
-function wavePath(y: number, amp: number): string {
-  const half = WAVE_W / 2
-  let d = `M${-WAVE_W},${y}`
-  for (let x = -WAVE_W; x < 2160.32 + WAVE_W; x += WAVE_W) {
-    d += ` q${half / 2},${-amp} ${half},0 q${half / 2},${amp} ${half},0`
-  }
-  return d
+function innerSvg(processed: string): string {
+  const start = processed.indexOf('>') + 1
+  const end = processed.lastIndexOf('</svg>')
+  return processed.slice(start, end)
 }
-const WAVE_PATHS = [wavePath(16, 11), wavePath(33, 10), wavePath(50, 9), wavePath(66, 8)]
+
+/**
+ * Painted ink span of the onda paths (getBBox-measured): the inks run
+ * x = 35.45…2117.97 inside the shared 2160.32 viewBox — the outer ~35/42
+ * units are transparent margins. All wave geometry keys off the INK span,
+ * not the viewBox width.
+ */
+const WAVE_INK_L = 35.45
+const WAVE_INK_R = 2117.97
+const WAVE_INK_W = WAVE_INK_R - WAVE_INK_L
+/** Footer strip height in band units — onda1 bottom lands flush at the edge. */
+const WAVE_STRIP_H = 132
+/** Faintest on top, solid at the bottom edge (mock: densify downward). */
+const ONDA_STACK = [
+  { body: innerSvg(onda4), offset: 0 }, // 0.2 — melts into the paper
+  { body: innerSvg(onda2), offset: 30 }, // 0.8
+  { body: innerSvg(onda1), offset: 58 }, // solid — bottom edge
+]
+
+/**
+ * One periodic tile = the full band stack, laid out as the 3-copy
+ * [A][A′][A] mirror chain (the proven seamless-tile pattern from the
+ * retired scene bands), with every copy translated so its INK (not the
+ * viewBox) starts at the chain position:
+ *
+ *   copy 0 (plain):   ink [0, W]     at x = −L
+ *   copy 1 (mirror):  ink [W, 2W]    at x = 2R − L   (x' = b − x)
+ *   copy 2 (plain):   ink [2W, 3W]   at x = 2W − L
+ *
+ * The chain paints [0, 3W] with NO gaps, and after the CSS drift of
+ * −2W (panel.css `translateX(-200%)` against a W-wide viewBox) the
+ * window holds copy 2 ≡ copy 0 — seamless wrap by construction.
+ */
+/*
+ * Tile chain (ink-span math, solved numerically in the commit message):
+ *   copy 0 plain  a = −L        → ink [0, W]
+ *   copy 1 mirror b = 2R − L    → ink [W, 2W]   (x' = b − x maps [L,R]→[b−R,b−L])
+ *   copy 2 plain  c = 2W − L    → ink [2W, 3W]
+ */
+const TILE_POSITIONS: Array<{ x: number; mirror: boolean }> = [
+  { x: -WAVE_INK_L, mirror: false },
+  { x: 2 * WAVE_INK_R - WAVE_INK_L, mirror: true },
+  { x: 2 * WAVE_INK_W - WAVE_INK_L, mirror: false },
+]
+function waveTile(key: number): JSX.Element {
+  const { x, mirror } = TILE_POSITIONS[key]
+  return (
+    <g key={key} transform={mirror ? `translate(${x},0) scale(-1,1)` : `translate(${x},0)`}>
+      {ONDA_STACK.map(({ body, offset }, i) => (
+        <g
+          key={i}
+          transform={`translate(0,${offset})`}
+          dangerouslySetInnerHTML={{ __html: body }}
+        />
+      ))}
+    </g>
+  )
+}
 
 export interface PanelProps {
   project: Project | null
@@ -195,15 +253,31 @@ export function Panel({
         </div>
         <svg
           className="panel-footer"
-          viewBox="0 0 2160.32 90"
+          viewBox={`0 0 ${WAVE_INK_W} ${WAVE_STRIP_H}`}
           preserveAspectRatio="none"
           aria-hidden="true"
         >
-          <g className="panel-waves">
-            <path className="wave wave-4" d={WAVE_PATHS[3]} />
-            <path className="wave wave-3" d={WAVE_PATHS[2]} />
-            <path className="wave wave-2" d={WAVE_PATHS[1]} />
-            <path className="wave wave-1" d={WAVE_PATHS[0]} />
+          <defs>
+            <linearGradient id="panel-wave-fade" x1="0" y1="0" x2="0" y2="1">
+              {/* the stack melts into the cream paper at the top and stays
+                  fully opaque through the solid bottom band */}
+              <stop offset="0" stopColor="#fff" stopOpacity="0" />
+              <stop offset="0.55" stopColor="#fff" stopOpacity="1" />
+              <stop offset="1" stopColor="#fff" stopOpacity="1" />
+            </linearGradient>
+            <mask id="panel-wave-mask">
+              <rect width={WAVE_INK_W} height={WAVE_STRIP_H} fill="url(#panel-wave-fade)" />
+            </mask>
+          </defs>
+          <g mask="url(#panel-wave-mask)">
+            {/* STATIC mask wrapper — the mask must NOT travel with the
+                animated group (it would slide out of the viewport mid-loop).
+                Only the inner .panel-waves group drifts. */}
+            <g className="panel-waves">
+              {waveTile(0)}
+              {waveTile(1)}
+              {waveTile(2)}
+            </g>
           </g>
         </svg>
       </div>
