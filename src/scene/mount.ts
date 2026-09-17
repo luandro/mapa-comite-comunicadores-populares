@@ -48,6 +48,10 @@ export interface SceneController {
   reset(): void
   focusCity(id: string): void
   focusArtifact(id: string): void
+  /** Clear the artifact selection (settle, no emit) and fly the camera back
+   * out (issue #11) — the panel-close path shares the exact deselect flow of
+   * an empty-tap so the primary outside-tap gesture zooms back out too. */
+  deselectArtifact(): void
   /** Kill the entrance timeline and jump to the final state. Idempotent. */
   skipIntro(): void
   /** Fires once the entrance resolves (timeline end, skip, or reduced-motion);
@@ -641,6 +645,12 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
         width: ARTIFACT_FOCUS_BOX * 2,
         height: ARTIFACT_FOCUS_BOX * 2,
       })
+    },
+    deselectArtifact() {
+      // Same flow as the empty-tap deselect (applyArtifactState(null)): settle
+      // + fly-back. The panel's outside-tap closes through here so the user's
+      // first tap outside the modal both closes it AND restores the framing.
+      applyArtifactState(null)
     },
     skipIntro,
     onIntroDone(cb) {

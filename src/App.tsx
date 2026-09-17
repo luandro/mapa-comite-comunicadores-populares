@@ -93,7 +93,13 @@ export default function App() {
     controller.focusArtifact(openId)
   }, [openId])
 
-  const closePanel = useCallback(() => setOpenId(null), [])
+  // The panel's outside-tap routes through the scene's deselect flow so the
+  // SAME gesture closes the modal AND flies the camera back out (issue #11,
+  // bot-review P1: onClose → setOpenId(null) alone skipped the fly-back).
+  const closePanel = useCallback(() => {
+    controllerRef.current?.deselectArtifact()
+    setOpenId(null)
+  }, [])
 
   return (
     <main aria-label="Mapa Na Cuia">
