@@ -91,10 +91,13 @@ g[data-city-id]:focus-visible {
 
 /* Keyboard-modality halo: mount.ts toggles .is-kbd-focus from focusin/
    focusout handlers that already gate on :focus-visible, so pointer input
-   never paints it. A drop-shadow halo traces the drawn artwork itself (no
-   bbox rectangle), needs no DOM changes, and is not a transform owner. */
-g[data-artifact-id].is-kbd-focus,
-g[data-city-id].is-kbd-focus {
+   never paints it. The rule ALSO requires :focus-visible so a click on the
+   already-focused control (focusout never fires; :focus-visible stops
+   matching) drops the halo mid-interaction (codex r1 P2). A drop-shadow halo
+   traces the drawn artwork itself (no bbox rectangle), needs no DOM changes,
+   and is not a transform owner. */
+g[data-artifact-id].is-kbd-focus:focus-visible,
+g[data-city-id].is-kbd-focus:focus-visible {
   filter: drop-shadow(0 0 3px #304e23) drop-shadow(0 0 1px #304e23);
 }
 

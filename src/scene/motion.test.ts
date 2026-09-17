@@ -89,6 +89,8 @@ describe('Phase 2 scene.css keyframes (read as text)', () => {
     expect(css).not.toContain('outline: 3px solid #304e23')
     // …replaced by outline: none + the .is-kbd-focus halo mount.ts toggles
     expect(css).toMatch(/g\[data-(city|artifact)-id\]:focus-visible\s*,?\s*\{[^}]*outline:\s*none/)
-    expect(css).toMatch(/g\[data-(city|artifact)-id\]\.is-kbd-focus\s*,?\s*\{[^}]*drop-shadow/)
+    expect(css).toMatch(
+      /g\[data-(city|artifact)-id\]\.is-kbd-focus:focus-visible\s*,?[^{]*\{[^}]*drop-shadow/,
+    )
   })
 })

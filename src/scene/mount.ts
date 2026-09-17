@@ -287,16 +287,25 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     }
   }
 
-  /** One org's attributed arrow elements in #layer-arrows (paths + tail dots). */
+  /** One org's attributed arrow elements in #layer-arrows (paths + tail dots).
+   * Indexed ONCE by exact org id (codex r1 P2): ids come from data.json keys
+   * and are interpolated into attribute selectors here — a content-only org
+   * id containing selector syntax (quotes, brackets) would make
+   * querySelectorAll throw mid-replay and strand the city's orgs hidden. An
+   * exact-string index needs no escaping and cannot throw. */
   function orgArrows(orgId: string): { paths: SVGPathElement[]; tails: SVGCircleElement[] } {
-    return {
-      paths: Array.from(
-        calibrated.arrows.querySelectorAll<SVGPathElement>(`path[data-arrow-org="${orgId}"]`),
-      ),
-      tails: Array.from(
-        calibrated.arrows.querySelectorAll<SVGCircleElement>(`circle[data-arrow-org="${orgId}"]`),
-      ),
+    const paths: SVGPathElement[] = []
+    const tails: SVGCircleElement[] = []
+    // jsdom ships no SVGPathElement/SVGCircleElement constructors — use
+    // getAttribute + localName instead of instanceof (the old selector-based
+    // code never needed the constructors; keep it that way).
+    for (const el of Array.from(calibrated.arrows.children)) {
+      const node = el as Element
+      if (node.getAttribute('data-arrow-org') !== orgId) continue
+      if (node.localName === 'path') paths.push(node as unknown as SVGPathElement)
+      else if (node.localName === 'circle') tails.push(node as unknown as SVGCircleElement)
     }
+    return { paths, tails }
   }
 
   /**
