@@ -63,6 +63,13 @@ function appendLabel(
   // widths round wrong + font-swap reflows would de-center labels permanently —
   // opus P1). One owner: JS per-frame on the anchor, GSAP property on the div.
   if (kind === 'label-pill') {
+    // Issue #13: the pill box doubles as its org's pointer-only tap target
+    // (opens the same modal as the totem tap). data-label-for carries the org
+    // id for mount.ts's delegated #labels click handler; the anchor and
+    // .label-city stay pointer-events:none and #labels stays aria-hidden —
+    // the totem SVG button remains the single focusable control per org
+    // (SPEC §9 / AGENTS invariant 12).
+    label.dataset.labelFor = id
     // Org boxes are anchored to the totem BASE and grow below it. Keeping the
     // top edge as the transform origin means the intro pop does not pull the
     // box back over the totem while it scales in.
@@ -317,4 +324,31 @@ export function updatePillFade(el: HTMLElement, k: number, labelK = LABEL_K): vo
   } else if (pillsHiddenFor(k, labelK)) {
     el.classList.add(PILLS_HIDDEN_CLASS)
   }
+}
+
+/* Issue #13: title-pill tap routing. Pointer-ONLY affordance — #labels stays
+   aria-hidden (SPEC §3 / AGENTS invariant 12); the totem SVG button remains
+   the single focusable control per org (SPEC §9). */
+
+/** Actionable pill-tap plan: the org id to route through applyArtifactState,
+ * plus `emitDirect` — true when the org is ALREADY selected. In that case
+ * applyArtifactState pulses but never re-emits on an unchanged selection
+ * (opus P2, mount.ts), so the caller must emit artifact-tap itself to
+ * (re)open the modal. Pills never toggle: a totem re-tap deselects, a pill
+ * tap always means "open this org's modal". */
+export interface PillTapPlan {
+  orgId: string
+  emitDirect: boolean
+}
+
+/** Pure pill-tap decision (unit-tested, no DOM): null = do nothing (no pill
+ * in the target chain, or a pill whose org has no mounted artifact — mirrors
+ * onSceneClick's `artifactId in calibrated.artifacts` membership gate). */
+export function pillTapPlan(
+  tappedId: string | null,
+  selectedId: string | null,
+  hasArtifact: boolean,
+): PillTapPlan | null {
+  if (tappedId === null || !hasArtifact) return null
+  return { orgId: tappedId, emitDirect: tappedId === selectedId }
 }

@@ -25,6 +25,7 @@ import { mountCalibratedLayers, orgProjects, rSceneFor, arrowPathLength } from '
 import {
   createLabelsLayer,
   IDENTITY_CTM,
+  pillTapPlan,
   renderLabels,
   updateLabels,
   updatePillFade,
@@ -390,6 +391,43 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   }
   sceneSvg.addEventListener('click', onSceneClick)
 
+  // --- Issue #13: title-pill tap opens the org modal ---------------------------
+  // The pill box re-enables pointer hit testing (scene.css `.label-pill`);
+  // everything else in #labels stays pointer-events:none and the layer stays
+  // aria-hidden (AGENTS invariant 12) — a pointer-ONLY affordance, so the
+  // totem SVG button remains the single focusable control per org (SPEC §9).
+  // ONE delegated listener on the labels root. Double-fire guard: #labels and
+  // the scene SVG are SIBLINGS, so a click's single target can reach at most
+  // one of the two handlers — a tap near the totem base that lands on the pill
+  // can no longer fall through to the hit circle underneath (one gesture, one
+  // action, by construction); stopPropagation additionally keeps the click out
+  // of any future ancestor-level handler.
+  function onLabelsClick(event: Event): void {
+    // Same double-tap guard as onSceneClick (opus P2): the compat click after
+    // a double-tap zoom must not fight the zoom by opening the modal.
+    if ('detail' in event && (event as MouseEvent).detail > 1) return
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const orgId = target.closest<HTMLElement>('[data-label-for]')?.dataset.labelFor ?? null
+    const plan = pillTapPlan(
+      orgId,
+      selectedArtifactId,
+      orgId !== null && orgId in calibrated.artifacts,
+    )
+    if (!plan) return
+    event.stopPropagation()
+    // Pills NEVER toggle (issue #13): a pill tap always means "open this org's
+    // modal", unlike a totem re-tap which deselects. applyArtifactState does
+    // everything a totem tap does (selection, aria-pressed, pulse, arrow
+    // redraw) and emits artifact-tap on the state CHANGE — App opens the modal
+    // and focus-flies from there; for an already-selected org it never
+    // re-emits (opus P2 — a re-emit would loop the panel), so the direct emit
+    // re-opens instead.
+    applyArtifactState(plan.orgId, { pulse: true })
+    if (plan.emitDirect) artifactTapHub.emit(plan.orgId)
+  }
+  labels.el.addEventListener('click', onLabelsClick)
+
   // Keyboard activation (SPEC §9): Enter/Space act exactly like a tap; Space
   // is cancelled so the page never scrolls. Focus also flies the camera to
   // the city (SPEC §8 focus-fly — TODO Phase 4, opus round-2 adjudication).
@@ -557,6 +595,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       document.removeEventListener('visibilitychange', onVisibilityChange)
       camera.destroy()
       offLabels()
+      labels.el.removeEventListener('click', onLabelsClick)
       labels.destroy()
       root.remove()
     },

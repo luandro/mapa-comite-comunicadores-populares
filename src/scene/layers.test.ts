@@ -5,7 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import rawData from '../../data.json'
 import { validateComiteData } from '../data/schema'
 import type { ComiteData } from '../data/types'
-import { renderLabels, resolveEdgeClamp, resolveLabelPush, updateLabels } from './labels'
+import {
+  pillTapPlan,
+  renderLabels,
+  resolveEdgeClamp,
+  resolveLabelPush,
+  updateLabels,
+} from './labels'
 import {
   arrowEndPoint,
   ARTIFACT_BOB_STEP,
@@ -301,6 +307,41 @@ describe('labels', () => {
     expect(anchor.style.transform).toBe(`translate(${2 * sx + 10}px, ${2 * sy + 20}px)`)
   })
 
+  it('pills carry data-label-for for tap routing; city labels never do (issue #13)', () => {
+    const el = document.createElement('div')
+    const anchors: Record<string, { x: number; y: number }> = {}
+    for (const [orgId, project] of orgProjects(realData)) {
+      if (project.pos) anchors[orgId] = { x: project.pos.x, y: project.pos.y }
+    }
+    renderLabels(el, realData, anchors)
+    const pills = Array.from(el.querySelectorAll<HTMLElement>('.label-pill'))
+    expect(pills).toHaveLength(11)
+    for (const pill of pills) {
+      // every pill names a real org with a mounted artifact (mount.ts routes
+      // [data-label-for] → applyArtifactState, gated on calibrated.artifacts)
+      expect(pill.dataset.labelFor).toBeTruthy()
+      expect(anchors[pill.dataset.labelFor!]).toBeDefined()
+    }
+    // the attribute lives on the INNER pill only — never the .label anchor
+    // and never the city labels (both stay pointer-events:none)
+    expect(el.querySelector('.label')!.hasAttribute('data-label-for')).toBe(false)
+    expect(el.querySelector('.label-city')!.hasAttribute('data-label-for')).toBe(false)
+  })
+
+  it('pillTapPlan: pills never toggle — already-selected still opens the modal (issue #13)', () => {
+    // no pill in the target chain, or a pill whose org has no mounted
+    // artifact → no action (mirrors onSceneClick's membership gate)
+    expect(pillTapPlan(null, 'na_cuia', false)).toBeNull()
+    expect(pillTapPlan('ghost', null, false)).toBeNull()
+    // fresh select (from none or from another org): applyArtifactState's
+    // state CHANGE carries the artifact-tap emit — no direct emit needed
+    expect(pillTapPlan('na_cuia', null, true)).toEqual({ orgId: 'na_cuia', emitDirect: false })
+    expect(pillTapPlan('na_cuia', 'chibe', true)).toEqual({ orgId: 'na_cuia', emitDirect: false })
+    // already selected: applyArtifactState would only pulse (no re-emit,
+    // opus P2) — the direct emit is what (re)opens the modal
+    expect(pillTapPlan('na_cuia', 'na_cuia', true)).toEqual({ orgId: 'na_cuia', emitDirect: true })
+  })
+
   it('resolveLabelPush: passes non-overlapping boxes through untouched', () => {
     const pushes = resolveLabelPush([
       { id: 'a', x: 0, y: 0, w: 100, h: 30 },
@@ -459,5 +500,22 @@ describe('scene.css layer rules', () => {
     // root instead (vitest always runs with the repo root as cwd).
     const css = readFileSync(resolve(process.cwd(), 'src/scene/scene.css'), 'utf8')
     expect(css).toMatch(/#layer-arrows\s*\{[^}]*pointer-events:\s*none/)
+  })
+
+  it('title pills are the only tappable label element (issue #13)', () => {
+    // Same jsdom limitation as above — the pointer-events contract is pinned
+    // on the CSS source. The pill re-enables hit testing + shows the
+    // affordance…
+    const css = readFileSync(resolve(process.cwd(), 'src/scene/scene.css'), 'utf8')
+    expect(css).toMatch(/\.label-pill\s*\{[^}]*pointer-events:\s*auto/)
+    expect(css).toMatch(/\.label-pill\s*\{[^}]*cursor:\s*pointer/)
+    // …while the layer, the .label anchor and the city labels stay inert…
+    expect(css).toMatch(/#labels\s*\{[^}]*pointer-events:\s*none/)
+    expect(css).toMatch(/\.label\s*\{[^}]*pointer-events:\s*none/)
+    // …and the fade gates re-disable the pill hit zone while hidden (a
+    // hidden pill must never be tappable).
+    expect(css).toMatch(
+      /\.pills-hidden \.label-pill,\s*\.label-pill\.is-far\s*\{[^}]*pointer-events:\s*none/,
+    )
   })
 })

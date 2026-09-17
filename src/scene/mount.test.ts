@@ -367,6 +367,84 @@ describe('mountScene', () => {
     c.destroy()
   })
 
+  // ---- Issue #13: title-pill tap opens the org modal ----
+  // The pill lives in #labels (HTML sibling of the scene SVG) — a pointer tap
+  // there must behave exactly like tapping the totem, EXCEPT it never toggles.
+
+  /** A pointer tap lands on an org's title pill (inside #labels, not the SVG). */
+  function tapPill(orgId: string, detail = 1): void {
+    const pill = host.querySelector<HTMLElement>(`#labels .label-pill[data-label-for="${orgId}"]`)!
+    pill.dispatchEvent(new MouseEvent('click', { bubbles: true, detail }))
+  }
+
+  it('pill tap: selects and emits artifact-tap exactly like a totem tap', () => {
+    const c = mountScene(host, data)
+    const taps: string[] = []
+    c.on('artifact-tap', (id) => taps.push(id))
+    tapPill('na_cuia')
+    expect(taps).toEqual(['na_cuia'])
+    expect(artifactGroups().na_cuia.getAttribute('aria-pressed')).toBe('true')
+    c.destroy()
+  })
+
+  it('pill tap: re-tapping the SELECTED org re-emits — pills never toggle (issue #13)', () => {
+    const c = mountScene(host, data)
+    const taps: string[] = []
+    c.on('artifact-tap', (id) => taps.push(id))
+    tapPill('na_cuia')
+    // A totem re-tap would DESELECT silently (no emit — mirrors the city
+    // reverse); a pill tap must (re)open the modal via a direct emit.
+    tapPill('na_cuia')
+    expect(taps).toEqual(['na_cuia', 'na_cuia'])
+    expect(artifactGroups().na_cuia.getAttribute('aria-pressed')).toBe('true')
+    // moving to another org through its pill single-selects like the totem
+    tapPill('chibe')
+    expect(taps).toEqual(['na_cuia', 'na_cuia', 'chibe'])
+    expect(artifactGroups().na_cuia.getAttribute('aria-pressed')).toBe('false')
+    expect(artifactGroups().chibe.getAttribute('aria-pressed')).toBe('true')
+    c.destroy()
+  })
+
+  it('pill tap: one gesture = one action (no scene double-fire, no empty-tap, inert areas)', () => {
+    const c = mountScene(host, data)
+    const taps: string[] = []
+    const empties: number[] = []
+    c.on('artifact-tap', (id) => taps.push(id))
+    c.on('empty-tap', () => empties.push(1))
+    tapPill('na_cuia')
+    expect(taps).toEqual(['na_cuia'])
+    expect(empties).toEqual([])
+    // If the scene's toggle handler had ALSO run for this gesture, the
+    // selection would have flipped back to null — it stays selected, so the
+    // pill was the one and only handler (#labels and the SVG are siblings).
+    expect(artifactGroups().na_cuia.getAttribute('aria-pressed')).toBe('true')
+    // double-tap zoom compat click (detail > 1) is ignored, mirroring onSceneClick
+    tapPill('na_cuia', 2)
+    expect(taps).toEqual(['na_cuia'])
+    // clicks on non-pill label areas (city label, .label anchor) stay inert
+    host
+      .querySelector<HTMLElement>('#labels .label-city')!
+      .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    host
+      .querySelector<HTMLElement>('#labels .label')!
+      .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(taps).toEqual(['na_cuia'])
+    expect(empties).toEqual([])
+    c.destroy()
+  })
+
+  it('pill tap: a stale data-label-for (org without a mounted artifact) is inert', () => {
+    const c = mountScene(host, data)
+    const taps: string[] = []
+    c.on('artifact-tap', (id) => taps.push(id))
+    const pill = host.querySelector<HTMLElement>('#labels .label-pill')!
+    pill.setAttribute('data-label-for', 'ghost')
+    pill.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(taps).toEqual([])
+    expect(artifactGroups().na_cuia.getAttribute('aria-pressed')).toBe('false')
+    c.destroy()
+  })
+
   it('artifact focusin flies ONLY under keyboard modality (:focus-visible guard)', () => {
     const c = mountScene(host, data)
     const g = artifactGroups()['na_cuia']

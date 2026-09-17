@@ -42,7 +42,9 @@
 
 /* Labels: JS writes `transform: translate(px, py)` on each .label anchor per
    frame; GSAP owns the inner label's offset around the anchor point — two
-   transform owners, two nodes (SPEC §3). Labels are pure decoration. */
+   transform owners, two nodes (SPEC §3). Anchors and city labels stay pure
+   decoration; since issue #13 the inner .label-pill is a pointer-only tap
+   target (see its rule below). */
 .label {
   position: absolute;
   left: 0;
@@ -102,7 +104,15 @@ g[data-artifact-id]:focus-visible {
 .label-pill {
   /* offset around the anchor is GSAP property (labels.ts) — not CSS transform */
   transform-origin: center top;
-  pointer-events: none;
+  /* Issue #13: the pill box is the org's pointer-only tap target (mount.ts
+     delegates a click on #labels to the same artifact-tap path as a totem
+     tap). #labels, the .label anchor and .label-city stay pointer-events:none,
+     and the fade gates above re-disable the hit zone while a pill is hidden.
+     No roles/tabindex: #labels is aria-hidden decoration (AGENTS invariant 12)
+     — the totem SVG button remains the single focusable control per org
+     (SPEC §9). */
+  pointer-events: auto;
+  cursor: pointer;
   box-sizing: border-box;
   width: max-content;
   max-width: 130px;
