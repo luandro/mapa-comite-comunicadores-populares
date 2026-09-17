@@ -81,6 +81,8 @@ const WAVE_OVERLAY_H = 300
  * mock pitch ≈ 18 band-units at card scale). Three assets alternate — onda4
  * (faintest) near the card, onda2 mid, onda1 (solid) — repeated every 18
  * units down the strip; the fade mask dissolves the tail into the map.
+ * 42 bands per tile × 3 tile copies = 126 single-path groups — three reused
+ * assets under ONE animated parent (CSS transform), so cost stays trivial.
  */
 const WAVE_BAND_PITCH = 18
 const ONDA_STACK: Array<{ body: string; offset: number }> = []
