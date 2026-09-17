@@ -376,7 +376,11 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
         gsap.set(calibrated.artifacts[orgId]!, { opacity: 0, y: ARTIFACT_DROP_FROM })
       }
       orgIds.forEach((orgId, i) => {
-        const at = i * CITY_REPLAY_STAGGER
+        // Perf budget (SPEC §11, ≤4 concurrent tweens): a Belém replay is 7
+        // orgs × (drop + path-draw + tail-fade) — a flat 0.08s stagger keeps
+        // ~21 tweens live at peak. The effective stagger ≥ DROP_DURATION/4
+        // retires a drop before the 4th-next org's tweens start.
+        const at = i * Math.max(CITY_REPLAY_STAGGER, CITY_REPLAY_DROP_DURATION / 4)
         gsap.to(calibrated.artifacts[orgId]!, {
           opacity: 1,
           y: 0,
