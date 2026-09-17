@@ -83,4 +83,14 @@ describe('Phase 2 scene.css keyframes (read as text)', () => {
   it('the ocean is the .scene-root CSS background (v1.1 — sea rect unmounted)', () => {
     expect(css).toMatch(/\.scene-root\s*{[^}]*background:\s*#5da9a9/)
   })
+
+  it('issue #12: focus rings are keyboard-only drop-shadow halos, never outlines', () => {
+    // the outline rectangle on g[data-*-id] is gone entirely…
+    expect(css).not.toContain('outline: 3px solid #304e23')
+    // …replaced by outline: none + the .is-kbd-focus halo mount.ts toggles
+    expect(css).toMatch(/g\[data-(city|artifact)-id\]:focus-visible\s*,?\s*\{[^}]*outline:\s*none/)
+    expect(css).toMatch(
+      /g\[data-(city|artifact)-id\]\.is-kbd-focus:focus-visible\s*,?[^{]*\{[^}]*drop-shadow/,
+    )
+  })
 })

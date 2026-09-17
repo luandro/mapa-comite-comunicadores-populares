@@ -78,12 +78,39 @@
   animation-play-state: paused;
 }
 
-/* Focusable artifact interaction g (role=button, tabindex=0 — layers.ts):
-   visible keyboard focus ring, :focus-visible only so a pointer tap never
-   paints it (same pattern as the city rings above). */
-g[data-artifact-id]:focus-visible {
-  outline: 3px solid #304e23;
-  outline-offset: 2px;
+/* Focusable interaction groups (role=button, tabindex=0 — layers.ts).
+   Issue #12: the `:focus-visible` outline is GONE — on an SVG <g> an outline
+   paints a black-bordered RECTANGLE around the group bbox, and mobile focus
+   heuristics can surface it after pointer taps. outline: none kills the
+   rectangle; the visible keyboard affordance is the .is-kbd-focus halo
+   (below) — SPEC §9 always mandated a non-outline, stroke-based ring. */
+g[data-artifact-id]:focus-visible,
+g[data-city-id]:focus-visible {
+  outline: none;
+}
+
+/* Keyboard-modality halo: mount.ts toggles .is-kbd-focus from focusin/
+   focusout handlers that already gate on :focus-visible, so pointer input
+   never paints it. The rule ALSO requires :focus-visible so a click on the
+   already-focused control (focusout never fires; :focus-visible stops
+   matching) drops the halo mid-interaction (codex r1 P2). A drop-shadow halo
+   traces the drawn artwork itself (no bbox rectangle), needs no DOM changes,
+   and is not a transform owner. */
+g[data-artifact-id].is-kbd-focus:focus-visible,
+g[data-city-id].is-kbd-focus:focus-visible {
+  filter: drop-shadow(0 0 3px #304e23) drop-shadow(0 0 1px #304e23);
+}
+
+/* Forced-colors (Windows High Contrast): filters are stripped, so the halo
+   would be invisible — fall back to a real outline, which forced-colors
+   renders with the system contrast color (keyboard modality only, like the
+   halo). */
+@media (forced-colors: active) {
+  g[data-artifact-id].is-kbd-focus:focus-visible,
+  g[data-city-id].is-kbd-focus:focus-visible {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
 }
 
 /* Pill fade (SPEC §5, mobile only — mount.ts applies the gates only when
@@ -204,13 +231,4 @@ g[data-artifact-id]:focus-visible {
   .artifact-bob {
     animation-name: none;
   }
-}
-
-/* --- Phase 4 city raise (SPEC §9) ------------------------------------------
-   Focusable city interaction g (role=button, tabindex=0 — set in layers.ts).
-   Visible keyboard focus ring; :focus-visible only, so a pointer tap never
-   paints it. */
-g[data-city-id]:focus-visible {
-  outline: 3px solid #304e23;
-  outline-offset: 2px;
 }
