@@ -31,6 +31,11 @@ const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
   identidade: 'Identidade',
 }
 
+/** The scene's deselect fly-back duration (mount.ts UNFOCUS_DURATION, s→ms).
+ * Focus restoration waits this out so the restored focus (:focus-visible)
+ * cannot re-trigger the artifact focus-flight mid-fly and cancel it. */
+const UNFOCUS_SETTLE_MS = 650
+
 /**
  * Authored section glyphs (§1) — the REAL icon art from `na cuia/icons/svg/`
  * (same set the scene uses), one per whitelisted section. v1.2 centered
@@ -156,11 +161,18 @@ export function Panel({
   const closeRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const restoreFocusRef = useRef<HTMLElement | null>(null)
+  const restoreTimer = useRef<number | null>(null)
   const open = project !== null
 
   // Dialog lifecycle (SPEC §8): runs per open/close transition.
   useEffect(() => {
     if (!open) return
+    // A pending restoration from a previous close cycle is stale — cancel it
+    // so it can never fire against the replaced restoreFocusRef.current.
+    if (restoreTimer.current !== null) {
+      window.clearTimeout(restoreTimer.current)
+      restoreTimer.current = null
+    }
     restoreFocusRef.current =
       document.activeElement instanceof HTMLElement && document.activeElement.isConnected
         ? document.activeElement
@@ -194,7 +206,21 @@ export function Panel({
       document.body.style.width = prev.width
       restoreScroll()
       background?.removeAttribute('inert')
-      restoreFocusRef.current?.focus?.()
+      // Restore focus AFTER the scene finishes the deselect fly-back (issue
+      // #11 / codex final-gate P1): focusing the triggering artifact while
+      // the camera is still flying matches :focus-visible and re-triggers the
+      // artifact focus-flight (mount.ts), cancelling the fly-back mid-air.
+      // The flight is ~0.6s; restore once the camera has settled (or
+      // immediately under reduced motion, where the flight is instant).
+      // The timer is tracked and cancelled on the next open/close (codex
+      // round-2 P1: a rapid close→reopen→close left two timers, and the
+      // stale one read the REPLACED restoreFocusRef.current — focusing the
+      // new opener mid-fly-back and re-triggering the zoom).
+      const delay = Math.round(UNFOCUS_SETTLE_MS)
+      restoreTimer.current = window.setTimeout(() => {
+        restoreTimer.current = null
+        restoreFocusRef.current?.focus?.()
+      }, delay)
     }
   }, [open, inertTarget])
 

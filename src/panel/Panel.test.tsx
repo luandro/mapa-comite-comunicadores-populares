@@ -103,7 +103,7 @@ describe('Panel (Phase 6)', () => {
     expect(closed).toBe(1)
   })
 
-  it('dialog lifecycle: initial focus, background inert, body scroll lock, focus return', () => {
+  it('dialog lifecycle: initial focus, background inert, body scroll lock, focus return', async () => {
     const opener = document.createElement('button')
     opener.textContent = 'opener'
     document.getElementById('scene-host')!.appendChild(opener)
@@ -119,7 +119,9 @@ describe('Panel (Phase 6)', () => {
 
     act(() => root!.unmount())
     root = null
-    // focus returned, locks released
+    // focus returned (deferred by Panel's fly-back-settle timeout) — wait it
+    // out, then assert
+    await new Promise((r) => setTimeout(r, 700))
     expect(document.activeElement).toBe(opener)
     expect(panelBackground().hasAttribute('inert')).toBe(false)
     expect(document.body.style.overflow).toBe('')

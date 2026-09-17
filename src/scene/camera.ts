@@ -116,6 +116,19 @@ export function createCamera(opts: CameraOptions): Camera {
     return { x: t.x, y: t.y, k: t.k }
   }
 
+  /** Scene-coord box visible right now: window ∘ controller state (issue #11
+   * captures this before a focus fly; never a DOM camera read — AGENTS 8). */
+  function framing(): Box {
+    const t = state()
+    const w = effWin()
+    return {
+      x: (w.x0 - t.x) / t.k,
+      y: (w.y0 - t.y) / t.k,
+      width: (w.x1 - w.x0) / t.k,
+      height: (w.y1 - w.y0) / t.k,
+    }
+  }
+
   function writeTransform(t: TransformState): void {
     // Clamp k FIRST, then the translation against that clamped k — an
     // overshooting ease (back.out) must never write a pair (x, y) clamped
@@ -137,10 +150,14 @@ export function createCamera(opts: CameraOptions): Camera {
   const proxy: TransformState = { x: 0, y: 0, k: 1 }
 
   function flyToTransform(target: TransformState, duration: number, ease: string): void {
-    killActiveFly() // a new fly replaces the previous tween
     const from = state()
     const clamped = clampTransform(target, effWin(), baseDomain)
+    // A no-op fly is a true no-op: it must not kill an in-flight tween.
+    // setObstruction(null)'s re-clamp glide targets the current state — with
+    // the kill-first order it cancelled every active fly on arrival (issue #11:
+    // the deselect fly-back died in the panel-close effect before frame 1).
     if (clamped.x === from.x && clamped.y === from.y && clamped.k === from.k) return
+    killActiveFly() // a new fly replaces the previous tween
     proxy.x = from.x
     proxy.y = from.y
     proxy.k = from.k
@@ -162,6 +179,7 @@ export function createCamera(opts: CameraOptions): Camera {
   // --- public API --------------------------------------------------------------
 
   function flyTo(target: Box, flyOpts?: FlyToOptions): void {
+    killActiveFly() // codex r2 P2: a public fly command always supersedes an active flight — even a no-op target. The no-op early-return inside flyToTransform still protects only the internal re-clamp glide (setObstruction), which must never cancel anything.
     refreshWindow()
     const padding = flyOpts?.padding ?? DEFAULT_PADDING
     const maxK = Math.min(flyOpts?.maxK ?? K_MAX, K_MAX)
@@ -194,6 +212,7 @@ export function createCamera(opts: CameraOptions): Camera {
   }
 
   function reset(): void {
+    killActiveFly() // codex r1 P2: a reset command always supersedes an active fly
     refreshWindow()
     const w = effWin()
     flyToTransform(
@@ -277,5 +296,5 @@ export function createCamera(opts: CameraOptions): Camera {
     svgSel.on('.zoom', null)
   }
 
-  return { getState: state, setObstruction, flyTo, zoomBy, reset, destroy }
+  return { getState: state, framing, setObstruction, flyTo, zoomBy, reset, destroy }
 }

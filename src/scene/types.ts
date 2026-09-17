@@ -60,6 +60,11 @@ export interface CameraOptions {
 export interface Camera {
   getState(): TransformState
   /**
+   * Scene-coord box visible right now (last-known window ∘ controller state).
+   * Issue #11 captures this before a focus fly; the deselect flies back to it.
+   */
+  framing(): Box
+  /**
    * viewport-space rect (CSS px); null clears. Shrinks the visible window on
    * the obstructed (right) side (SPEC §6).
    */
