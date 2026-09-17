@@ -423,6 +423,12 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     // and focus-flies from there; for an already-selected org it never
     // re-emits (opus P2 — a re-emit would loop the panel), so the direct emit
     // re-opens instead.
+    // Focus the totem SVG button first (codex r1 P2): the pill is not
+    // focusable, so Panel's restore-focus capture would otherwise record
+    // <body>/an unrelated control and SPEC §8's return-focus contract would
+    // break on modal close. The interaction g already carries tabindex="0"
+    // (layers.ts); focus({preventScroll}) never scrolls the camera.
+    calibrated.artifacts[plan.orgId]?.focus({ preventScroll: true })
     applyArtifactState(plan.orgId, { pulse: true })
     if (plan.emitDirect) artifactTapHub.emit(plan.orgId)
   }

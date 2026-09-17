@@ -445,6 +445,18 @@ describe('mountScene', () => {
     c.destroy()
   })
 
+  it('pill tap: focus moves to the totem interaction g (SPEC §8 restore-focus, codex r1 P2)', () => {
+    // The pill is not focusable; Panel captures document.activeElement on
+    // open and restores it on close. The pill handler must therefore focus
+    // the org's SVG button BEFORE the panel opens, so close returns focus to
+    // the triggering artifact, not <body>.
+    const c = mountScene(host, data)
+    expect(document.activeElement).not.toBe(artifactGroups().na_cuia)
+    tapPill('na_cuia')
+    expect(document.activeElement).toBe(artifactGroups().na_cuia)
+    c.destroy()
+  })
+
   it('artifact focusin flies ONLY under keyboard modality (:focus-visible guard)', () => {
     const c = mountScene(host, data)
     const g = artifactGroups()['na_cuia']
