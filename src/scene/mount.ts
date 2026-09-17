@@ -448,6 +448,31 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     const orgId = target.closest<HTMLElement>('[data-label-for]')?.dataset.labelFor
     if (!orgId || !(orgId in calibrated.artifacts)) return
     event.stopPropagation()
+    // Touch: the scene root sets touch-action:none, but d3's touch path binds
+    // on svg#scene, a SIBLING of #labels — touchstart/touchmove on a pill
+    // would fall into the label subtree and never reach d3. Retarget the
+    // touchstart onto the org's interaction g (inside the SVG) the same way
+    // the mouse path is retargeted below; d3 then tracks the gesture from
+    // the real touchmove/touchend sequences on the SVG. jsdom-safe: TouchEvent
+    // may be undefined — skip silently there (touch is untestable in jsdom).
+    if (event.pointerType === 'touch' && typeof TouchEvent === 'function') {
+      const t = new Touch({
+        identifier: event.pointerId,
+        target: calibrated.artifacts[orgId],
+        clientX: event.clientX,
+        clientY: event.clientY,
+      })
+      calibrated.artifacts[orgId].dispatchEvent(
+        new TouchEvent('touchstart', {
+          bubbles: true,
+          cancelable: true,
+          touches: [t],
+          targetTouches: [t],
+          changedTouches: [t],
+        }),
+      )
+      return
+    }
     // Retarget as a REAL mousedown on the totem's interaction g: d3-zoom
     // binds "mousedown.zoom" (not pointer events), so the retargeted event
     // must be a MouseEvent('mousedown') to start a pan; the interaction g
