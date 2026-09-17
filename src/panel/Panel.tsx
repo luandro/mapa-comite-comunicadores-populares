@@ -31,6 +31,11 @@ const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
   identidade: 'Identidade',
 }
 
+/** The scene's deselect fly-back duration (mount.ts UNFOCUS_DURATION, s→ms).
+ * Focus restoration waits this out so the restored focus (:focus-visible)
+ * cannot re-trigger the artifact focus-flight mid-fly and cancel it. */
+const UNFOCUS_SETTLE_MS = 650
+
 /**
  * Authored section glyphs (§1) — the REAL icon art from `na cuia/icons/svg/`
  * (same set the scene uses), one per whitelisted section. v1.2 centered
@@ -194,7 +199,14 @@ export function Panel({
       document.body.style.width = prev.width
       restoreScroll()
       background?.removeAttribute('inert')
-      restoreFocusRef.current?.focus?.()
+      // Restore focus AFTER the scene finishes the deselect fly-back (issue
+      // #11 / codex final-gate P1): focusing the triggering artifact while
+      // the camera is still flying matches :focus-visible and re-triggers the
+      // artifact focus-flight (mount.ts), cancelling the fly-back mid-air.
+      // The flight is ~0.6s; restore once the camera has settled (or
+      // immediately under reduced motion, where the flight is instant).
+      const delay = Math.round(UNFOCUS_SETTLE_MS)
+      window.setTimeout(() => restoreFocusRef.current?.focus?.(), delay)
     }
   }, [open, inertTarget])
 
