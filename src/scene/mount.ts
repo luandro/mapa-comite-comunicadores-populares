@@ -482,8 +482,8 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     for (const t of Array.from(te.changedTouches)) nativeSeen.delete(t.identifier)
   }
   sceneSvg.addEventListener('touchstart', onSvgNativeTouch, true)
-  sceneSvg.addEventListener('touchend', onSvgNativeTouchEnd)
-  sceneSvg.addEventListener('touchcancel', onSvgNativeTouchEnd)
+  sceneSvg.addEventListener('touchend', onSvgNativeTouchEnd, true)
+  sceneSvg.addEventListener('touchcancel', onSvgNativeTouchEnd, true)
 
   /** Forward native touch events for the live pill gesture. */
   function onLabelsTouchForward(event: TouchEvent): void {
@@ -738,8 +738,8 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       labels.el.removeEventListener('click', onLabelsClick)
       labels.el.removeEventListener('pointerdown', onLabelsPointerDown)
       sceneSvg.removeEventListener('touchstart', onSvgNativeTouch, true)
-      sceneSvg.removeEventListener('touchend', onSvgNativeTouchEnd)
-      sceneSvg.removeEventListener('touchcancel', onSvgNativeTouchEnd)
+      sceneSvg.removeEventListener('touchend', onSvgNativeTouchEnd, true)
+      sceneSvg.removeEventListener('touchcancel', onSvgNativeTouchEnd, true)
       labels.el.removeEventListener('touchstart', onLabelsTouchForward)
       labels.el.removeEventListener('touchmove', onLabelsTouchForward)
       labels.el.removeEventListener('touchend', onLabelsTouchForward)
