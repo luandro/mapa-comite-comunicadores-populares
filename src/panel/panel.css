@@ -44,7 +44,11 @@
   display: flex;
   flex-direction: column;
   overflow: hidden; /* the BODY scrolls; the panel never scrolls sideways */
-  padding: 24px 28px 0;
+  /* No horizontal padding here on purpose (review P1, PR #9): .panel-body
+     owns it so the scrollbar renders at the CARD's right edge — .panel
+     padding would inset the scrollbar 28px off the border. Title/close
+     button compensate with their own horizontal padding/margins. */
+  padding: 24px 0 0;
   text-align: center;
   background: #fdf6e3; /* cream paper */
   color: #1c2b1c;
@@ -73,8 +77,10 @@
   border: none;
   border-radius: 0;
   box-shadow: none;
-  padding: max(24px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-right)) 0
-    max(28px, env(safe-area-inset-left));
+  /* horizontal padding lives on .panel-body (scrollbar-at-edge, PR #9);
+     keep only the safe-area insets here */
+  padding: max(24px, env(safe-area-inset-top)) max(0px, env(safe-area-inset-right)) 0
+    max(0px, env(safe-area-inset-left));
 }
 
 .panel-mobile .panel-close {
@@ -120,10 +126,10 @@
 
 .panel h2 {
   flex: none;
-  /* symmetric gutters: the close button is position:absolute, so the left
-     margin costs nothing — keeps the title on the content axis (centered
-     layout, review round 3) */
-  margin: 0 48px 8px;
+  /* matches .panel-body's 28px padding so the title shares the body's
+     content box; the extra symmetric 20px clears the absolute close
+     button on the right without leaving the center axis */
+  margin: 0 48px 8px; /* 28 (body padding) + 20 (close-button clearance) */
   font-family: Fraunces, Georgia, serif;
   font-size: 24px;
   line-height: 1.2;
@@ -134,18 +140,56 @@
    children guarantee zero horizontal scrolling (user directive).
    padding-bottom 72px: the wave overlay paints over the card's last 60px,
    so the last list item must stay clear of it (review P1). Mobile overlay
-   is bottom-anchored and 100px tall → 112px there. */
+   is bottom-anchored and 100px tall → 112px there.
+   The horizontal padding lives HERE (not on .panel) so the scrollbar
+   renders at the card's very right edge — the scrollbar paints at the
+   element's border box, ignoring content padding (user directive + PR #9
+   review P1). Symmetric 28px keeps the content on the card's center axis.
+   `scrollbar-gutter: stable both-edges` reserves the SAME gutter on both
+   sides on classic-scrollbar platforms (Windows/Linux), where the 10px
+   scrollbar lane would otherwise shift the content box 5px left of the
+   title/card axis; no-op on overlay-scrollbar platforms (macOS, mobile).
+   Title uses 48px margins = 28 body padding + 20 close-button clearance. */
 .panel-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  padding-left: 28px;
+  padding-right: 28px;
   padding-bottom: 72px;
 }
 
 .panel-mobile .panel-body {
   padding-bottom: 112px; /* bottom-anchored overlay covers the last 100px */
+}
+
+/* Scrollbar in the map's illustration language (user directive): the card
+   border's dark green, cream paper track, organic rounded thumb like the
+   hand-drawn ink strokes used everywhere else (border radii, buttons).
+   Firefox: thin + tinted. The webkit block serves Safari; Chromium ≥121
+   ignores it when scrollbar-width/color are set (draws its own green
+   arrows — visually equivalent, accepted). */
+.panel-body {
+  scrollbar-width: thin;
+  scrollbar-color: #304e23 #fdf6e3;
+}
+
+.panel-body::-webkit-scrollbar {
+  width: 10px;
+}
+
+.panel-body::-webkit-scrollbar-track {
+  background: #fdf6e3; /* cream paper */
+  border-left: 3px solid #fdf6e3; /* breathing room from the border stroke */
+}
+
+.panel-body::-webkit-scrollbar-thumb {
+  background: #304e23; /* the card border's dark green */
+  border-radius: 6px; /* organic rounded, like the hand-drawn ink strokes */
+  border: 2px solid #fdf6e3; /* cream inset — reads as a drawn stroke */
 }
 
 /* tabIndex=0 scroll container: keyboard users must be able to scroll the
