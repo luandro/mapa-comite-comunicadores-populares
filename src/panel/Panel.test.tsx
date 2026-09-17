@@ -152,6 +152,6 @@ describe('Panel (Phase 6)', () => {
 
   it('mobile flag switches the class', () => {
     renderPanel(fullProject, () => {}, true)
-    expect(document.querySelector('.panel')!.classList.contains('panel-mobile')).toBe(true)
+    expect(document.querySelector('.panel-frame')!.classList.contains('panel-mobile')).toBe(true)
   })
 })

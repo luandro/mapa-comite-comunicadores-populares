@@ -15,15 +15,29 @@
   background: transparent;
 }
 
-/* v1.2 user directive: content centered on the modal (the mock reads as a
-   centered composition). */
-.panel {
+/* Frame: owns the fixed/centered placement + entrance animation. The card and
+   the wave overlay position INSIDE it — the overlay tracks the card's bottom
+   edge with pure CSS (top: calc(100% - 60px)), immune to the entrance
+   animation (a rect-sync effect would measure the card mid-translate). */
+.panel-frame {
   position: fixed;
   inset: 0;
   z-index: 40; /* above #labels (10) and title (20), below DEV toolbar (4000) */
   margin: auto;
   box-sizing: border-box;
   width: min(880px, calc(100vw - 48px));
+  height: fit-content;
+  max-height: calc(100dvh - 48px);
+  transform: translateY(24px);
+  opacity: 0;
+  animation: panel-in 0.28s ease-out forwards;
+}
+
+/* v1.2 user directive: content centered on the modal (the mock reads as a
+   centered composition). */
+.panel {
+  position: relative; /* inside .panel-frame */
+  box-sizing: border-box;
   height: fit-content;
   max-height: calc(100dvh - 48px);
   display: flex;
@@ -40,9 +54,6 @@
   border: 3px solid #304e23;
   border-radius: 18px 6px 22px 9px / 8px 20px 7px 24px;
   box-shadow: 6px 8px 0 rgba(48, 78, 35, 0.25);
-  transform: translateY(24px);
-  opacity: 0;
-  animation: panel-in 0.28s ease-out forwards;
 }
 
 /* Mobile: full-bleed sheet (user directive — "full screen modal"), all four
@@ -53,10 +64,12 @@
   width: 100vw;
   height: 100dvh;
   max-height: 100dvh;
+}
+
+.panel-mobile .panel {
   border: none;
   border-radius: 0;
   box-shadow: none;
-  transform: translateY(24px);
   padding: max(24px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-right)) 0
     max(28px, env(safe-area-inset-left));
 }
@@ -74,8 +87,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel,
-  .panel-mobile {
+  .panel-frame {
     animation: none;
     transform: translateY(0);
     opacity: 1;
@@ -113,14 +125,16 @@
 }
 
 /* Scrollable middle: vertical only — `overflow-x: hidden` + wrap-safe
-   children guarantee zero horizontal scrolling (user directive). */
+   children guarantee zero horizontal scrolling (user directive).
+   padding-bottom 72px: the wave overlay paints over the card's last 60px,
+   so the last list item must stay clear of it (review P1). */
 .panel-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  padding-bottom: 12px;
+  padding-bottom: 72px;
 }
 
 /* tabIndex=0 scroll container: keyboard users must be able to scroll the
@@ -199,12 +213,15 @@
 /* Wave overlay (v1.2 user directive): the band stack lives OUTSIDE the card,
    straddling its bottom edge — first pale bands on the cream (like the mock),
    then flowing over the live map and fading to transparent via the mask in
-   Panel.tsx. Left/top/width are synced to the card's rect by the Panel
-   rect-sync effect. */
+   Panel.tsx. Absolute inside .panel-frame, so it tracks the card edge with
+   pure CSS (no JS measurement, no entrance-animation race). */
 .panel-waves-overlay {
-  position: fixed;
-  z-index: 41; /* above the panel (40): bands paint OVER the card's edge seam */
-  height: 76px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% - 60px); /* first 60px of bands paint over the cream */
+  height: 100px; /* 60 on-card + 40 of fade over the map */
+  width: 100%;
   pointer-events: none;
 }
 
