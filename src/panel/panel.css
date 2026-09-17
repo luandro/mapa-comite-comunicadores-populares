@@ -1,8 +1,9 @@
 /* Phase 6 panel (SPEC §8): cream paper, green/brown strokes, irregular
    hand-drawn border, wave footer. React-owned UI — pt-BR.
    v1.2 — user-directed restyle: CENTERED modal (desktop + mobile), matching
-   `na cuia/modal.jpeg`: icon art per section (left column), no horizontal
-   scroll, animated wavy line detail at the bottom. */
+   `na cuia/modal.jpeg`: centered icon-above-text sections, no horizontal
+   scroll, onda gradient bands straddling the card's bottom edge and fading
+   INTO the background. */
 
 /* Outside-click backdrop: covers the viewport UNDER the panel (z 40). It is
    a sibling, NOT inside the inerted scene host, so map taps stay reachable
@@ -67,6 +68,8 @@
 }
 
 .panel-mobile .panel {
+  height: 100%; /* card fills the frame so the overlay tracks its bottom */
+  max-height: 100%;
   border: none;
   border-radius: 0;
   box-shadow: none;

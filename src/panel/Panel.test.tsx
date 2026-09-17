@@ -5,17 +5,6 @@ import { act } from 'react'
 import type { Project } from '../data/types'
 import { Panel } from './Panel'
 
-// jsdom ships no ResizeObserver; the wave-overlay rect-sync owns one on the
-// panel. Structure-only stub (same pattern as src/scene/mount.test.ts).
-class ResizeObserverStub implements ResizeObserver {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
-}
-if (typeof ResizeObserver === 'undefined') {
-  globalThis.ResizeObserver = ResizeObserverStub
-}
-
 const fullProject: Project = {
   name: 'NA CUIA (BELÉM)',
   conflitos: ['Grilagem na várzea'],
@@ -54,7 +43,11 @@ afterEach(() => {
   root = null
 })
 
-function renderPanel(project: Project | null, onClose: () => void, mobile = false): void {
+function renderPanel(
+  project: Project | null,
+  onClose: () => void,
+  mobile = false,
+): { rerender: (project: Project | null) => void } {
   act(() => {
     root = createRoot(host)
     // inertTarget points at the test's scene host (App passes the real one)
@@ -62,6 +55,15 @@ function renderPanel(project: Project | null, onClose: () => void, mobile = fals
       <Panel project={project} onClose={onClose} mobile={mobile} inertTarget="#scene-host" />,
     )
   })
+  return {
+    rerender: (next: Project | null) => {
+      act(() => {
+        root!.render(
+          <Panel project={next} onClose={onClose} mobile={mobile} inertTarget="#scene-host" />,
+        )
+      })
+    },
+  }
 }
 
 describe('Panel (Phase 6)', () => {
@@ -153,5 +155,16 @@ describe('Panel (Phase 6)', () => {
   it('mobile flag switches the class', () => {
     renderPanel(fullProject, () => {}, true)
     expect(document.querySelector('.panel-frame')!.classList.contains('panel-mobile')).toBe(true)
+  })
+
+  it('wave overlay renders inside the frame, aria-hidden, and unmounts on close', () => {
+    const { rerender } = renderPanel(fullProject, () => {}, false)
+    const overlay = document.querySelector('.panel-frame > .panel-waves-overlay')
+    expect(overlay).not.toBeNull()
+    expect(overlay!.getAttribute('aria-hidden')).toBe('true')
+    // mask wrapper is static; only the inner group carries the drift animation
+    expect(overlay!.querySelector('[mask] > .panel-waves')).not.toBeNull()
+    rerender(null)
+    expect(document.querySelector('.panel-waves-overlay')).toBeNull()
   })
 })
