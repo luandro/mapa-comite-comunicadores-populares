@@ -84,19 +84,23 @@ const ONDA_STACK = [
  * retired scene bands), with every copy translated so its INK (not the
  * viewBox) starts at the chain position:
  *
- *   copy 0 (plain):   ink [0, W]                     at x = −L
- *   copy 1 (mirror):  ink [W, 2W]  — reflection of   at x = 2R
- *                     [L,R] about 2R is [2R−R, 2R−L] = [R, 2R−L],
- *                     shifted by −L → [W, 2W] ✓
- *   copy 2 (plain):   ink [2W, 3W]                   at x = 2W − L
+ *   copy 0 (plain):   ink [0, W]     at x = −L
+ *   copy 1 (mirror):  ink [W, 2W]    at x = 2R − L   (x' = b − x)
+ *   copy 2 (plain):   ink [2W, 3W]   at x = 2W − L
  *
  * The chain paints [0, 3W] with NO gaps, and after the CSS drift of
  * −2W (panel.css `translateX(-200%)` against a W-wide viewBox) the
  * window holds copy 2 ≡ copy 0 — seamless wrap by construction.
  */
+/*
+ * Tile chain (ink-span math, solved numerically in the commit message):
+ *   copy 0 plain  a = −L        → ink [0, W]
+ *   copy 1 mirror b = 2R − L    → ink [W, 2W]   (x' = b − x maps [L,R]→[b−R,b−L])
+ *   copy 2 plain  c = 2W − L    → ink [2W, 3W]
+ */
 const TILE_POSITIONS: Array<{ x: number; mirror: boolean }> = [
   { x: -WAVE_INK_L, mirror: false },
-  { x: 2 * WAVE_INK_R, mirror: true },
+  { x: 2 * WAVE_INK_R - WAVE_INK_L, mirror: true },
   { x: 2 * WAVE_INK_W - WAVE_INK_L, mirror: false },
 ]
 function waveTile(key: number): JSX.Element {
