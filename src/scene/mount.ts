@@ -376,11 +376,14 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
         gsap.set(calibrated.artifacts[orgId]!, { opacity: 0, y: ARTIFACT_DROP_FROM })
       }
       orgIds.forEach((orgId, i) => {
-        // Perf budget (SPEC §11, ≤4 concurrent tweens): a Belém replay is 7
-        // orgs × (drop + path-draw + tail-fade) — a flat 0.08s stagger keeps
-        // ~21 tweens live at peak. The effective stagger ≥ DROP_DURATION/4
-        // retires a drop before the 4th-next org's tweens start.
-        const at = i * Math.max(CITY_REPLAY_STAGGER, CITY_REPLAY_DROP_DURATION / 4)
+        // Perf budget (SPEC §11, ≤4 concurrent tweens) — counted GLOBALLY
+        // (codex final-gate): one org's replay = 3 concurrent tweens (drop +
+        // path-draw + tail-fade), so at most ONE org may be animating at a
+        // time: the effective stagger ≥ max(DROP, ARROW) retires org i's
+        // whole family before org i+1 starts. Belém (7 orgs) replays in
+        // ~6×0.5 + 0.5 = 3.5s — comparable to the first-load intro beat.
+        const at =
+          i * Math.max(CITY_REPLAY_STAGGER, CITY_REPLAY_DROP_DURATION, CITY_REPLAY_ARROW_DURATION)
         gsap.to(calibrated.artifacts[orgId]!, {
           opacity: 1,
           y: 0,
