@@ -20,9 +20,14 @@ import { isMobile } from './device'
 import { mountScene, type SceneController } from './scene/mount'
 import './panel/panel.css'
 
-/** Authored blob backing the poster title (SPEC §3). */
+/** Authored blob backing the poster title (SPEC §3). Hand-drawn cloud that
+ * fully covers both title lines at every viewport (verified 1600×900: text
+ * box ≈ x32..888, y21..104 in this 920×126 viewBox — the v1.0 path's
+ * bottom-right boundary swept in to x≈650, leaving "Populares" off the
+ * cloud; this revision keeps the wobble but holds ≥~900 on the right down
+ * to y≈100 and ≥~110 on the bottom across the full text width). */
 const TITLE_BLOB_PATH =
-  'M8,18 C56,1 132,8 214,5 C310,1 385,11 474,3 C568,-5 653,10 740,5 C828,0 898,8 914,28 C929,48 901,63 855,68 C786,76 720,70 650,88 C555,112 481,102 398,111 C307,121 237,103 163,108 C92,113 35,123 11,98 C-8,77 -5,40 8,18 Z'
+  'M10,20 C60,2 130,8 214,5 C310,1 385,10 474,3 C568,-4 655,9 742,4 C830,-1 900,7 914,27 C926,45 922,78 906,100 C890,116 812,113 732,116 C622,120 500,110 398,114 C300,118 200,111 122,113 C62,115 24,110 11,96 C-6,76 -4,38 10,20 Z'
 
 /** Title overlay — above the scene, below future controls (SPEC §3 z-order). */
 function TitleOverlay() {

@@ -134,6 +134,19 @@ g[data-artifact-id]:focus-visible {
   font-weight: 600;
   letter-spacing: 0.12em;
   white-space: nowrap;
+  /* Cream buffer halo (poster arrow ink #EDE5CE family): the dark-green
+     fill is illegible straight on the green land mass — an 8-direction
+     ~2px text-shadow ring gives every glyph a light outline without
+     touching fill or layout. */
+  text-shadow:
+    -2px -2px 0 #ede5ce,
+    2px -2px 0 #ede5ce,
+    -2px 2px 0 #ede5ce,
+    2px 2px 0 #ede5ce,
+    -2.5px 0 0 #ede5ce,
+    2.5px 0 0 #ede5ce,
+    0 -2.5px 0 #ede5ce,
+    0 2.5px 0 #ede5ce;
 }
 
 /* --- Phase 2 ambient motion (SPEC §5) -------------------------------------
