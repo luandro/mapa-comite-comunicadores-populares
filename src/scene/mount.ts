@@ -101,6 +101,9 @@ const ARTIFACT_PULSE_DURATION = 0.4
 const ARTIFACT_SELECTED_SCALE = 1.08 // persistent scale while selected
 const ARTIFACT_SETTLE_DURATION = 0.35
 const ARROW_REDRAW_DURATION = 0.6 // per-org dash-draw re-run on tap
+/** Pill touch forwarding (issue #13, codex final-gate P2): synthetic
+ * Touch.identifiers live in their own space far above any real contact id. */
+const TOUCH_ID_BASE = 1000
 /** focusArtifact flies to a box this many scene units around the org pos. */
 const ARTIFACT_FOCUS_BOX = 120
 
@@ -435,6 +438,57 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
 
   // Bot-review P2 (issue #13): the pill's pointer-events:auto box must not
   // steal CAMERA GESTURES — d3-zoom listens on svg#scene, a sibling of
+  /** Live pill-started touch gestures: pointerId → {orgId, synthetic
+   * Touch.identifier}. Entries are removed on pointerup/pointercancel. */
+  const forwardedTouches = new Map<number, { orgId: string; identifier: number }>()
+
+  /** Dispatch a synthetic TouchEvent carrying ONE contact at (x, y). */
+  function dispatchSyntheticTouch(
+    target: Element,
+    type: 'touchstart' | 'touchmove' | 'touchend' | 'touchcancel',
+    identifier: number,
+    x: number,
+    y: number,
+  ): void {
+    const touch = new Touch({ identifier, target, clientX: x, clientY: y })
+    // d3's tracker reads touches/targetTouches (move) and changedTouches
+    // (start/end) — populate all three with the single forwarded contact.
+    target.dispatchEvent(
+      new TouchEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        touches: type === 'touchend' || type === 'touchcancel' ? [] : [touch],
+        targetTouches: type === 'touchend' || type === 'touchcancel' ? [] : [touch],
+        changedTouches: [touch],
+      }),
+    )
+  }
+
+  /** Forward a pointer move/up/cancel for a pill-started touch gesture. */
+  function onLabelsPointerForward(event: PointerEvent): void {
+    const forwarded = forwardedTouches.get(event.pointerId)
+    if (!forwarded) return
+    const g = calibrated.artifacts[forwarded.orgId]
+    if (!g) {
+      forwardedTouches.delete(event.pointerId)
+      return
+    }
+    if (event.type === 'pointermove') {
+      dispatchSyntheticTouch(g, 'touchmove', forwarded.identifier, event.clientX, event.clientY)
+      return
+    }
+    dispatchSyntheticTouch(
+      g,
+      event.type === 'pointercancel' ? 'touchcancel' : 'touchend',
+      forwarded.identifier,
+      event.clientX,
+      event.clientY,
+    )
+    forwardedTouches.delete(event.pointerId)
+  }
+
+  // Bot-review P2 (issue #13): the pill's pointer-events:auto box must not
+  // steal CAMERA GESTURES — d3-zoom listens on svg#scene, a sibling of
   // #labels, so a drag/pinch/wheel/double-tap STARTED on a pill would fall
   // into the label subtree and neither pan/zoom nor cancel an active fly.
   // Pointerdown on a pill therefore retargets the gesture onto the totem's
@@ -448,28 +502,34 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     const orgId = target.closest<HTMLElement>('[data-label-for]')?.dataset.labelFor
     if (!orgId || !(orgId in calibrated.artifacts)) return
     event.stopPropagation()
-    // Touch: the scene root sets touch-action:none, but d3's touch path binds
-    // on svg#scene, a SIBLING of #labels — touchstart/touchmove on a pill
-    // would fall into the label subtree and never reach d3. Retarget the
-    // touchstart onto the org's interaction g (inside the SVG) the same way
-    // the mouse path is retargeted below; d3 then tracks the gesture from
-    // the real touchmove/touchend sequences on the SVG. jsdom-safe: TouchEvent
-    // may be undefined — skip silently there (touch is untestable in jsdom).
-    if (event.pointerType === 'touch' && typeof TouchEvent === 'function') {
-      const t = new Touch({
-        identifier: event.pointerId,
-        target: calibrated.artifacts[orgId],
-        clientX: event.clientX,
-        clientY: event.clientY,
+    // Touch: d3's touch path binds on svg#scene, a SIBLING of #labels, so
+    // native touchstart/move/end on a pill never reach it (codex final-gate
+    // P2: a single synthetic touchstart is NOT enough — d3 matches later
+    // contacts against Touch.identifier, and PointerEvent.pointerId is a
+    // DIFFERENT identifier space, so the tracker stalls and can stay open).
+    // The pill gesture therefore owns the whole sequence: allocate a
+    // synthetic Touch.identifier from our own space (base 1000 — can never
+    // collide with real contacts), dispatch the touchstart on the org's
+    // interaction g, then FORWARD every pointermove/up/cancel for that
+    // pointerId as touchmove/touchend/touchcancel carrying the SAME
+    // synthetic identifier and live clientX/Y until the gesture ends. Real
+    // SVG contacts use real identifiers — never colliding, so a second
+    // finger pinches correctly against the pill contact.
+    if (
+      event.pointerType === 'touch' &&
+      typeof TouchEvent === 'function' &&
+      typeof Touch === 'function'
+    ) {
+      forwardedTouches.set(event.pointerId, {
+        orgId,
+        identifier: TOUCH_ID_BASE + forwardedTouches.size,
       })
-      calibrated.artifacts[orgId].dispatchEvent(
-        new TouchEvent('touchstart', {
-          bubbles: true,
-          cancelable: true,
-          touches: [t],
-          targetTouches: [t],
-          changedTouches: [t],
-        }),
+      dispatchSyntheticTouch(
+        calibrated.artifacts[orgId],
+        'touchstart',
+        forwardedTouches.get(event.pointerId)!.identifier,
+        event.clientX,
+        event.clientY,
       )
       return
     }
@@ -495,6 +555,15 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   }
   labels.el.addEventListener('click', onLabelsClick)
   labels.el.addEventListener('pointerdown', onLabelsPointerDown)
+  labels.el.addEventListener('pointermove', onLabelsPointerForward)
+  labels.el.addEventListener('pointerup', onLabelsPointerForward)
+  labels.el.addEventListener('pointercancel', onLabelsPointerForward)
+  // The scene root's touch-action:none doesn't cross into the #labels
+  // subtree — without it Chromium fires pointercancel (scroll takeover) on
+  // the first pill-started touchmove and the forwarded pan dies (probe:
+  // 8 touchmoves → 1 forwarded move + a cancel). pills keep pointer-events:
+  // auto, so this is scoped to the labels layer, not the SVG.
+  labels.el.style.touchAction = 'none'
 
   // Keyboard activation (SPEC §9): Enter/Space act exactly like a tap; Space
   // is cancelled so the page never scrolls. Focus also flies the camera to
@@ -665,6 +734,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       offLabels()
       labels.el.removeEventListener('click', onLabelsClick)
       labels.el.removeEventListener('pointerdown', onLabelsPointerDown)
+      labels.el.removeEventListener('pointermove', onLabelsPointerForward)
+      labels.el.removeEventListener('pointerup', onLabelsPointerForward)
+      labels.el.removeEventListener('pointercancel', onLabelsPointerForward)
       labels.destroy()
       root.remove()
     },
