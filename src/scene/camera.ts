@@ -45,6 +45,10 @@ export function createCamera(opts: CameraOptions): Camera {
 
   const svgSel = select(sceneSvg)
 
+  /** Last known-finite transform — d3's own state restore point when a
+   * poisoned (NaN) frame arrives (see the zoom-handler guard below). */
+  let lastGood = new ZoomTransform(1, initialCenter.x, initialCenter.y)
+
   /**
    * The usable window with the obstruction applied as a right-edge shrink
    * (SPEC §6): the drawer's own CSS-px width is the exact extra pan budget it
@@ -65,11 +69,17 @@ export function createCamera(opts: CameraOptions): Camera {
       // A pill-started touch forwards a synthetic stream into d3; if a
       // native contact ever lands at the SAME coordinates, d3's pinch math
       // divides by zero separation and emits NaN k/x/y (codex r4 repro).
-      // Guard the single choke point every transform passes through: never
-      // write a non-finite transform to the DOM (the camera state and the
-      // next real gesture stay sane; the poisoned gesture ends by itself).
+      // d3 assigns __zoom BEFORE emitting, so a bare return leaves
+      // sceneSvg.__zoom poisoned — every later gesture/fly reads NaN from
+      // it and the camera bricks for the session (opus gate P1). Restore
+      // the last good transform into the exact slot d3 owns, then skip the
+      // poisoned frame.
       const t = event.transform
-      if (!Number.isFinite(t.k) || !Number.isFinite(t.x) || !Number.isFinite(t.y)) return
+      if (!Number.isFinite(t.k) || !Number.isFinite(t.x) || !Number.isFinite(t.y)) {
+        svgSel.call(behavior.transform, lastGood)
+        return
+      }
+      lastGood = t
       cameraNode.setAttribute('transform', t.toString())
       onFrame({ x: t.x, y: t.y, k: t.k })
     })

@@ -436,8 +436,6 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     if (plan.emitDirect) artifactTapHub.emit(plan.orgId)
   }
 
-  // Bot-review P2 (issue #13): the pill's pointer-events:auto box must not
-  // steal CAMERA GESTURES — d3-zoom listens on svg#scene, a sibling of
   /** Live pill-started touch gestures: pointerId → tracked contact (org,
    * synthetic Touch.identifier, last known point). Entries are removed on
    * pointerup/pointercancel. */
@@ -484,14 +482,30 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     )
   }
 
-  /** Snapshot of every live forwarded contact right now. */
+  /**
+   * Snapshot of every live contact right now: the forwarded contacts plus
+   * any native anchors d3 picked up (browser-generated contacts for the
+   * physical pill finger / a second finger). Native anchors are reported at
+   * the LEAD contact's current point — the whole contact set moves rigidly
+   * with the gesture, so d3's pinch math sees constant separation: no
+   * phantom-anchor zoom-to-K_MAX, no zero-separation NaN (opus gate P1/P2),
+   * and the gesture stays the plain pan a single visible finger implies.
+   */
   function activeForwardedContacts(): ForwardedContact[] {
-    return Array.from(forwardedTouches.values(), (f) => ({
+    const list: ForwardedContact[] = Array.from(forwardedTouches.values(), (f) => ({
       identifier: f.identifier,
       target: calibrated.artifacts[f.orgId]!,
       x: f.x,
       y: f.y,
     }))
+    if (nativeResidue.length > 0 && list.length > 0) {
+      const lead = list[0]!
+      for (const id of nativeResidue) {
+        if (list.some((c) => c.identifier === id)) continue
+        list.push({ identifier: id, target: lead.target, x: lead.x, y: lead.y })
+      }
+    }
+    return list
   }
 
   /** Forward a pointer move/up/cancel for a pill-started touch gesture. */
@@ -506,12 +520,11 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     if (event.type === 'pointermove') {
       forwarded.x = event.clientX
       forwarded.y = event.clientY
-      dispatchSyntheticTouch(
-        g,
-        'touchmove',
-        [forwardedContact(forwarded, g)],
-        activeForwardedContacts(),
-      )
+      // changedTouches = EVERY live contact at the moved point: d3's
+      // touchmoved updates anchors from changedTouches only, so the native
+      // phantom anchor must be moved along with the synthetic lead or it
+      // stays frozen and the pinch math explodes (k → K_MAX / NaN).
+      dispatchSyntheticTouch(g, 'touchmove', activeForwardedContacts(), activeForwardedContacts())
       return
     }
     forwardedTouches.delete(event.pointerId)
@@ -548,13 +561,14 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
 
   // Bot-review P2 (issue #13): the pill's pointer-events:auto box must not
   // steal CAMERA GESTURES — d3-zoom listens on svg#scene, a sibling of
-  // #labels, so a drag/pinch/wheel/double-tap STARTED on a pill would fall
-  // into the label subtree and neither pan/zoom nor cancel an active fly.
+  // #labels, so a drag/pinch/double-tap STARTED on a pill would fall into
+  // the label subtree and neither pan/zoom nor cancel an active fly (wheel
+  // on the pill box stays a known, accepted gap — the box is small).
   // Pointerdown on a pill therefore retargets the gesture onto the totem's
   // interaction g (same org, same scene position — the pill is anchored to
   // it): d3-zoom sees a native pointerdown on the SVG and pans normally; a
   // clean tap produces no drag and the click handler above still opens the
-  // modal. Detail 0 suppresses the click re-dispatch's own detail>1 guard.
+  // modal.
   function onLabelsPointerDown(event: PointerEvent): void {
     const target = event.target
     if (!(target instanceof Element)) return
@@ -635,7 +649,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     // the residue that must be cleared when the gesture winds down.
     const forwardedIds = new Set(Array.from(forwardedTouches.values(), (f) => f.identifier))
     for (const t of Array.from(te.touches)) {
-      if (!forwardedIds.has(t.identifier)) nativeResidue.push(t.identifier)
+      if (!forwardedIds.has(t.identifier) && !nativeResidue.includes(t.identifier)) {
+        nativeResidue.push(t.identifier)
+      }
     }
   }
   // Capture at document level: d3's handler on svg#scene stops immediate
