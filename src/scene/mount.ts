@@ -473,7 +473,17 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     const te = event as TouchEvent
     for (const t of Array.from(te.changedTouches)) nativeSeen.add(t.identifier)
   }
-  sceneSvg.addEventListener('touchstart', onSvgNativeTouch)
+  // Capture phase: d3's SVG handler stops immediate propagation, which
+  // silences same-node listeners registered after it — capture is the only
+  // reliable position. Cleanup pairs with native touchend/touchcancel so
+  // browser-reused identifiers never linger in the set.
+  const onSvgNativeTouchEnd = (event: Event): void => {
+    const te = event as TouchEvent
+    for (const t of Array.from(te.changedTouches)) nativeSeen.delete(t.identifier)
+  }
+  sceneSvg.addEventListener('touchstart', onSvgNativeTouch, true)
+  sceneSvg.addEventListener('touchend', onSvgNativeTouchEnd)
+  sceneSvg.addEventListener('touchcancel', onSvgNativeTouchEnd)
 
   /** Forward native touch events for the live pill gesture. */
   function onLabelsTouchForward(event: TouchEvent): void {
@@ -727,7 +737,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       offLabels()
       labels.el.removeEventListener('click', onLabelsClick)
       labels.el.removeEventListener('pointerdown', onLabelsPointerDown)
-      sceneSvg.removeEventListener('touchstart', onSvgNativeTouch)
+      sceneSvg.removeEventListener('touchstart', onSvgNativeTouch, true)
+      sceneSvg.removeEventListener('touchend', onSvgNativeTouchEnd)
+      sceneSvg.removeEventListener('touchcancel', onSvgNativeTouchEnd)
       labels.el.removeEventListener('touchstart', onLabelsTouchForward)
       labels.el.removeEventListener('touchmove', onLabelsTouchForward)
       labels.el.removeEventListener('touchend', onLabelsTouchForward)
