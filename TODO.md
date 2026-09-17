@@ -64,10 +64,10 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 - [x] Zoom-gated pill fade (mobile): distance-from-center threshold (`labelK` default 1 — zoom gate off by default), ±10% hysteresis, `opacity`/`visibility` only — hit targets and focus never affected
 
 ## Phase 6 — Content panel
-- [x] Desktop right drawer / mobile centered slide-in (user decision), `max-height: 80dvh`, `max-width: 85vw`, inner scroll, `overscroll-behavior: contain`; mobile occlusion intentional; **`#labels` layer wrapped by panel `inert`**
+- [x] Desktop right drawer / mobile centered slide-in (user decision), `max-height: 80dvh`, `max-width: 85vw`, inner scroll, `overscroll-behavior: contain`; mobile occlusion intentional; **`#labels` layer wrapped by panel `inert`** — **v1.2 UPDATE (user directive): centered desktop modal + full-screen mobile modal, see SPEC §8**
 - [x] Full dialog lifecycle: `aria-labelledby` → org heading, initial focus, background `inert`, focus trap, focus return, Esc/×, body scroll lock
 - [x] Panel art direction per SPEC §8: cream paper, green/brown strokes, §1 section icons, Fraunces/Archivo, irregular border + wave footer; body ≥ 16 px / 1.6; textures ≤ ~5 KB inline SVG
-- [x] Artifact tap → pulse + panel; `setObstruction(panelRect)` on open **(desktop only)**, `setObstruction(null)` on close and on mobile; **desktop**: artifact visible at `k ≥ min(1.6, k_max)` beside drawer; mobile: occlusion by design
+- [x] Artifact tap → pulse + panel; ~~`setObstruction(panelRect)` on open (desktop only)~~ **v1.2: `setObstruction(null)` always — centered modal on every form factor, occlusion by design**; mobile: occlusion by design
 
 ## Phase 7 — Polish & ship
 - [x] Perf pass: ≤4 concurrent tweens, transform/opacity ambient (3 bands × 3 copies + squiggle + bob), pause on `document.hidden`; shipped bundle ≤ ~300 KB gz incl. latin-subset fonts

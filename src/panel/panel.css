@@ -1,5 +1,8 @@
 /* Phase 6 panel (SPEC §8): cream paper, green/brown strokes, irregular
-   hand-drawn border, wave footer. React-owned UI — pt-BR. */
+   hand-drawn border, wave footer. React-owned UI — pt-BR.
+   v1.2 — user-directed restyle: CENTERED modal (desktop + mobile), matching
+   `na cuia/modal.jpeg`: icon art per section (left column), no horizontal
+   scroll, animated wavy line detail at the bottom. */
 
 /* Outside-click backdrop: covers the viewport UNDER the panel (z 40). It is
    a sibling, NOT inside the inerted scene host, so map taps stay reachable
@@ -14,17 +17,17 @@
 
 .panel {
   position: fixed;
-  top: 12px;
-  right: 12px;
-  bottom: 12px;
+  inset: 0;
   z-index: 40; /* above #labels (10) and title (20), below DEV toolbar (4000) */
+  margin: auto;
   box-sizing: border-box;
-  width: min(420px, 85vw);
-  max-height: 80dvh;
-  margin: auto 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 28px 24px 56px;
+  width: min(880px, calc(100vw - 48px));
+  height: fit-content;
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* the BODY scrolls; the panel never scrolls sideways */
+  padding: 24px 28px 0;
   background: #fdf6e3; /* cream paper */
   color: #1c2b1c;
   font-family: Archivo, system-ui, sans-serif;
@@ -34,30 +37,35 @@
   border: 3px solid #304e23;
   border-radius: 18px 6px 22px 9px / 8px 20px 7px 24px;
   box-shadow: 6px 8px 0 rgba(48, 78, 35, 0.25);
-  transform: translateX(24px);
+  transform: translateY(24px);
   opacity: 0;
   animation: panel-in 0.28s ease-out forwards;
 }
 
+/* Mobile: full-bleed sheet (user directive — "full screen modal"), all four
+   inset margins 0 so the cover camera never shows at the edges. Safe-area
+   insets keep the close button and text clear of notches/gesture bars
+   (index.html sets viewport-fit=cover). */
 .panel-mobile {
-  top: auto;
-  right: 50%;
-  bottom: 12px;
-  transform: translate(50%, 24px);
-  width: 85vw;
-  animation: panel-in-mobile 0.28s ease-out forwards;
+  width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  transform: translateY(24px);
+  padding: max(24px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-right)) 0
+    max(28px, env(safe-area-inset-left));
+}
+
+.panel-mobile .panel-close {
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
 }
 
 @keyframes panel-in {
   to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes panel-in-mobile {
-  to {
-    transform: translate(50%, 0);
+    transform: translateY(0);
     opacity: 1;
   }
 }
@@ -66,11 +74,8 @@
   .panel,
   .panel-mobile {
     animation: none;
-    transform: translateX(0);
+    transform: translateY(0);
     opacity: 1;
-  }
-  .panel-mobile {
-    transform: translate(50%, 0);
   }
 }
 
@@ -78,6 +83,7 @@
   position: absolute;
   top: 10px;
   right: 10px;
+  z-index: 1; /* above the scrolling body */
   width: 36px;
   height: 36px;
   border: 2px solid #5a4632;
@@ -95,51 +101,139 @@
 }
 
 .panel h2 {
-  margin: 0 40px 8px 0;
+  flex: none;
+  margin: 0 48px 8px 0;
   font-family: Fraunces, Georgia, serif;
   font-size: 24px;
   line-height: 1.2;
   color: #304e23;
 }
 
-.panel-section h3 {
+/* Scrollable middle: vertical only — `overflow-x: hidden` + wrap-safe
+   children guarantee zero horizontal scrolling (user directive). */
+.panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding-bottom: 12px;
+}
+
+/* tabIndex=0 scroll container: keyboard users must be able to scroll the
+   body (no other focusable descendant exists when a section list is short
+   of links). Visible only for keyboard focus. */
+.panel-body:focus-visible {
+  outline: 3px solid #304e23;
+  outline-offset: -3px;
+}
+
+.panel-section {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 18px 0 6px;
+  align-items: flex-start;
+  gap: 18px;
+  margin: 18px 0;
+}
+
+/* Real icon art (na cuia/icons/svg) — one per section, left column. */
+.panel-icon {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.panel-section-content {
+  flex: 1 1 auto;
+  min-width: 0; /* lets long text wrap instead of forcing x-scroll */
+}
+
+.panel-section h3 {
+  margin: 0 0 2px;
   font-family: Fraunces, Georgia, serif;
-  font-size: 18px;
+  font-size: 17px;
+  line-height: 1.3;
   color: #5a4632;
 }
 
-.panel-glyph {
-  width: 22px;
-  height: 22px;
-  flex: none;
-  fill: none;
-  stroke: #304e23;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+/* Screen-reader-only: the mock shows NO visible section headings — the icon
+   carries the meaning visually; the h3 stays for the accessibility tree. */
+.panel-section-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .panel-section ul {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 0;
+  list-style: none;
 }
 
 .panel-section li {
-  margin-bottom: 4px;
+  margin-bottom: 0;
+  overflow-wrap: anywhere; /* long tokens wrap, never overflow */
 }
 
-/* Wave footer strip (SPEC §8) — teal waves under the cream paper. */
+.panel-section li + li {
+  margin-top: 0.45em;
+}
+
+/* Wave footer strip (SPEC §8) — four hand-drawn wave LINES (stroked, like
+   modal.jpeg) sliding slowly sideways; staggered delays desync the lines.
+   Filled wave beneath on mobile full-bleed only would cover text, so the
+   lines sit in their own fixed-height strip. */
 .panel-footer {
-  position: sticky;
-  bottom: -56px; /* cancels the panel's padding-bottom */
-  left: -24px;
-  width: calc(100% + 48px);
-  height: 56px;
-  margin-top: 20px;
-  fill: #5da9a9;
-  opacity: 0.85;
+  flex: none;
+  display: block;
+  width: calc(100% + 56px); /* bleed past the padding, full card width */
+  margin: 0 -28px;
+  height: 72px;
+  overflow: hidden;
+}
+
+.panel-waves .wave {
+  fill: none;
+  stroke: #5da9a9;
+  stroke-width: 4;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke; /* even line weight at any panel width */
+  animation: wave-drift 9s linear infinite;
+}
+
+.panel-waves .wave-2 {
+  animation-duration: 12s;
+  animation-direction: reverse;
+}
+
+.panel-waves .wave-3 {
+  animation-duration: 15s;
+}
+
+.panel-waves .wave-4 {
+  animation-duration: 18s;
+  animation-direction: reverse;
+}
+
+@keyframes wave-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* one full period = WAVE_W (200) in a 2160.32-wide viewBox */
+    transform: translateX(calc(-200 / 2160.32 * 100%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-waves .wave {
+    animation: none;
+  }
 }
