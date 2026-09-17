@@ -44,7 +44,7 @@ const SECTION_ICONS: Record<(typeof SECTION_KEYS)[number], string> = {
 }
 
 /**
- * Wave footer (SPEC §8 art direction): three stroked sine lines echoing the
+ * Wave footer (SPEC §8 art direction): four stroked sine lines echoing the
  * `modal.jpeg` wave detail. Stroked paths (fill:none) so the lines can slide
  * horizontally in a seamless loop — each period is exactly WAVE_W wide, so a
  * one-period translate repeats perfectly.
@@ -53,7 +53,7 @@ const WAVE_W = 200
 function wavePath(y: number, amp: number): string {
   const half = WAVE_W / 2
   let d = `M${-WAVE_W},${y}`
-  for (let x = -WAVE_W; x < 2160.32 + WAVE_W; x += half) {
+  for (let x = -WAVE_W; x < 2160.32 + WAVE_W; x += WAVE_W) {
     d += ` q${half / 2},${-amp} ${half},0 q${half / 2},${amp} ${half},0`
   }
   return d
@@ -178,7 +178,7 @@ export function Panel({
           ×
         </button>
         <h2 id="panel-heading">{project.name}</h2>
-        <div className="panel-body">
+        <div className="panel-body" tabIndex={0}>
           {sections.map(({ key, items }) => (
             <section key={key} className="panel-section">
               <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />

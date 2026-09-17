@@ -43,7 +43,9 @@
 }
 
 /* Mobile: full-bleed sheet (user directive — "full screen modal"), all four
-   inset margins 0 so the cover camera never shows at the edges. */
+   inset margins 0 so the cover camera never shows at the edges. Safe-area
+   insets keep the close button and text clear of notches/gesture bars
+   (index.html sets viewport-fit=cover). */
 .panel-mobile {
   width: 100vw;
   height: 100dvh;
@@ -52,6 +54,13 @@
   border-radius: 0;
   box-shadow: none;
   transform: translateY(24px);
+  padding: max(24px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-right)) 0
+    max(28px, env(safe-area-inset-left));
+}
+
+.panel-mobile .panel-close {
+  top: max(10px, env(safe-area-inset-top));
+  right: max(10px, env(safe-area-inset-right));
 }
 
 @keyframes panel-in {
@@ -109,6 +118,14 @@
   overflow-x: hidden;
   overscroll-behavior: contain;
   padding-bottom: 12px;
+}
+
+/* tabIndex=0 scroll container: keyboard users must be able to scroll the
+   body (no other focusable descendant exists when a section list is short
+   of links). Visible only for keyboard focus. */
+.panel-body:focus-visible {
+  outline: 3px solid #304e23;
+  outline-offset: -3px;
 }
 
 .panel-section {
@@ -169,7 +186,7 @@
   margin-top: 0.45em;
 }
 
-/* Wave footer strip (SPEC §8) — three hand-drawn wave LINES (stroked, like
+/* Wave footer strip (SPEC §8) — four hand-drawn wave LINES (stroked, like
    modal.jpeg) sliding slowly sideways; staggered delays desync the lines.
    Filled wave beneath on mobile full-bleed only would cover text, so the
    lines sit in their own fixed-height strip. */

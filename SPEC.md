@@ -125,7 +125,7 @@ Extensions (top-level project fields — same shape as AGENTS.md):
 - **Art direction = `na cuia/modal.jpeg` (the authoritative panel mock)**: cream paper background, dark green/brown stroke accents, the REAL §1 icon art per section (left icon column, text right — not authored stroke glyphs), Fraunces headings + Archivo body, subtle irregular hand-drawn border, animated wavy line detail at the bottom (CSS `translateX` loop, one period per keyframe cycle; static under `prefers-reduced-motion`). No visible section headings — the icon carries the meaning; the `h3` stays for the accessibility tree (visually hidden). Long-text readability: body ≥ 16 px, line-height ≥ 1.6; decoration is inline-SVG only (≤ ~5 KB — §11); icon art ships as static `?url` assets.
 - Renders **exactly the six whitelisted content keys in data order** — never `icon`/`pos` metadata. Sections with empty arrays are **hidden**. No link rendering today (data has no URL fields); a structured links field is future work.
 - Accessible name: `aria-labelledby` bound to the organization-name heading; `role="dialog"`, `aria-modal`, initial focus to the panel, background `inert`, focus trap, focus returns to the triggering artifact on close, `Esc` + `×`, body scroll locked (`position: fixed` technique).
-- While open: desktop drawer calls `controller.setObstruction(panelRect)` (§6 — desktop-only); mobile passes `setObstruction(null)` (occlusion intentional). `setObstruction(null)` on close in both cases.
+- While open: `controller.setObstruction(null)` in both variants — v1.2 the panel is a centered modal on every form factor, occlusion is by design (the §6 desktop obstruction path is dormant until a drawer-like surface returns).
 
 ## 9. Accessibility
 
