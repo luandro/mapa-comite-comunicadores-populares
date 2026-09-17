@@ -34,6 +34,7 @@ import { assertBaseCounts, partitionBase } from './partition'
 import { initialFraming } from './placements'
 import './scene.css'
 import type { Box, Camera, FlyToOptions, ObstructionRect, TransformState } from './types'
+import { unfocusFlight } from './unfocus'
 import processedBase from '/na cuia/icons/svg/mapa cru.svg?scene'
 
 export interface SceneController {
@@ -102,6 +103,8 @@ const ARTIFACT_SETTLE_DURATION = 0.35
 const ARROW_REDRAW_DURATION = 0.6 // per-org dash-draw re-run on tap
 /** focusArtifact flies to a box this many scene units around the org pos. */
 const ARTIFACT_FOCUS_BOX = 120
+/** Deselect fly-back duration (issue #11) — the same beat as the camera reset. */
+const UNFOCUS_DURATION = 0.6
 
 export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   // DOM: .scene-root > svg#scene > g#camera > 3 base layers; plus svg#measure and
@@ -272,6 +275,11 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   // slides while the artifact breathes.
   let selectedArtifactId: string | null = null
   const artifactCtx = gsap.context(() => {}, sceneSvg)
+  // Issue #11: the framing snapshot taken right before focusArtifact's fly.
+  // Null once the deselect fly-back consumes it (and before any first focus) —
+  // the deselect then falls back to initialFraming. Closure state only: camera
+  // truth stays in d3-zoom's transform; this is a scene Box, never a DOM read.
+  let preFocusFraming: Box | null = null
 
   /** Re-run the Phase 3 dash-draw for ONE org's arrows (~0.6 s, SPEC §5). */
   function redrawOrgArrows(orgId: string): void {
@@ -351,6 +359,21 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       })
     }
     if (opts.pulse && nextId !== null) redrawOrgArrows(nextId)
+    // Issue #11: a real deselect (state CHANGE to null — empty-tap, toggling
+    // the selected totem, or its keyboard toggle) also flies the camera back
+    // to the pre-focus framing (initialFraming fallback). This is the single
+    // deselect choke point; a no-op deselect returned above, so an empty tap
+    // with nothing selected never moves the camera. The capture is spent here
+    // rather than on tween completion — nothing else reads it, and the next
+    // focusArtifact captures fresh regardless.
+    if (changed && nextId === null) {
+      const flight = unfocusFlight(preFocusFraming, initialFraming)
+      preFocusFraming = null
+      camera.flyTo(flight.box, {
+        ...flight.opts,
+        duration: reduceMotion ? 0 : UNFOCUS_DURATION,
+      })
+    }
     // artifact-tap fires on a state CHANGE to an artifact only (opus P2);
     // the deselect is a settle, not a change.
     if (changed && nextId !== null) artifactTapHub.emit(nextId)
@@ -608,6 +631,10 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       // Select (+ pulse + arrow redraw), then fly to a box around the pos
       // (SPEC §5 focus mirrors focusCity: clamped + fitted by the camera).
       applyArtifactState(id, { pulse: true })
+      // Issue #11: snapshot the framing BEFORE the fly — the eventual deselect
+      // flies back to this box. The assignment supersedes any prior capture
+      // (the captured state resets when a new focusArtifact begins).
+      preFocusFraming = camera.framing()
       camera.flyTo({
         x: anchor.x - ARTIFACT_FOCUS_BOX,
         y: anchor.y - ARTIFACT_FOCUS_BOX,
