@@ -33,9 +33,9 @@ const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
 
 /**
  * Authored section glyphs (§1) — the REAL icon art from `na cuia/icons/svg/`
- * (same set the scene uses), one per whitelisted section. Layout mirrors
- * `na cuia/modal.jpeg`: icon column left, text right. Plain `?url` imports —
- * assets only, never inlined into the scene (AGENTS invariant 3).
+ * (same set the scene uses), one per whitelisted section. v1.2 centered
+ * layout: each icon sits above its centered text block. Plain `?url` imports
+ * — assets only, never inlined into the scene (AGENTS invariant 3).
  */
 const SECTION_ICONS: Record<(typeof SECTION_KEYS)[number], string> = {
   conflitos: icone2, // lightning — conflict/energy
@@ -69,14 +69,34 @@ function innerSvg(processed: string): string {
 const WAVE_INK_L = 35.45
 const WAVE_INK_R = 2117.97
 const WAVE_INK_W = WAVE_INK_R - WAVE_INK_L
-/** Footer strip height in band units — onda1 bottom lands flush at the edge. */
-const WAVE_STRIP_H = 132
-/** Faintest on top, solid at the bottom edge (mock: densify downward). */
-const ONDA_STACK = [
-  { body: innerSvg(onda4), offset: 0 }, // 0.2 — melts into the paper
-  { body: innerSvg(onda2), offset: 30 }, // 0.8
-  { body: innerSvg(onda1), offset: 58 }, // solid — bottom edge
-]
+/**
+ * Overlay strip height (band units). The overlay straddles the card's bottom
+ * edge (CSS `top: calc(100% - 60px)` inside .panel-frame): the first 60px of
+ * bands paint over the cream, the remaining 80px flow over the live map and
+ * dissolve via the fade mask.
+ */
+const WAVE_OVERLAY_H = 300
+/**
+ * Band cascade (design parity with modal.jpeg: ~12 stacked wave lines at ~9px
+ * mock pitch ≈ 18 band-units at card scale). Three assets alternate — onda4
+ * (faintest) near the card, onda2 mid, onda1 (solid) — repeated every 18
+ * units down the strip; the fade mask dissolves the tail into the map.
+ * 42 bands per tile × 3 tile copies = 126 single-path groups — three reused
+ * assets under ONE animated parent (CSS transform), so cost stays trivial.
+ */
+const WAVE_BAND_PITCH = 18
+const ONDA_STACK: Array<{ body: string; offset: number }> = []
+for (let tier = 0; tier < 7; tier++) {
+  const base = tier * (WAVE_BAND_PITCH * 2) // 36-unit tier (18 pitch + 18 gap)
+  ONDA_STACK.push(
+    { body: innerSvg(onda4), offset: base },
+    { body: innerSvg(onda2), offset: base + WAVE_BAND_PITCH / 3 },
+    { body: innerSvg(onda1), offset: base + (2 * WAVE_BAND_PITCH) / 3 },
+    { body: innerSvg(onda4), offset: base + WAVE_BAND_PITCH },
+    { body: innerSvg(onda2), offset: base + WAVE_BAND_PITCH + WAVE_BAND_PITCH / 3 },
+    { body: innerSvg(onda1), offset: base + WAVE_BAND_PITCH + (2 * WAVE_BAND_PITCH) / 3 },
+  )
+}
 
 /**
  * One periodic tile = the full band stack, laid out as the 3-copy
@@ -218,61 +238,71 @@ export function Panel({
       {/* Outside-click backdrop: NOT inert (the scene host is), so taps on the
           map still reach the app and close the panel (empty-tap path, SPEC §8). */}
       <div className="panel-backdrop" onClick={handleClose} aria-hidden="true" />
-      <div
-        ref={panelRef}
-        className={mobile ? 'panel panel-mobile' : 'panel'}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="panel-heading"
-        data-testid="content-panel"
-      >
-        <button
-          ref={closeRef}
-          className="panel-close"
-          type="button"
-          onClick={handleClose}
-          aria-label="Fechar painel"
+      {/* Frame owns the fixed/centered placement + entrance animation. The
+          card and the wave overlay position INSIDE it, so the overlay tracks
+          the card's bottom edge purely with CSS (top: calc(100% - 60px)) —
+          no rect-sync JS, no entrance-animation race (review round 1). */}
+      <div className={mobile ? 'panel-frame panel-mobile' : 'panel-frame'}>
+        <div
+          ref={panelRef}
+          className="panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="panel-heading"
+          data-testid="content-panel"
         >
-          ×
-        </button>
-        <h2 id="panel-heading">{project.name}</h2>
-        <div className="panel-body" tabIndex={0}>
-          {sections.map(({ key, items }) => (
-            <section key={key} className="panel-section">
-              <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
-              <div className="panel-section-content">
-                <h3 className="panel-section-label">{SECTION_LABELS[key]}</h3>
-                <ul>
-                  {items.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            </section>
-          ))}
+          <button
+            ref={closeRef}
+            className="panel-close"
+            type="button"
+            onClick={handleClose}
+            aria-label="Fechar painel"
+          >
+            ×
+          </button>
+          <h2 id="panel-heading">{project.name}</h2>
+          <div className="panel-body" tabIndex={0}>
+            {sections.map(({ key, items }) => (
+              <section key={key} className="panel-section">
+                <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
+                <div className="panel-section-content">
+                  <h3 className="panel-section-label">{SECTION_LABELS[key]}</h3>
+                  <ul>
+                    {items.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            ))}
+          </div>
         </div>
+        {/* v1.2 user directive: the waves must FADE INTO the background, not
+            sit on the cream. The overlay straddles the card's bottom edge:
+            top 60px of bands over the cream (as in modal.jpeg), the rest over
+            the live map, dissolving via the fade mask. */}
         <svg
-          className="panel-footer"
-          viewBox={`0 0 ${WAVE_INK_W} ${WAVE_STRIP_H}`}
+          className="panel-waves-overlay"
+          viewBox={`0 0 ${WAVE_INK_W} ${WAVE_OVERLAY_H}`}
           preserveAspectRatio="none"
           aria-hidden="true"
         >
           <defs>
             <linearGradient id="panel-wave-fade" x1="0" y1="0" x2="0" y2="1">
-              {/* the stack melts into the cream paper at the top and stays
-                  fully opaque through the solid bottom band */}
-              <stop offset="0" stopColor="#fff" stopOpacity="0" />
-              <stop offset="0.55" stopColor="#fff" stopOpacity="1" />
-              <stop offset="1" stopColor="#fff" stopOpacity="1" />
+              {/* solid at the overlay top (on cream), ≈half opacity at the
+                  card seam, transparent at the bottom: the bands melt into
+                  whatever is behind (the live map) */}
+              <stop offset="0" stopColor="#fff" stopOpacity="1" />
+              <stop offset="0.55" stopColor="#fff" stopOpacity="0.55" />
+              <stop offset="1" stopColor="#fff" stopOpacity="0" />
             </linearGradient>
             <mask id="panel-wave-mask">
-              <rect width={WAVE_INK_W} height={WAVE_STRIP_H} fill="url(#panel-wave-fade)" />
+              <rect width={WAVE_INK_W} height={WAVE_OVERLAY_H} fill="url(#panel-wave-fade)" />
             </mask>
           </defs>
           <g mask="url(#panel-wave-mask)">
-            {/* STATIC mask wrapper — the mask must NOT travel with the
-                animated group (it would slide out of the viewport mid-loop).
-                Only the inner .panel-waves group drifts. */}
+            {/* STATIC mask wrapper — the mask must NOT travel with the animated
+                group (it would slide out of the viewport mid-loop). */}
             <g className="panel-waves">
               {waveTile(0)}
               {waveTile(1)}

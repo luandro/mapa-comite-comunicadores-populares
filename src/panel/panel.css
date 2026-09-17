@@ -1,8 +1,9 @@
 /* Phase 6 panel (SPEC §8): cream paper, green/brown strokes, irregular
    hand-drawn border, wave footer. React-owned UI — pt-BR.
    v1.2 — user-directed restyle: CENTERED modal (desktop + mobile), matching
-   `na cuia/modal.jpeg`: icon art per section (left column), no horizontal
-   scroll, animated wavy line detail at the bottom. */
+   `na cuia/modal.jpeg`: centered icon-above-text sections, no horizontal
+   scroll, onda gradient bands straddling the card's bottom edge and fading
+   INTO the background. */
 
 /* Outside-click backdrop: covers the viewport UNDER the panel (z 40). It is
    a sibling, NOT inside the inerted scene host, so map taps stay reachable
@@ -15,7 +16,11 @@
   background: transparent;
 }
 
-.panel {
+/* Frame: owns the fixed/centered placement + entrance animation. The card and
+   the wave overlay position INSIDE it — the overlay tracks the card's bottom
+   edge with pure CSS (top: calc(100% - 60px)), immune to the entrance
+   animation (a rect-sync effect would measure the card mid-translate). */
+.panel-frame {
   position: fixed;
   inset: 0;
   z-index: 40; /* above #labels (10) and title (20), below DEV toolbar (4000) */
@@ -24,10 +29,23 @@
   width: min(880px, calc(100vw - 48px));
   height: fit-content;
   max-height: calc(100dvh - 48px);
+  transform: translateY(24px);
+  opacity: 0;
+  animation: panel-in 0.28s ease-out forwards;
+}
+
+/* v1.2 user directive: content centered on the modal (the mock reads as a
+   centered composition). */
+.panel {
+  position: relative; /* inside .panel-frame */
+  box-sizing: border-box;
+  height: fit-content;
+  max-height: calc(100dvh - 48px);
   display: flex;
   flex-direction: column;
   overflow: hidden; /* the BODY scrolls; the panel never scrolls sideways */
   padding: 24px 28px 0;
+  text-align: center;
   background: #fdf6e3; /* cream paper */
   color: #1c2b1c;
   font-family: Archivo, system-ui, sans-serif;
@@ -37,9 +55,6 @@
   border: 3px solid #304e23;
   border-radius: 18px 6px 22px 9px / 8px 20px 7px 24px;
   box-shadow: 6px 8px 0 rgba(48, 78, 35, 0.25);
-  transform: translateY(24px);
-  opacity: 0;
-  animation: panel-in 0.28s ease-out forwards;
 }
 
 /* Mobile: full-bleed sheet (user directive — "full screen modal"), all four
@@ -50,10 +65,14 @@
   width: 100vw;
   height: 100dvh;
   max-height: 100dvh;
+}
+
+.panel-mobile .panel {
+  height: 100%; /* card fills the frame so the overlay tracks its bottom */
+  max-height: 100%;
   border: none;
   border-radius: 0;
   box-shadow: none;
-  transform: translateY(24px);
   padding: max(24px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-right)) 0
     max(28px, env(safe-area-inset-left));
 }
@@ -71,8 +90,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel,
-  .panel-mobile {
+  .panel-frame {
     animation: none;
     transform: translateY(0);
     opacity: 1;
@@ -102,7 +120,10 @@
 
 .panel h2 {
   flex: none;
-  margin: 0 48px 8px 0;
+  /* symmetric gutters: the close button is position:absolute, so the left
+     margin costs nothing — keeps the title on the content axis (centered
+     layout, review round 3) */
+  margin: 0 48px 8px;
   font-family: Fraunces, Georgia, serif;
   font-size: 24px;
   line-height: 1.2;
@@ -110,14 +131,21 @@
 }
 
 /* Scrollable middle: vertical only — `overflow-x: hidden` + wrap-safe
-   children guarantee zero horizontal scrolling (user directive). */
+   children guarantee zero horizontal scrolling (user directive).
+   padding-bottom 72px: the wave overlay paints over the card's last 60px,
+   so the last list item must stay clear of it (review P1). Mobile overlay
+   is bottom-anchored and 100px tall → 112px there. */
 .panel-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  padding-bottom: 12px;
+  padding-bottom: 72px;
+}
+
+.panel-mobile .panel-body {
+  padding-bottom: 112px; /* bottom-anchored overlay covers the last 100px */
 }
 
 /* tabIndex=0 scroll container: keyboard users must be able to scroll the
@@ -130,12 +158,16 @@
 
 .panel-section {
   display: flex;
-  align-items: flex-start;
-  gap: 18px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   margin: 18px 0;
+  /* v1.2 user directive: content centered on the modal */
+  text-align: center;
 }
 
-/* Real icon art (na cuia/icons/svg) — one per section, left column. */
+/* Real icon art (na cuia/icons/svg) — one per section. v1.2: centered layout,
+   icon sits above its centered text block. */
 .panel-icon {
   flex: none;
   width: 52px;
@@ -186,17 +218,22 @@
   margin-top: 0.45em;
 }
 
-/* Wave footer strip (SPEC §8) — the REAL onda gradient bands (faint → solid,
-   densifying downward like modal.jpeg) drifting slowly sideways as a
-   3-copy [A][A′][A] mirror chain, masked so the top of the stack melts
-   into the cream paper. One loop = 2 tile widths (mirror-pair period). */
-.panel-footer {
-  flex: none;
-  display: block;
-  width: calc(100% + 56px); /* bleed past the padding, full card width */
-  margin: 0 -28px;
-  height: 84px;
-  overflow: hidden;
+/* Wave footer strip removed from inside the card (v1.2): the stack moved to
+   .panel-waves-overlay outside the card so it can fade into the background. */
+
+/* Wave overlay (v1.2 user directive): the band stack lives OUTSIDE the card,
+   straddling its bottom edge — first pale bands on the cream (like the mock),
+   then flowing over the live map and fading to transparent via the mask in
+   Panel.tsx. Absolute inside .panel-frame, so it tracks the card edge with
+   pure CSS (no JS measurement, no entrance-animation race). */
+.panel-waves-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% - 60px); /* first 60px of bands paint over the cream */
+  height: 100px; /* 60 on-card + 40 of fade over the map */
+  width: 100%;
+  pointer-events: none;
 }
 
 .panel-waves {
@@ -216,6 +253,14 @@
   to {
     transform: translateX(-200%);
   }
+}
+
+/* Mobile: the frame IS the viewport, so top: calc(100% - 60px) would push
+   the 40px fade tail below the screen (hard cut mid-wave). Anchor the whole
+   stack inside the frame instead. */
+.panel-mobile .panel-waves-overlay {
+  top: auto;
+  bottom: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
