@@ -186,54 +186,40 @@
   margin-top: 0.45em;
 }
 
-/* Wave footer strip (SPEC §8) — four hand-drawn wave LINES (stroked, like
-   modal.jpeg) sliding slowly sideways; staggered delays desync the lines.
-   Filled wave beneath on mobile full-bleed only would cover text, so the
-   lines sit in their own fixed-height strip. */
+/* Wave footer strip (SPEC §8) — the REAL onda gradient bands (faint → solid,
+   densifying downward like modal.jpeg) drifting slowly sideways as a
+   3-copy [A][A′][A] mirror chain, masked so the top of the stack melts
+   into the cream paper. One loop = 2 tile widths (mirror-pair period). */
 .panel-footer {
   flex: none;
   display: block;
   width: calc(100% + 56px); /* bleed past the padding, full card width */
   margin: 0 -28px;
-  height: 72px;
+  height: 84px;
   overflow: hidden;
 }
 
-.panel-waves .wave {
-  fill: none;
-  stroke: #5da9a9;
-  stroke-width: 4;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke; /* even line weight at any panel width */
-  animation: wave-drift 9s linear infinite;
+.panel-waves {
+  /* asset-faithful: the onda bands keep their own pale-blue gradient fills
+     (resolve-style-attrs already burned them into fill attributes) */
+  animation: wave-drift 40s linear infinite;
+  will-change: transform;
+  transform-box: view-box; /* % translate resolves against the viewBox width */
 }
 
-.panel-waves .wave-2 {
-  animation-duration: 12s;
-  animation-direction: reverse;
-}
-
-.panel-waves .wave-3 {
-  animation-duration: 15s;
-}
-
-.panel-waves .wave-4 {
-  animation-duration: 18s;
-  animation-direction: reverse;
-}
-
+/* -200% of the viewBox width = 2 tiles = one [A][A′] mirror period — the
+   identical copy lands back at x=0, seamless wrap. */
 @keyframes wave-drift {
   from {
     transform: translateX(0);
   }
   to {
-    /* one full period = WAVE_W (200) in a 2160.32-wide viewBox */
-    transform: translateX(calc(-200 / 2160.32 * 100%));
+    transform: translateX(-200%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel-waves .wave {
+  .panel-waves {
     animation: none;
   }
 }
