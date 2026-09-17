@@ -11,6 +11,12 @@
  */
 import { useCallback, useEffect, useRef } from 'react'
 import { SECTION_KEYS, type Project } from '../data/types'
+import icone1 from '/na cuia/icons/svg/icone 1.svg?url'
+import icone2 from '/na cuia/icons/svg/icone 2.svg?url'
+import icone3 from '/na cuia/icons/svg/icone 3.svg?url'
+import icone4 from '/na cuia/icons/svg/icone 4.svg?url'
+import icone5 from '/na cuia/icons/svg/icone 5.svg?url'
+import icone7 from '/na cuia/icons/svg/icone 7.svg?url'
 
 /** pt-BR headings, whitelisted section keys in contract order (AGENTS §9). */
 const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
@@ -22,16 +28,37 @@ const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
   identidade: 'Identidade',
 }
 
-/** Authored section glyphs (§1) — tiny inline strokes, cream/green palette. */
-const SECTION_GLYPHS: Record<(typeof SECTION_KEYS)[number], string> = {
-  conflitos: 'M3,12 L9,6 L15,12 L21,6', // lightning zig-zag
-  acao: 'M12,3 L12,21 M3,12 L21,12', // crossing action strokes
-  identificacao_e_territorio: 'M12,21 C7,15 5,11 5,8.5 A7,7 0 0 1 19,8.5 C19,11 17,15 12,21 Z', // territory pin
-  futuro: 'M4,15 A8,8 0 1 1 12,20 M12,20 L8,17 M12,20 L9,15.5', // forward arrow arc
-  memoria: 'M6,4 H18 V20 L15,17.5 L12,20 L9,17.5 L6,20 Z', // memory banner
-  identidade:
-    'M12,4 A4,4 0 1 1 12,12 A4,4 0 0 1 12,4 M5,20 C5,15.5 8,13.5 12,13.5 C16,13.5 19,15.5 19,20', // person
+/**
+ * Authored section glyphs (§1) — the REAL icon art from `na cuia/icons/svg/`
+ * (same set the scene uses), one per whitelisted section. Layout mirrors
+ * `na cuia/modal.jpeg`: icon column left, text right. Plain `?url` imports —
+ * assets only, never inlined into the scene (AGENTS invariant 3).
+ */
+const SECTION_ICONS: Record<(typeof SECTION_KEYS)[number], string> = {
+  conflitos: icone2, // lightning — conflict/energy
+  acao: icone5, // green leaves — action/growth
+  identificacao_e_territorio: icone4, // carved territory marker — land
+  futuro: icone7, // sprout — what is coming
+  memoria: icone3, // totem — memory/ancestry
+  identidade: icone1, // the cuia itself — identity
 }
+
+/**
+ * Wave footer (SPEC §8 art direction): three stroked sine lines echoing the
+ * `modal.jpeg` wave detail. Stroked paths (fill:none) so the lines can slide
+ * horizontally in a seamless loop — each period is exactly WAVE_W wide, so a
+ * one-period translate repeats perfectly.
+ */
+const WAVE_W = 200
+function wavePath(y: number, amp: number): string {
+  const half = WAVE_W / 2
+  let d = `M${-WAVE_W},${y}`
+  for (let x = -WAVE_W; x < 2160.32 + WAVE_W; x += half) {
+    d += ` q${half / 2},${-amp} ${half},0 q${half / 2},${amp} ${half},0`
+  }
+  return d
+}
+const WAVE_PATHS = [wavePath(16, 11), wavePath(33, 10), wavePath(50, 9), wavePath(66, 8)]
 
 export interface PanelProps {
   project: Project | null
@@ -151,28 +178,33 @@ export function Panel({
           ×
         </button>
         <h2 id="panel-heading">{project.name}</h2>
-        {sections.map(({ key, items }) => (
-          <section key={key} className="panel-section">
-            <h3>
-              <svg className="panel-glyph" viewBox="0 0 24 24" aria-hidden="true">
-                <path d={SECTION_GLYPHS[key]} />
-              </svg>
-              {SECTION_LABELS[key]}
-            </h3>
-            <ul>
-              {items.map((item, i) => (
-                <li key={i}>{item}</li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        <div className="panel-body">
+          {sections.map(({ key, items }) => (
+            <section key={key} className="panel-section">
+              <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
+              <div className="panel-section-content">
+                <h3 className="panel-section-label">{SECTION_LABELS[key]}</h3>
+                <ul>
+                  {items.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          ))}
+        </div>
         <svg
           className="panel-footer"
-          viewBox="0 0 2160.32 60"
+          viewBox="0 0 2160.32 90"
           preserveAspectRatio="none"
           aria-hidden="true"
         >
-          <path d="M0,30 Q90,10 180,30 T360,30 T540,30 T720,30 T900,30 T1080,30 T1260,30 T1440,30 T1620,30 T1800,30 T1980,30 T2160,30 V60 H0 Z" />
+          <g className="panel-waves">
+            <path className="wave wave-4" d={WAVE_PATHS[3]} />
+            <path className="wave wave-3" d={WAVE_PATHS[2]} />
+            <path className="wave wave-2" d={WAVE_PATHS[1]} />
+            <path className="wave wave-1" d={WAVE_PATHS[0]} />
+          </g>
         </svg>
       </div>
     </>
