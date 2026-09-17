@@ -179,6 +179,7 @@ export function createCamera(opts: CameraOptions): Camera {
   // --- public API --------------------------------------------------------------
 
   function flyTo(target: Box, flyOpts?: FlyToOptions): void {
+    killActiveFly() // codex r2 P2: a public fly command always supersedes an active flight — even a no-op target. The no-op early-return inside flyToTransform still protects only the internal re-clamp glide (setObstruction), which must never cancel anything.
     refreshWindow()
     const padding = flyOpts?.padding ?? DEFAULT_PADDING
     const maxK = Math.min(flyOpts?.maxK ?? K_MAX, K_MAX)
