@@ -161,11 +161,18 @@ export function Panel({
   const closeRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const restoreFocusRef = useRef<HTMLElement | null>(null)
+  const restoreTimer = useRef<number | null>(null)
   const open = project !== null
 
   // Dialog lifecycle (SPEC §8): runs per open/close transition.
   useEffect(() => {
     if (!open) return
+    // A pending restoration from a previous close cycle is stale — cancel it
+    // so it can never fire against the replaced restoreFocusRef.current.
+    if (restoreTimer.current !== null) {
+      window.clearTimeout(restoreTimer.current)
+      restoreTimer.current = null
+    }
     restoreFocusRef.current =
       document.activeElement instanceof HTMLElement && document.activeElement.isConnected
         ? document.activeElement
@@ -205,8 +212,15 @@ export function Panel({
       // artifact focus-flight (mount.ts), cancelling the fly-back mid-air.
       // The flight is ~0.6s; restore once the camera has settled (or
       // immediately under reduced motion, where the flight is instant).
+      // The timer is tracked and cancelled on the next open/close (codex
+      // round-2 P1: a rapid close→reopen→close left two timers, and the
+      // stale one read the REPLACED restoreFocusRef.current — focusing the
+      // new opener mid-fly-back and re-triggering the zoom).
       const delay = Math.round(UNFOCUS_SETTLE_MS)
-      window.setTimeout(() => restoreFocusRef.current?.focus?.(), delay)
+      restoreTimer.current = window.setTimeout(() => {
+        restoreTimer.current = null
+        restoreFocusRef.current?.focus?.()
+      }, delay)
     }
   }, [open, inertTarget])
 
