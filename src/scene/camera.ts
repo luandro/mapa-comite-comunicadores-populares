@@ -62,8 +62,16 @@ export function createCamera(opts: CameraOptions): Camera {
       if (event.sourceEvent) killActiveFly()
     })
     .on('zoom', (event) => {
-      cameraNode.setAttribute('transform', event.transform.toString())
-      onFrame({ x: event.transform.x, y: event.transform.y, k: event.transform.k })
+      // A pill-started touch forwards a synthetic stream into d3; if a
+      // native contact ever lands at the SAME coordinates, d3's pinch math
+      // divides by zero separation and emits NaN k/x/y (codex r4 repro).
+      // Guard the single choke point every transform passes through: never
+      // write a non-finite transform to the DOM (the camera state and the
+      // next real gesture stay sane; the poisoned gesture ends by itself).
+      const t = event.transform
+      if (!Number.isFinite(t.k) || !Number.isFinite(t.x) || !Number.isFinite(t.y)) return
+      cameraNode.setAttribute('transform', t.toString())
+      onFrame({ x: t.x, y: t.y, k: t.k })
     })
 
   // Push the current window/domain as d3 extents (translateExtent takes no
