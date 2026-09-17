@@ -99,6 +99,9 @@ g[data-artifact-id]:focus-visible {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+  /* while hidden the pill must not retarget camera gestures either (bot-review
+     P2): pointer-events:none already drops it from hit testing — this comment
+     documents the contract; see layers.test.ts source pins. */
 }
 
 .label-pill {

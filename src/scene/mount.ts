@@ -432,7 +432,44 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     applyArtifactState(plan.orgId, { pulse: true })
     if (plan.emitDirect) artifactTapHub.emit(plan.orgId)
   }
+
+  // Bot-review P2 (issue #13): the pill's pointer-events:auto box must not
+  // steal CAMERA GESTURES — d3-zoom listens on svg#scene, a sibling of
+  // #labels, so a drag/pinch/wheel/double-tap STARTED on a pill would fall
+  // into the label subtree and neither pan/zoom nor cancel an active fly.
+  // Pointerdown on a pill therefore retargets the gesture onto the totem's
+  // interaction g (same org, same scene position — the pill is anchored to
+  // it): d3-zoom sees a native pointerdown on the SVG and pans normally; a
+  // clean tap produces no drag and the click handler above still opens the
+  // modal. Detail 0 suppresses the click re-dispatch's own detail>1 guard.
+  function onLabelsPointerDown(event: PointerEvent): void {
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const orgId = target.closest<HTMLElement>('[data-label-for]')?.dataset.labelFor
+    if (!orgId || !(orgId in calibrated.artifacts)) return
+    event.stopPropagation()
+    // Retarget as a REAL mousedown on the totem's interaction g: d3-zoom
+    // binds "mousedown.zoom" (not pointer events), so the retargeted event
+    // must be a MouseEvent('mousedown') to start a pan; the interaction g
+    // lives inside svg#scene, so d3's gesture continues on real mousemove/up.
+    // (A synthetic PointerEvent was tried first — it bubbles but d3 ignores
+    // it.) clientX/Y are preserved so the pan anchors at the pill point.
+    // jsdom ships no mousedown-capable MouseEvent init in d3's path, but the
+    // tests dispatch click separately — the retarget is probe-verified.
+    calibrated.artifacts[orgId].dispatchEvent(
+      new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: event.button,
+        buttons: event.buttons,
+      }),
+    )
+  }
   labels.el.addEventListener('click', onLabelsClick)
+  labels.el.addEventListener('pointerdown', onLabelsPointerDown)
 
   // Keyboard activation (SPEC §9): Enter/Space act exactly like a tap; Space
   // is cancelled so the page never scrolls. Focus also flies the camera to
@@ -602,6 +639,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       camera.destroy()
       offLabels()
       labels.el.removeEventListener('click', onLabelsClick)
+      labels.el.removeEventListener('pointerdown', onLabelsPointerDown)
       labels.destroy()
       root.remove()
     },
