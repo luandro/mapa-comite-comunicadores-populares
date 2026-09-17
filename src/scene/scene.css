@@ -101,6 +101,18 @@ g[data-city-id].is-kbd-focus:focus-visible {
   filter: drop-shadow(0 0 3px #304e23) drop-shadow(0 0 1px #304e23);
 }
 
+/* Forced-colors (Windows High Contrast): filters are stripped, so the halo
+   would be invisible — fall back to a real outline, which forced-colors
+   renders with the system contrast color (keyboard modality only, like the
+   halo). */
+@media (forced-colors: active) {
+  g[data-artifact-id].is-kbd-focus:focus-visible,
+  g[data-city-id].is-kbd-focus:focus-visible {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+  }
+}
+
 /* Pill fade (SPEC §5, mobile only — mount.ts applies the gates only when
    isMobile()): opacity/visibility ONLY. Two gates share these rules:
    .pills-hidden = zoom gate on #labels (updatePillFade), .is-far =

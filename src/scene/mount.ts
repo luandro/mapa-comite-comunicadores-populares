@@ -85,9 +85,8 @@ const SVG_NS = 'http://www.w3.org/2000/svg'
 /* Issue #12 city-tap replay tuning: a tap NO LONGER raises/dims city groups —
    it re-runs the entrance choreography for ONLY the organizations connected
    to the tapped city (totem drop + arrow dash-draw + tail-dot fade), as if
-   the app freshly rendered for that city. Short by design (each org's tweens
-   ≤ ~0.8 s), staggered per org. */
-const CITY_REPLAY_STAGGER = 0.08
+   the app freshly rendered for that city. One org at a time (its full
+   tween family retires before the next org starts — SPEC §11 budget). */
 const CITY_REPLAY_DROP_DURATION = 0.5
 const CITY_REPLAY_ARROW_DURATION = 0.45
 
@@ -382,8 +381,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
         // time: the effective stagger ≥ max(DROP, ARROW) retires org i's
         // whole family before org i+1 starts. Belém (7 orgs) replays in
         // ~6×0.5 + 0.5 = 3.5s — comparable to the first-load intro beat.
-        const at =
-          i * Math.max(CITY_REPLAY_STAGGER, CITY_REPLAY_DROP_DURATION, CITY_REPLAY_ARROW_DURATION)
+        const at = i * Math.max(CITY_REPLAY_DROP_DURATION, CITY_REPLAY_ARROW_DURATION)
         gsap.to(calibrated.artifacts[orgId]!, {
           opacity: 1,
           y: 0,
