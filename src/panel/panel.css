@@ -15,6 +15,8 @@
   background: transparent;
 }
 
+/* v1.2 user directive: content centered on the modal (the mock reads as a
+   centered composition). */
 .panel {
   position: fixed;
   inset: 0;
@@ -28,6 +30,7 @@
   flex-direction: column;
   overflow: hidden; /* the BODY scrolls; the panel never scrolls sideways */
   padding: 24px 28px 0;
+  text-align: center;
   background: #fdf6e3; /* cream paper */
   color: #1c2b1c;
   font-family: Archivo, system-ui, sans-serif;
@@ -130,12 +133,16 @@
 
 .panel-section {
   display: flex;
-  align-items: flex-start;
-  gap: 18px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   margin: 18px 0;
+  /* v1.2 user directive: content centered on the modal */
+  text-align: center;
 }
 
-/* Real icon art (na cuia/icons/svg) — one per section, left column. */
+/* Real icon art (na cuia/icons/svg) — one per section. v1.2: centered layout,
+   icon sits above its centered text block. */
 .panel-icon {
   flex: none;
   width: 52px;
@@ -186,17 +193,19 @@
   margin-top: 0.45em;
 }
 
-/* Wave footer strip (SPEC §8) — the REAL onda gradient bands (faint → solid,
-   densifying downward like modal.jpeg) drifting slowly sideways as a
-   3-copy [A][A′][A] mirror chain, masked so the top of the stack melts
-   into the cream paper. One loop = 2 tile widths (mirror-pair period). */
-.panel-footer {
-  flex: none;
-  display: block;
-  width: calc(100% + 56px); /* bleed past the padding, full card width */
-  margin: 0 -28px;
-  height: 84px;
-  overflow: hidden;
+/* Wave footer strip removed from inside the card (v1.2): the stack moved to
+   .panel-waves-overlay outside the card so it can fade into the background. */
+
+/* Wave overlay (v1.2 user directive): the band stack lives OUTSIDE the card,
+   straddling its bottom edge — first pale bands on the cream (like the mock),
+   then flowing over the live map and fading to transparent via the mask in
+   Panel.tsx. Left/top/width are synced to the card's rect by the Panel
+   rect-sync effect. */
+.panel-waves-overlay {
+  position: fixed;
+  z-index: 41; /* above the panel (40): bands paint OVER the card's edge seam */
+  height: 76px;
+  pointer-events: none;
 }
 
 .panel-waves {

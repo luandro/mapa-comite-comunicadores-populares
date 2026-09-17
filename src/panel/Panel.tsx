@@ -69,9 +69,20 @@ function innerSvg(processed: string): string {
 const WAVE_INK_L = 35.45
 const WAVE_INK_R = 2117.97
 const WAVE_INK_W = WAVE_INK_R - WAVE_INK_L
-/** Footer strip height in band units — onda1 bottom lands flush at the edge. */
-const WAVE_STRIP_H = 132
-/** Faintest on top, solid at the bottom edge (mock: densify downward). */
+/**
+ * Overlay strip height (band units). The overlay's TOP aligns 24px above the
+ * card's bottom edge, so the first bands peek from under the paper and the
+ * stack then flows down over the map, dissolving via the fade mask.
+ * Band geometry: onda1 paints y≈13–71 within its 108-unit strip, so at
+ * overlay height 150 with the in-card stack offsets 0/30/58, the visible
+ * window (strip y 58→132 at the seam) crosses all three bands.
+ */
+const WAVE_OVERLAY_H = 150
+/**
+ * Faintest on top, solid at the bottom edge (mock: densify downward). The
+ * stack is positioned so the solid band sits just under the card's bottom
+ * edge; the fade mask dissolves the lower bands into the background.
+ */
 const ONDA_STACK = [
   { body: innerSvg(onda4), offset: 0 }, // 0.2 — melts into the paper
   { body: innerSvg(onda2), offset: 30 }, // 0.8
@@ -135,8 +146,39 @@ export function Panel({
 }: PanelProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const wavesRef = useRef<SVGSVGElement>(null)
   const restoreFocusRef = useRef<HTMLElement | null>(null)
   const open = project !== null
+
+  // Wave overlay sync: the band stack must hug the card's bottom edge (the
+  // card is fit-content + centered, so its bottom varies with content/size).
+  // The overlay is a sibling (the card clips overflow), positioned by copying
+  // the card's rect. Re-syncs on resize and on content changes.
+  useEffect(() => {
+    if (!open) return
+    const sync = () => {
+      const panel = panelRef.current
+      const waves = wavesRef.current
+      if (!panel || !waves) return
+      const r = panel.getBoundingClientRect()
+      // The overlay paints ABOVE the card (z 41): offsetting its top 60px above
+      // the card's bottom edge puts the first pale bands on the cream (like the
+      // mock) and lets the solid band cross the seam, fading into the map over
+      // the remaining ~40px of strip below it.
+      waves.style.left = `${r.left}px`
+      waves.style.top = `${r.bottom - 60}px`
+      waves.style.width = `${r.width}px`
+    }
+    sync()
+    const observed = panelRef.current
+    const ro = new ResizeObserver(sync)
+    if (observed) ro.observe(observed)
+    window.addEventListener('resize', sync)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', sync)
+    }
+  }, [open, project])
 
   // Dialog lifecycle (SPEC §8): runs per open/close transition.
   useEffect(() => {
@@ -251,36 +293,41 @@ export function Panel({
             </section>
           ))}
         </div>
-        <svg
-          className="panel-footer"
-          viewBox={`0 0 ${WAVE_INK_W} ${WAVE_STRIP_H}`}
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <defs>
-            <linearGradient id="panel-wave-fade" x1="0" y1="0" x2="0" y2="1">
-              {/* the stack melts into the cream paper at the top and stays
-                  fully opaque through the solid bottom band */}
-              <stop offset="0" stopColor="#fff" stopOpacity="0" />
-              <stop offset="0.55" stopColor="#fff" stopOpacity="1" />
-              <stop offset="1" stopColor="#fff" stopOpacity="1" />
-            </linearGradient>
-            <mask id="panel-wave-mask">
-              <rect width={WAVE_INK_W} height={WAVE_STRIP_H} fill="url(#panel-wave-fade)" />
-            </mask>
-          </defs>
-          <g mask="url(#panel-wave-mask)">
-            {/* STATIC mask wrapper — the mask must NOT travel with the
-                animated group (it would slide out of the viewport mid-loop).
-                Only the inner .panel-waves group drifts. */}
-            <g className="panel-waves">
-              {waveTile(0)}
-              {waveTile(1)}
-              {waveTile(2)}
-            </g>
-          </g>
-        </svg>
       </div>
+      {/* v1.2 user directive: the waves must FADE INTO the background, not sit
+          on the cream. The band stack therefore lives OUTSIDE the card, as a
+          fixed overlay hanging below the card's bottom edge (over the map),
+          with its own fade mask. The card itself gets a wavy bottom edge so
+          the white paper appears to dissolve into the wave crest. */}
+      <svg
+        ref={wavesRef}
+        className="panel-waves-overlay"
+        viewBox={`0 0 ${WAVE_INK_W} ${WAVE_OVERLAY_H}`}
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id="panel-wave-fade-2" x1="0" y1="0" x2="0" y2="1">
+            {/* solid at the card seam, fading to transparent at the bottom:
+                the bands melt into whatever is behind (the live map) */}
+            <stop offset="0" stopColor="#fff" stopOpacity="1" />
+            <stop offset="0.55" stopColor="#fff" stopOpacity="0.55" />
+            <stop offset="1" stopColor="#fff" stopOpacity="0" />
+          </linearGradient>
+          <mask id="panel-wave-mask-2">
+            <rect width={WAVE_INK_W} height={WAVE_OVERLAY_H} fill="url(#panel-wave-fade-2)" />
+          </mask>
+        </defs>
+        <g mask="url(#panel-wave-mask-2)">
+          {/* STATIC mask wrapper — the mask must NOT travel with the animated
+              group (it would slide out of the viewport mid-loop). */}
+          <g className="panel-waves">
+            {waveTile(0)}
+            {waveTile(1)}
+            {waveTile(2)}
+          </g>
+        </g>
+      </svg>
     </>
   )
 }

@@ -5,6 +5,17 @@ import { act } from 'react'
 import type { Project } from '../data/types'
 import { Panel } from './Panel'
 
+// jsdom ships no ResizeObserver; the wave-overlay rect-sync owns one on the
+// panel. Structure-only stub (same pattern as src/scene/mount.test.ts).
+class ResizeObserverStub implements ResizeObserver {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+}
+if (typeof ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = ResizeObserverStub
+}
+
 const fullProject: Project = {
   name: 'NA CUIA (BELÉM)',
   conflitos: ['Grilagem na várzea'],
