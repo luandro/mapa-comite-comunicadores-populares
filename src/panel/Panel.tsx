@@ -60,18 +60,15 @@ function innerSvg(processed: string): string {
   return processed.slice(start, end)
 }
 
-/** Native onda width (all three bands share the 2160.32 viewBox). */
-const WAVE_TILE_W = 2160.32
 /**
- * Painted span: the onda inks run x ≈ 35.45…2117.97 inside their 2160.32
- * viewBox (transparent side margins, getBBox-measured). Placing tiles at the
- * FULL viewBox width leaves an ~85-unit unpainted break at every seam, so
- * tiles are positioned at the painted span W instead: with placement
- * translate(W·2)·scale(−1,1), the mirrored copy's ink starts exactly where
- * the previous copy's ink ends (2W − (x0+w) = W ⇔ W = x0 + w).
+ * Painted ink span of the onda paths (getBBox-measured): the inks run
+ * x = 35.45…2117.97 inside the shared 2160.32 viewBox — the outer ~35/42
+ * units are transparent margins. All wave geometry keys off the INK span,
+ * not the viewBox width.
  */
-const WAVE_PAINT_X0 = 35.45
-const WAVE_PAINT_W = 2117.97 - WAVE_PAINT_X0
+const WAVE_INK_L = 35.45
+const WAVE_INK_R = 2117.97
+const WAVE_INK_W = WAVE_INK_R - WAVE_INK_L
 /** Footer strip height in band units — onda1 bottom lands flush at the edge. */
 const WAVE_STRIP_H = 132
 /** Faintest on top, solid at the bottom edge (mock: densify downward). */
@@ -84,17 +81,23 @@ const ONDA_STACK = [
 /**
  * One periodic tile = the full band stack, laid out as the 3-copy
  * [A][A′][A] mirror chain (the proven seamless-tile pattern from the
- * retired scene bands). SVG geometry: `translate(T) scale(-1,1)` maps the
- * asset ONTO 0…T (reflection about x=T), NOT to T…2T — so the mirrored
- * copy needs `translate(2T) scale(-1,1)` (occupying T…2T) and the trailing
- * plain copy sits at `translate(2T)` (occupying 2T…3T). Chain = [0…3T]
- * contiguous. Loop distance = 2 × WAVE_TILE_W: after −2T the window holds
- * copy 3 ≡ copy 1.
+ * retired scene bands), with every copy translated so its INK (not the
+ * viewBox) starts at the chain position:
+ *
+ *   copy 0 (plain):   ink [0, W]                     at x = −L
+ *   copy 1 (mirror):  ink [W, 2W]  — reflection of   at x = 2R
+ *                     [L,R] about 2R is [2R−R, 2R−L] = [R, 2R−L],
+ *                     shifted by −L → [W, 2W] ✓
+ *   copy 2 (plain):   ink [2W, 3W]                   at x = 2W − L
+ *
+ * The chain paints [0, 3W] with NO gaps, and after the CSS drift of
+ * −2W (panel.css `translateX(-200%)` against a W-wide viewBox) the
+ * window holds copy 2 ≡ copy 0 — seamless wrap by construction.
  */
 const TILE_POSITIONS: Array<{ x: number; mirror: boolean }> = [
-  { x: 0, mirror: false },
-  { x: 2 * WAVE_PAINT_W, mirror: true },
-  { x: 2 * WAVE_PAINT_W, mirror: false },
+  { x: -WAVE_INK_L, mirror: false },
+  { x: 2 * WAVE_INK_R, mirror: true },
+  { x: 2 * WAVE_INK_W - WAVE_INK_L, mirror: false },
 ]
 function waveTile(key: number): JSX.Element {
   const { x, mirror } = TILE_POSITIONS[key]
@@ -246,7 +249,7 @@ export function Panel({
         </div>
         <svg
           className="panel-footer"
-          viewBox={`0 0 ${WAVE_TILE_W} ${WAVE_STRIP_H}`}
+          viewBox={`0 0 ${WAVE_INK_W} ${WAVE_STRIP_H}`}
           preserveAspectRatio="none"
           aria-hidden="true"
         >
@@ -259,7 +262,7 @@ export function Panel({
               <stop offset="1" stopColor="#fff" stopOpacity="1" />
             </linearGradient>
             <mask id="panel-wave-mask">
-              <rect width={WAVE_TILE_W} height={WAVE_STRIP_H} fill="url(#panel-wave-fade)" />
+              <rect width={WAVE_INK_W} height={WAVE_STRIP_H} fill="url(#panel-wave-fade)" />
             </mask>
           </defs>
           <g mask="url(#panel-wave-mask)">
