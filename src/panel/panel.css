@@ -120,7 +120,10 @@
 
 .panel h2 {
   flex: none;
-  margin: 0 48px 8px 0;
+  /* symmetric gutters: the close button is position:absolute, so the left
+     margin costs nothing — keeps the title on the content axis (centered
+     layout, review round 3) */
+  margin: 0 48px 8px;
   font-family: Fraunces, Georgia, serif;
   font-size: 24px;
   line-height: 1.2;
@@ -245,6 +248,14 @@
   to {
     transform: translateX(-200%);
   }
+}
+
+/* Mobile: the frame IS the viewport, so top: calc(100% - 60px) would push
+   the 40px fade tail below the screen (hard cut mid-wave). Anchor the whole
+   stack inside the frame instead. */
+.panel-mobile .panel-waves-overlay {
+  top: auto;
+  bottom: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -33,9 +33,9 @@ const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
 
 /**
  * Authored section glyphs (§1) — the REAL icon art from `na cuia/icons/svg/`
- * (same set the scene uses), one per whitelisted section. Layout mirrors
- * `na cuia/modal.jpeg`: icon column left, text right. Plain `?url` imports —
- * assets only, never inlined into the scene (AGENTS invariant 3).
+ * (same set the scene uses), one per whitelisted section. v1.2 centered
+ * layout: each icon sits above its centered text block. Plain `?url` imports
+ * — assets only, never inlined into the scene (AGENTS invariant 3).
  */
 const SECTION_ICONS: Record<(typeof SECTION_KEYS)[number], string> = {
   conflitos: icone2, // lightning — conflict/energy
@@ -278,8 +278,9 @@ export function Panel({
         >
           <defs>
             <linearGradient id="panel-wave-fade" x1="0" y1="0" x2="0" y2="1">
-              {/* solid at the card seam, fading to transparent at the bottom:
-                  the bands melt into whatever is behind (the live map) */}
+              {/* solid at the overlay top (on cream), ≈half opacity at the
+                  card seam, transparent at the bottom: the bands melt into
+                  whatever is behind (the live map) */}
               <stop offset="0" stopColor="#fff" stopOpacity="1" />
               <stop offset="0.55" stopColor="#fff" stopOpacity="0.55" />
               <stop offset="1" stopColor="#fff" stopOpacity="0" />
