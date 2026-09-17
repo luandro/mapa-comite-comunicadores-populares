@@ -211,6 +211,7 @@ export function createCamera(opts: CameraOptions): Camera {
   }
 
   function reset(): void {
+    killActiveFly() // codex r1 P2: a reset command always supersedes an active fly
     refreshWindow()
     const w = effWin()
     flyToTransform(
