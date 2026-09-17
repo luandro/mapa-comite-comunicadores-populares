@@ -12,6 +12,7 @@ import {
   ARROWHEAD_SCENE,
   ARROW_TIP_CLEARANCE,
   mountCalibratedLayers,
+  orgIdsForCity,
   orgProjects,
   PILL_BAND_SCENE,
   rSceneFor,
@@ -269,6 +270,33 @@ describe('mountCalibratedLayers', () => {
     const layer = cameraNode.querySelector('#layer-arrows')!
     expect(layer.querySelectorAll(':scope > path')).toHaveLength(12)
     expect(layer.querySelectorAll(':scope > circle')).toHaveLength(12)
+  })
+})
+
+describe('orgIdsForCity (issue #12 city→org mapping)', () => {
+  it('maps each city to exactly its own projects, in data order', () => {
+    for (const [cityId, city] of Object.entries(realData.maps)) {
+      expect(orgIdsForCity(realData, cityId)).toEqual(Object.keys(city.projects))
+    }
+    // spot-check the real data: belem's first org is the first data.json key
+    expect(orgIdsForCity(realData, 'belem')[0]).toBe('museu_memorial_vila_da_barca')
+    expect(orgIdsForCity(realData, 'ananindeua')).toEqual([
+      'rede_casacura',
+      'rede_afroamazonida',
+      'centro_educacao_popular',
+      'chibe',
+    ])
+  })
+
+  it('keeps the mapping disjoint across cities (org ids are unique)', () => {
+    const all = Object.keys(realData.maps).flatMap((cityId) => orgIdsForCity(realData, cityId))
+    expect(new Set(all).size).toBe(all.length)
+  })
+
+  it('empty-projects city (moju) and unknown city both map to an empty list', () => {
+    expect(realData.maps.moju.projects).toEqual({})
+    expect(orgIdsForCity(realData, 'moju')).toEqual([])
+    expect(orgIdsForCity(realData, 'cidade-que-nao-existe')).toEqual([])
   })
 })
 

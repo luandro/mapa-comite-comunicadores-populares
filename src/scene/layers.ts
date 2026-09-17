@@ -205,6 +205,19 @@ export function* orgProjects(data: ComiteData): Generator<[id: string, project: 
   }
 }
 
+/**
+ * Issue #12 city→org mapping: the org ids belonging to a city, in data order —
+ * an org belongs to the city whose `data.maps.<cityId>.projects` carries its
+ * id (data.json is canonical; org ids are unique across maps). Unknown city →
+ * []; a mounted city with an empty projects map (moju) → [] too. Callers
+ * intersect with the MOUNTED artifact set — an org without a calibrated `pos`
+ * renders nothing to replay.
+ */
+export function orgIdsForCity(data: ComiteData, cityId: string): string[] {
+  const city = data.maps[cityId]
+  return city ? Object.keys(city.projects) : []
+}
+
 /** Authored quadratic Bézier (SPEC §3 — arrows exist in no reusable asset). */
 function arrowPath(from: Point, end: Point): string {
   const dx = end.x - from.x

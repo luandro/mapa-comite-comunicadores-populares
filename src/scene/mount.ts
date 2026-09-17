@@ -14,14 +14,22 @@ import { gsap } from 'gsap'
 import { isMobile } from '../device'
 import { createCamera } from './camera'
 import {
+  ARTIFACT_DROP_FROM,
   buildIntroTimeline,
+  clearArrowDash,
   finalizeIntroTargets,
   INTRO_DONE_CLASS,
   prefersReducedMotion,
   primeIntroTargets,
 } from './intro'
 import type { IntroTargets } from './intro'
-import { mountCalibratedLayers, orgProjects, rSceneFor, arrowPathLength } from './layers'
+import {
+  arrowPathLength,
+  mountCalibratedLayers,
+  orgIdsForCity,
+  orgProjects,
+  rSceneFor,
+} from './layers'
 import {
   createLabelsLayer,
   IDENTITY_CTM,
@@ -74,15 +82,42 @@ function createHub<Args extends unknown[]>() {
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
-/* Phase 4 city-raise tuning (SPEC §5 city tap, scoped by TODO Phase 4): the
-   tapped city's interaction g lifts and the other two dim. The camera fly,
-   growing shadow and outline draw in the same SPEC sentence are Phase 5 —
-   raise + dim ONLY here. */
-const CITY_RAISE_LIFT = -14 // scene units, GSAP `y` on the interaction g
-// SPEC §5 value — the task contract's 0.45 was a downstream drift (opus round-2
-// adjudication: SPEC stands unless SPEC itself changes in the same commit).
-const CITY_DIM_OPACITY = 0.35
-const CITY_RAISE_DURATION = 0.35
+/* Issue #12 city-tap replay tuning: a tap NO LONGER raises/dims city groups —
+   it re-runs the entrance choreography for ONLY the organizations connected
+   to the tapped city (totem drop + arrow dash-draw + tail-dot fade), as if
+   the app freshly rendered for that city. Short by design (each org's tweens
+   ≤ ~0.8 s), staggered per org. */
+const CITY_REPLAY_STAGGER = 0.08
+const CITY_REPLAY_DROP_DURATION = 0.5
+const CITY_REPLAY_ARROW_DURATION = 0.45
+
+/**
+ * Keyboard-modality focus affordance (issue #12): the old `:focus-visible`
+ * outline painted a black-bordered RECTANGLE around the group bbox on an SVG
+ * `<g>` — and mobile focus heuristics can surface it after pointer taps. The
+ * focusin/focusout handlers below (which already gate on `:focus-visible`)
+ * toggle this class; scene.css draws a drop-shadow halo for it and kills the
+ * outline. Pointer input never paints anything.
+ */
+const KBD_FOCUS_CLASS = 'is-kbd-focus'
+
+/**
+ * Issue #12 replay-state decision (pure, unit-tested): for a city-selection
+ * transition, what must happen to the replayed org set?
+ * - `'replay'` — a NEW city was selected: replay its orgs' entrance
+ * - `'settle'` — a selection reversed (empty-tap / toggle-off): re-finalize
+ *   the replayed orgs to their rest state so nothing lingers
+ * - `'none'`   — no change (applyCityState early-returns before this; kept
+ *   total so the decision table is testable on its own)
+ */
+export function cityReplayAction(
+  prev: string | null,
+  next: string | null,
+): 'replay' | 'settle' | 'none' {
+  if (prev === next) return 'none'
+  if (next !== null) return 'replay'
+  return prev !== null ? 'settle' : 'none'
+}
 
 /**
  * Native viewBox sizes of the city assets (handoff context) — with the
@@ -217,53 +252,140 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     void import('./calibration').then((m) => m.attachCalibration(root, sceneSvg)).catch(() => {})
   }
 
-  // --- Phase 4: city tap = raise (SPEC §5) -----------------------------------
-  // `raisedCityId` is the single raise-state owner; the city groups'
-  // aria-pressed is its DOM reflection. Tweens live in their OWN gsap.context
-  // scoped to the scene (never two owners per node): revert() in destroy()
-  // undoes every raise/dim style — and killing one context never disturbs the
-  // entrance context's tweens, or vice versa. The interaction g is the GSAP
-  // target; the placement g's transform attribute is never touched
-  // (invariant 6) and the ambient g stays CSS-free.
+  // --- Issue #12: city tap = replay the connected orgs' entrance -------------
+  // `raisedCityId` stays the single selection-state owner; each city group's
+  // aria-pressed is its DOM reflection. The raise/dim tweens are GONE — a tap
+  // now replays the entrance for ONLY that city's orgs. The replay's totem
+  // tweens live in cityCtx (reverted in destroy()); arrow redraws stay in
+  // artifactCtx via redrawOrgArrows — never two owners per node (invariant 6:
+  // GSAP touches only the interaction g; the placement g's transform
+  // attribute is never touched, the ambient g stays CSS-free).
   let raisedCityId: string | null = null
+  /** Orgs touched by the current/last city replay — the settle scope below. */
+  let replayedOrgIds: string[] = []
   const cityCtx = gsap.context(() => {}, sceneSvg)
   const reduceMotion = prefersReducedMotion()
 
   function applyCityState(nextId: string | null): void {
-    if (nextId === raisedCityId) return // no state change → no tween, no emit
-    // A tap during the entrance would leave a stuck raise: the intro's city
-    // tween (same nodes/properties) ends at y:0/opacity:1 and erases the lift
-    // while aria-pressed stays true (opus P1). Settle the entrance first —
-    // skipIntro() is idempotent and finalizes every intro target instantly.
+    if (nextId === raisedCityId) return // no state change → no replay, no emit
+    // A tap during the entrance would fight the intro's own artifact tweens
+    // (same nodes/properties: the intro ends them at y:0/opacity:1 and would
+    // erase a mid-flight replay). Settle the entrance first — skipIntro() is
+    // idempotent and finalizes every intro target instantly.
     if (!introDone) skipIntro()
+    const action = cityReplayAction(raisedCityId, nextId)
     raisedCityId = nextId
     for (const [id, interaction] of Object.entries(calibrated.cities)) {
-      const raised = id === nextId
-      interaction.setAttribute('aria-pressed', String(raised))
-      const props = {
-        y: raised ? CITY_RAISE_LIFT : 0,
-        opacity: raised || nextId === null ? 1 : CITY_DIM_OPACITY,
+      interaction.setAttribute('aria-pressed', String(id === nextId))
+    }
+    if (action === 'settle') settleCityReplay()
+    if (nextId !== null) {
+      replayCityIntro(nextId) // also settles any previous city's replay first
+      // city-tap fires on selection CHANGE only (never on reverse) — the
+      // camera fly is the caller's business (focusCity / App subscribers).
+      cityTapHub.emit(nextId)
+    }
+  }
+
+  /** One org's attributed arrow elements in #layer-arrows (paths + tail dots). */
+  function orgArrows(orgId: string): { paths: SVGPathElement[]; tails: SVGCircleElement[] } {
+    return {
+      paths: Array.from(
+        calibrated.arrows.querySelectorAll<SVGPathElement>(`path[data-arrow-org="${orgId}"]`),
+      ),
+      tails: Array.from(
+        calibrated.arrows.querySelectorAll<SVGCircleElement>(`circle[data-arrow-org="${orgId}"]`),
+      ),
+    }
+  }
+
+  /**
+   * Issue #12 reset: kill any in-flight replay tweens on one org set and
+   * rest-state it — the same rest semantics finalizeIntroTargets applies to
+   * the whole scene (intro.ts), scoped to a city's orgs: totems at opacity 1 /
+   * y 0, arrows dash-free at opacity 1 (tails included). Nothing of a replay
+   * may linger after a reset. Kills are property-scoped on the interaction g
+   * so the artifact context's scale tweens (selection/pulse) are never
+   * disturbed; arrow paths/tails have exactly one tween owner (redraws), so
+   * their kills are whole-element.
+   */
+  function settleReplayedOrgs(orgIds: string[]): void {
+    cityCtx.add(() => {
+      const groups: SVGGElement[] = []
+      const paths: SVGPathElement[] = []
+      const tails: SVGCircleElement[] = []
+      for (const orgId of orgIds) {
+        const g = calibrated.artifacts[orgId]
+        if (g) {
+          gsap.killTweensOf(g, 'opacity,y')
+          groups.push(g)
+        }
+        const arrows = orgArrows(orgId)
+        paths.push(...arrows.paths)
+        tails.push(...arrows.tails)
       }
-      cityCtx.add(() => {
-        gsap.to(interaction, {
-          ...props,
-          duration: reduceMotion ? 0 : CITY_RAISE_DURATION,
-          ease: 'power2.out',
-          // A tap during the ~3 s entrance would otherwise lose the lift the
-          // moment the intro tween (same properties, same nodes) ends at
-          // y:0/opacity:1 — 'auto' kills those conflicting tweens at first
-          // render, and every city gets a tween here so no sibling is left
-          // stranded at the intro's primed opacity 0.
+      for (const path of paths) gsap.killTweensOf(path)
+      for (const tail of tails) gsap.killTweensOf(tail)
+      if (groups.length) gsap.set(groups, { opacity: 1, y: 0 })
+      if (paths.length) {
+        clearArrowDash(paths)
+        gsap.set([...paths, ...tails], { opacity: 1 })
+      }
+    })
+  }
+
+  /** Re-finalize the current replay set to rest, then forget it (idempotent). */
+  function settleCityReplay(): void {
+    if (!replayedOrgIds.length) return
+    const orgIds = replayedOrgIds
+    replayedOrgIds = []
+    settleReplayedOrgs(orgIds)
+  }
+
+  /**
+   * Issue #12 replay: re-run the entrance for ONLY the tapped city's orgs —
+   * each totem drops in (opacity 0 → 1 with the intro's ARTIFACT_DROP_FROM
+   * offset) while its arrows dash-draw with the tail-dot fade, staggered per
+   * org, like the app freshly rendered for that city. Org set from
+   * orgIdsForCity (data.json mapping), intersected with the mounted
+   * artifacts; the dash priming lives inside redrawOrgArrows (artifactCtx —
+   * its gsap.set calls run synchronously, so ALL of the city's arrows hide
+   * before the first draw starts). Reduced motion: no priming, no tweens —
+   * the replay is a state jump to the identical rest state (the intro's
+   * no-priming static fallback).
+   */
+  function replayCityIntro(cityId: string): void {
+    settleCityReplay() // a still-running replay from another city must not linger
+    const orgIds = orgIdsForCity(data, cityId).filter((id) => id in calibrated.artifacts)
+    replayedOrgIds = orgIds
+    if (!orgIds.length) return
+    cityCtx.add(() => {
+      if (reduceMotion) return
+      // Prime every org of the city at once — the stagger lives in the
+      // tweens' delays, not in the priming (intro.ts prime/tween pattern).
+      for (const orgId of orgIds) {
+        gsap.set(calibrated.artifacts[orgId]!, { opacity: 0, y: ARTIFACT_DROP_FROM })
+      }
+      orgIds.forEach((orgId, i) => {
+        const at = i * CITY_REPLAY_STAGGER
+        gsap.to(calibrated.artifacts[orgId]!, {
+          opacity: 1,
+          y: 0,
+          duration: CITY_REPLAY_DROP_DURATION,
+          ease: 'power1.out',
+          delay: at,
+          // 'auto' only kills conflicting opacity/y tweens — a selected
+          // artifact's scale tween (artifact context) owns a different
+          // property and is never touched.
           overwrite: 'auto',
         })
+        redrawOrgArrows(orgId, { duration: CITY_REPLAY_ARROW_DURATION, delay: at })
       })
-    }
-    // city-tap fires on raise only (state CHANGE to a city), never on reverse.
-    if (nextId !== null) cityTapHub.emit(nextId)
+    })
   }
 
   // --- Phase 5: artifact tap = select + pulse + arrow redraw (SPEC §5) -------
-  // Same single-owner pattern as the city raise above: `selectedArtifactId`
+  // Same single-owner pattern as the city replay above: `selectedArtifactId`
   // is the only selection-state owner; each interaction g's aria-pressed is
   // its DOM reflection. Every tween lives in the artifact context (reverted
   // in destroy()); GSAP touches ONLY the interaction g — the ambient g keeps
@@ -273,12 +395,18 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   let selectedArtifactId: string | null = null
   const artifactCtx = gsap.context(() => {}, sceneSvg)
 
-  /** Re-run the Phase 3 dash-draw for ONE org's arrows (~0.6 s, SPEC §5). */
-  function redrawOrgArrows(orgId: string): void {
-    const paths = Array.from(
-      calibrated.arrows.querySelectorAll<SVGPathElement>(`path[data-arrow-org="${orgId}"]`),
-    )
+  /**
+   * Re-run the Phase 3 dash-draw for ONE org's arrows (SPEC §5). The gsap.set
+   * priming runs synchronously, so a caller staggering several orgs (the
+   * issue-#12 city replay) hides every arrow up front while `delay` staggers
+   * the draws. Issue #12: tail dots now fade pairwise with their paths, like
+   * the intro draw (intro.ts) — artifact taps get the same enriched redraw.
+   */
+  function redrawOrgArrows(orgId: string, opts: { duration?: number; delay?: number } = {}): void {
+    const { paths, tails } = orgArrows(orgId)
     if (!paths.length) return
+    const duration = reduceMotion ? 0 : (opts.duration ?? ARROW_REDRAW_DURATION)
+    const delay = opts.delay ?? 0
     artifactCtx.add(() => {
       for (const path of paths) {
         // Same scaffolding + settle pattern as the intro draw (intro.ts):
@@ -292,7 +420,8 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
         gsap.to(path, {
           opacity: 1,
           attr: { 'stroke-dashoffset': 0 },
-          duration: reduceMotion ? 0 : ARROW_REDRAW_DURATION,
+          duration,
+          delay,
           ease: 'power1.inOut',
           overwrite: 'auto',
           onComplete: () => {
@@ -300,6 +429,10 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
             path.removeAttribute('stroke-dashoffset')
           },
         })
+      }
+      if (tails.length) {
+        gsap.set(tails, { opacity: 0 })
+        gsap.to(tails, { opacity: 1, duration, delay, ease: 'power1.inOut', overwrite: 'auto' })
       }
     })
   }
@@ -358,12 +491,13 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
 
   // City/artifact interaction groups carry [data-interactive] (layers.ts), so
   // taps on their content opt out of empty-tap via the closest() check below.
-  // A city tap toggles: raise, or reverse when that city is already raised.
-  // Phase 4: ignore `event.detail > 1` — the compat dblclick fired after a
-  // double-tap zoom emits a spurious empty-tap that would fight the zoom.
+  // A city tap toggles: select + replay its orgs, or reverse when that city is
+  // already selected. Ignore `event.detail > 1` — the compat dblclick fired
+  // after a double-tap zoom emits a spurious empty-tap that would fight the
+  // zoom.
   function onSceneClick(event: Event): void {
     // Compat click after a double-tap zoom (Chromium fires click per tap):
-    // ignore detail > 1 — the raise-then-reverse flicker would fight the zoom
+    // ignore detail > 1 — the select-then-reverse flicker would fight the zoom
     // and emit spurious taps (opus P2).
     if ('detail' in event && (event as MouseEvent).detail > 1) return
     const target = event.target
@@ -382,8 +516,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       }
       return
     }
-    // Empty water / background: reverse any raised city, deselect any
-    // artifact (settle, no emit — mirrors the city reverse), then notify.
+    // Empty water / background (issue #12 reset): reverse the city selection —
+    // which re-finalizes its replayed orgs to the pristine rest state —
+    // deselect any artifact (settle, no emit), then notify.
     applyCityState(null)
     applyArtifactState(null)
     emptyTapHub.emit()
@@ -392,7 +527,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
 
   // Keyboard activation (SPEC §9): Enter/Space act exactly like a tap; Space
   // is cancelled so the page never scrolls. Focus also flies the camera to
-  // the city (SPEC §8 focus-fly — TODO Phase 4, opus round-2 adjudication).
+  // the city (SPEC §8 focus-fly) and paints the issue-#12 keyboard halo.
   function onCityKeyDown(event: KeyboardEvent): void {
     if (event.key !== 'Enter' && event.key !== ' ') return
     event.preventDefault()
@@ -409,12 +544,14 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   }
   function onCityFocusIn(event: FocusEvent): void {
     const target = event.currentTarget as Element
-    const id = target.getAttribute('data-city-id')
-    // Keyboard-modality only (SPEC §9 focus-fly): mousedown also focuses a
-    // tabindex=0 <g>, and d3-zoom's mousedown handler never preventDefaults —
-    // an unguarded fly would fight every drag-pan from a city (opus round-2
-    // P1; breaks AGENTS §8 "user gesture cancels fly-to").
+    // Keyboard-modality only (SPEC §9 focus-fly + the issue-#12 halo):
+    // mousedown also focuses a tabindex=0 <g>, and d3-zoom's mousedown
+    // handler never preventDefaults — an unguarded fly would fight every
+    // drag-pan from a city (opus round-2 P1; breaks AGENTS §8 "user gesture
+    // cancels fly-to"); the same guard keeps pointer taps halo-free.
     if (!target.matches(':focus-visible')) return
+    target.classList.add(KBD_FOCUS_CLASS)
+    const id = target.getAttribute('data-city-id')
     if (!id || !(id in cityPlacements)) return
     // The placement transform (translate/scale) maps the city's native
     // viewBox onto scene coords; camera.flyTo clamps + fits.
@@ -429,17 +566,25 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       height: h * scale,
     })
   }
+  function onCityFocusOut(event: FocusEvent): void {
+    // Unconditional: whatever modality brought focus here, it is leaving —
+    // drop the halo (a stuck halo would outlive the keyboard tour).
+    const target = event.currentTarget as Element
+    target.classList.remove(KBD_FOCUS_CLASS)
+  }
   for (const interaction of Object.values(calibrated.cities)) {
     interaction.addEventListener('keydown', onCityKeyDown)
     interaction.addEventListener('focusin', onCityFocusIn)
+    interaction.addEventListener('focusout', onCityFocusOut)
   }
   function onArtifactFocusIn(event: FocusEvent): void {
     const target = event.currentTarget as Element
-    const id = target.getAttribute('data-artifact-id')
     // Same keyboard-modality guard as onCityFocusIn (opus P2, SPEC §9): focus
     // flies the camera to the artifact box — NO select, NO emit (a focus fly
     // must not open the Phase 6 panel).
     if (!target.matches(':focus-visible')) return
+    target.classList.add(KBD_FOCUS_CLASS)
+    const id = target.getAttribute('data-artifact-id')
     if (!id || !(id in artifactAnchors)) return
     const anchor = artifactAnchors[id]
     camera.flyTo({
@@ -449,9 +594,14 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       height: ARTIFACT_FOCUS_BOX * 2,
     })
   }
+  function onArtifactFocusOut(event: FocusEvent): void {
+    const target = event.currentTarget as Element
+    target.classList.remove(KBD_FOCUS_CLASS)
+  }
   for (const interaction of Object.values(calibrated.artifacts)) {
     interaction.addEventListener('keydown', onArtifactKeyDown)
     interaction.addEventListener('focusin', onArtifactFocusIn)
+    interaction.addEventListener('focusout', onArtifactFocusOut)
   }
 
   // --- Phase 3 entrance choreography (SPEC §5) --------------------------------
@@ -541,8 +691,8 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     destroy() {
       if (destroyed) return
       destroyed = true
-      // Revert the raise context BEFORE the entrance context: mid-raise
-      // teardown undoes every lift/dim style first, then the intro revert
+      // Revert the city context BEFORE the entrance context: mid-replay
+      // teardown undoes every city-tap style first, then the intro revert
       // restores entrance-start styling — a StrictMode remount replays both
       // from a clean slate.
       cityCtx.revert()
@@ -578,13 +728,14 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     },
     focusCity(id) {
       // Gate on the MOUNTED set (cityPlacements), not data.maps — placements,
-      // not data presence, decide raisability (Moju ships an empty projects
-      // map and is still a mounted, raisable city; opus round-2 P2).
+      // not data presence, decide tappability (Moju ships an empty projects
+      // map and is still a mounted, tappable city; opus round-2 P2).
       if (!(id in cityPlacements)) {
         if (import.meta.env.DEV) console.warn(`[scene] focusCity('${id}'): unknown city`)
         return
       }
-      // Phase 4 (opus round-2): focus flies the camera to the city box.
+      // Select + replay the city's orgs (issue #12), then fly the camera to
+      // the city box.
       applyCityState(id)
       const cityId = id as 'belem' | 'ananindeua' | 'moju'
       const placement = cityPlacements[cityId]

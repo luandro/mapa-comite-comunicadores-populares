@@ -55,7 +55,9 @@ export interface IntroTargets {
 /* Gentle entrance distances — scene units for SVG groups, scale for labels. */
 const LAND_RISE_FROM = 24
 const CITY_RISE_FROM = 30
-const ARTIFACT_DROP_FROM = -48 // drops from above: negative translateY
+/** Exported for the issue-#12 city-tap replay (mount.ts): same drop distance,
+ *  so a replayed totem falls in exactly like the first load did. */
+export const ARTIFACT_DROP_FROM = -48 // drops from above: negative translateY
 const LABEL_POP_FROM = 0.7
 
 /** Last resort when neither `getTotalLength` nor the `d` parse yields a length. */
@@ -121,13 +123,18 @@ export function primeIntroTargets(targets: IntroTargets): void {
  * Resting state for arrows: dash attributes are drawing scaffolding — at rest
  * they would show hairline dashes whenever the rendered length differs a hair
  * from getTotalLength() (and the jsdom fallback length would show real ones).
- * Called at intro completion AND from finalizeIntroTargets (skip path).
+ * Called at intro completion AND from finalizeIntroTargets (skip path), AND
+ * from the issue-#12 city-replay reset (mount.ts) — exported for that reuse.
  */
-function settleArrows(targets: IntroTargets): void {
-  for (const path of targets.arrows.paths) {
+export function clearArrowDash(paths: SVGPathElement[]): void {
+  for (const path of paths) {
     path.removeAttribute('stroke-dasharray')
     path.removeAttribute('stroke-dashoffset')
   }
+}
+
+function settleArrows(targets: IntroTargets): void {
+  clearArrowDash(targets.arrows.paths)
 }
 
 /**

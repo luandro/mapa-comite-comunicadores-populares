@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ComiteData } from '../data/types'
 import type { TransformState } from './types'
 import { updateLabels, updatePillFade } from './labels'
-import { mountScene } from './mount'
+import { cityReplayAction, mountScene } from './mount'
 
 // jsdom ships no ResizeObserver; the camera owns one on the scene container.
 // Structure-only stub so the real camera module can bind during tests.
@@ -234,10 +234,14 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  // --- Phase 4: city tap = raise ---------------------------------------------
-  // jsdom never ticks GSAP's rAF loop, so the tween styles don't land here —
-  // these tests assert the STATE contract instead (aria-pressed is the DOM
-  // reflection of mount.ts's single raisedCityId owner, plus the hub events).
+  // --- Issue #12: city tap = select + org-entrance replay ---------------------
+  // jsdom never ticks GSAP's rAF loop, so the replay TWEENS don't land here —
+  // but the replay's priming is gsap.set (synchronous), and so is the settle.
+  // These tests assert that synchronous state contract: primed → hidden +
+  // dash-scaffolded; settled → the pristine post-intro rest (aria-pressed is
+  // the DOM reflection of mount.ts's single raisedCityId owner, plus the hub
+  // events). The city groups themselves gain NO tap styles at all (issue #12:
+  // the raise/dim is gone).
 
   function cityGroups() {
     return {
@@ -265,7 +269,7 @@ describe('mountScene', () => {
     land.dispatchEvent(new MouseEvent('click', { bubbles: true, detail }))
   }
 
-  it('raise: city click toggles aria-pressed and emits city-tap; empty-tap stays silent', () => {
+  it('city click toggles aria-pressed and emits city-tap; empty-tap stays silent', () => {
     const c = mountScene(host, data)
     const raised: string[] = []
     const empties: number[] = []
@@ -279,7 +283,7 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  it('re-raise: tapping a different city moves the raise; city-tap fires per change', () => {
+  it('re-select: tapping a different city moves the selection; city-tap fires per change', () => {
     const c = mountScene(host, data)
     const raised: string[] = []
     c.on('city-tap', (id) => raised.push(id))
@@ -290,7 +294,7 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  it('reversal: tapping the raised city again settles everything back to rest', () => {
+  it('reversal: tapping the selected city again settles everything back to rest', () => {
     const c = mountScene(host, data)
     const raised: string[] = []
     c.on('city-tap', (id) => raised.push(id))
@@ -302,7 +306,7 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  it('reversal: tapping empty background settles the raise and emits empty-tap', () => {
+  it('reversal: tapping empty background settles the selection and emits empty-tap', () => {
     const c = mountScene(host, data)
     const raised: string[] = []
     const empties: number[] = []
@@ -315,6 +319,139 @@ describe('mountScene', () => {
     expect(empties).toEqual([1])
     expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
     c.destroy()
+  })
+
+  // Two-city fixture so a replay's blast radius is assertable: only belem's
+  // orgs may move when belem is tapped; ananindeua's 'rede' must hold rest.
+  const replayData: ComiteData = {
+    maps: {
+      belem: { name: 'Belém', projects: { ...data.maps.belem.projects } },
+      ananindeua: {
+        name: 'Ananindeua',
+        projects: {
+          rede: {
+            name: 'REDE',
+            pos: { x: 1700, y: 300, from: [{ x: 1700, y: 278 }] },
+            conflitos: [],
+            acao: [],
+            identificacao_e_territorio: [],
+            futuro: [],
+            memoria: [],
+            identidade: [],
+          },
+        },
+      },
+    },
+  }
+
+  /** One org's attributed arrow elements (issue #12 replay targets). */
+  function orgArrowsOf(orgId: string): { paths: SVGPathElement[]; tails: SVGCircleElement[] } {
+    return {
+      paths: Array.from(
+        host.querySelectorAll<SVGPathElement>(`#layer-arrows path[data-arrow-org="${orgId}"]`),
+      ),
+      tails: Array.from(
+        host.querySelectorAll<SVGCircleElement>(`#layer-arrows circle[data-arrow-org="${orgId}"]`),
+      ),
+    }
+  }
+
+  it('cityReplayAction (pure): replay on select, settle on reverse, none on no-change', () => {
+    expect(cityReplayAction(null, 'belem')).toBe('replay')
+    expect(cityReplayAction('belem', 'ananindeua')).toBe('replay')
+    expect(cityReplayAction('belem', null)).toBe('settle')
+    expect(cityReplayAction('belem', 'belem')).toBe('none')
+    expect(cityReplayAction(null, null)).toBe('none')
+  })
+
+  it('replay primes ONLY the tapped city orgs: totems hidden, arrows dash-scaffolded', () => {
+    const c = mountScene(host, replayData)
+    // The tap itself settles the intro first (mount.ts guard) — then primes.
+    tapCity('belem')
+    const groups = artifactGroups()
+    // belem's orgs: primed at the entrance start state (drop-in pending)
+    expect(getComputedStyle(groups['na_cuia']!).opacity).toBe('0')
+    expect(getComputedStyle(groups['chibe']!).opacity).toBe('0')
+    // the OTHER city's org: untouched at the post-intro rest
+    expect(getComputedStyle(groups['rede']!).opacity).toBe('1')
+    // arrows primed with dash scaffolding + hidden tails (pairwise, like intro)
+    const primed = orgArrowsOf('na_cuia')
+    expect(primed.paths[0]!.getAttribute('stroke-dasharray')).not.toBeNull()
+    expect(primed.paths[0]!.getAttribute('stroke-dashoffset')).not.toBeNull()
+    expect(getComputedStyle(primed.paths[0]!).opacity).toBe('0')
+    expect(getComputedStyle(primed.tails[0]!).opacity).toBe('0')
+    const untouched = orgArrowsOf('rede')
+    expect(untouched.paths[0]!.getAttribute('stroke-dasharray')).toBeNull()
+    expect(getComputedStyle(untouched.paths[0]!).opacity).toBe('1')
+    c.destroy()
+  })
+
+  it('no dim/lift: every city group stays at full rest opacity after a tap (issue #12)', () => {
+    const c = mountScene(host, replayData)
+    tapCity('belem')
+    for (const g of Object.values(cityGroups())) {
+      expect(getComputedStyle(g).opacity).toBe('1')
+    }
+    c.destroy()
+  })
+
+  it('empty-tap after a replay re-finalizes the orgs to the pristine rest state', () => {
+    const c = mountScene(host, replayData)
+    tapCity('belem')
+    backgroundClick()
+    for (const id of ['na_cuia', 'chibe', 'rede']) {
+      expect(getComputedStyle(artifactGroups()[id]!).opacity).toBe('1')
+    }
+    const settled = orgArrowsOf('na_cuia')
+    expect(settled.paths[0]!.getAttribute('stroke-dasharray')).toBeNull()
+    expect(settled.paths[0]!.getAttribute('stroke-dashoffset')).toBeNull()
+    expect(getComputedStyle(settled.paths[0]!).opacity).toBe('1')
+    expect(getComputedStyle(settled.tails[0]!).opacity).toBe('1')
+    c.destroy()
+  })
+
+  it('switching cities settles the previous replay before the new one plays (nothing lingers)', () => {
+    const c = mountScene(host, replayData)
+    tapCity('belem')
+    tapCity('ananindeua')
+    const groups = artifactGroups()
+    expect(getComputedStyle(groups['na_cuia']!).opacity).toBe('1') // settled back
+    expect(getComputedStyle(groups['chibe']!).opacity).toBe('1')
+    expect(orgArrowsOf('na_cuia').paths[0]!.getAttribute('stroke-dasharray')).toBeNull()
+    expect(getComputedStyle(groups['rede']!).opacity).toBe('0') // newly replayed
+    expect(orgArrowsOf('rede').paths[0]!.getAttribute('stroke-dasharray')).not.toBeNull()
+    c.destroy()
+  })
+
+  it('a city with no mounted orgs (moju) taps cleanly: aria + emit, nothing primed', () => {
+    const c = mountScene(host, replayData)
+    const raised: string[] = []
+    c.on('city-tap', (id) => raised.push(id))
+    tapCity('moju')
+    expect(raised).toEqual(['moju'])
+    expect(cityGroups().moju.getAttribute('aria-pressed')).toBe('true')
+    for (const id of ['na_cuia', 'chibe', 'rede']) {
+      expect(getComputedStyle(artifactGroups()[id]!).opacity).toBe('1')
+    }
+    c.destroy()
+  })
+
+  it('reduced motion: the replay is a state jump — nothing is primed, nothing tweens', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn() }),
+    )
+    try {
+      const c = mountScene(host, replayData)
+      tapCity('belem')
+      const groups = artifactGroups()
+      // the intro's reduced-motion no-priming fallback, extended to replays
+      expect(groups['na_cuia']!.hasAttribute('style')).toBe(false)
+      expect(orgArrowsOf('na_cuia').paths[0]!.getAttribute('stroke-dasharray')).toBeNull()
+      c.destroy()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   // ---- Phase 5: artifacts ----
@@ -384,6 +521,36 @@ describe('mountScene', () => {
     g.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
     Element.prototype.matches = realMatches
     expect(g.getAttribute('aria-pressed')).toBe('false')
+    c.destroy()
+  })
+
+  it('focus halo: keyboard focusin paints .is-kbd-focus, focusout clears it, pointer never does (issue #12)', () => {
+    const c = mountScene(host, data)
+    const city = cityGroups().belem
+    const artifact = artifactGroups()['na_cuia']
+    const realMatches = Element.prototype.matches
+    // Keyboard modality: :focus-visible matches → halo + fly
+    Element.prototype.matches = function (selector: string): boolean {
+      return selector === ':focus-visible' ? true : realMatches.call(this, selector)
+    }
+    city.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    artifact.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    expect(city.classList.contains('is-kbd-focus')).toBe(true)
+    expect(artifact.classList.contains('is-kbd-focus')).toBe(true)
+    // focus always drops the halo, whatever modality brought it
+    city.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+    artifact.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+    expect(city.classList.contains('is-kbd-focus')).toBe(false)
+    expect(artifact.classList.contains('is-kbd-focus')).toBe(false)
+    // Pointer modality: :focus-visible does NOT match → no halo, no stuck ring
+    Element.prototype.matches = function (selector: string): boolean {
+      return selector === ':focus-visible' ? false : realMatches.call(this, selector)
+    }
+    city.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    artifact.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    expect(city.classList.contains('is-kbd-focus')).toBe(false)
+    expect(artifact.classList.contains('is-kbd-focus')).toBe(false)
+    Element.prototype.matches = realMatches
     c.destroy()
   })
 
@@ -457,7 +624,7 @@ describe('mountScene', () => {
     expect(pill.classList.contains('is-far')).toBe(false)
   })
 
-  it('keyboard: Enter raises, Space reverses, and Space never scrolls', () => {
+  it('keyboard: Enter selects, Space reverses, and Space never scrolls', () => {
     const c = mountScene(host, data)
     const raised: string[] = []
     c.on('city-tap', (id) => raised.push(id))
@@ -473,7 +640,7 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  it('destroy() reverts the raise styles (StrictMode remount starts at rest)', () => {
+  it('destroy() reverts the replay styles (StrictMode remount starts at rest)', () => {
     const first = mountScene(host, data)
     tapCity('belem')
     first.destroy()
@@ -482,22 +649,22 @@ describe('mountScene', () => {
     second.destroy()
   })
 
-  it('raise: a tap during the intro settles the entrance first (no stuck raise — opus P1)', () => {
+  it('replay: a tap during the intro settles the entrance first (no stuck replay — opus P1)', () => {
     const c = mountScene(host, data)
     const introCalls: number[] = []
     c.onIntroDone(() => introCalls.push(1))
     // jsdom never ticks GSAP, so the intro has NOT completed here
     tapCity('belem')
-    // skipIntro() ran → intro resolved AND the raise state is consistent
+    // skipIntro() ran → intro resolved AND the selection state is consistent
     expect(introCalls).toEqual([1])
     expect(pressedState()).toEqual({ belem: 'true', ananindeua: 'false', moju: 'false' })
-    // and the tapped city reverses normally afterwards (no stuck raise)
+    // and the tapped city reverses normally afterwards (no stuck selection)
     tapCity('belem')
     expect(pressedState()).toEqual({ belem: 'false', ananindeua: 'false', moju: 'false' })
     c.destroy()
   })
 
-  it('raise: compat click with detail > 1 is ignored (double-tap zoom guard — opus P2)', () => {
+  it('tap: compat click with detail > 1 is ignored (double-tap zoom guard — opus P2)', () => {
     const c = mountScene(host, data)
     const raised: string[] = []
     const empties: number[] = []
