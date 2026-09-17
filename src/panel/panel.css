@@ -44,7 +44,11 @@
   display: flex;
   flex-direction: column;
   overflow: hidden; /* the BODY scrolls; the panel never scrolls sideways */
-  padding: 24px 28px 0;
+  /* No horizontal padding here on purpose (review P1, PR #9): .panel-body
+     owns it so the scrollbar renders at the CARD's right edge — .panel
+     padding would inset the scrollbar 28px off the border. Title/close
+     button compensate with their own horizontal padding/margins. */
+  padding: 24px 0 0;
   text-align: center;
   background: #fdf6e3; /* cream paper */
   color: #1c2b1c;
@@ -73,8 +77,10 @@
   border: none;
   border-radius: 0;
   box-shadow: none;
-  padding: max(24px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-right)) 0
-    max(28px, env(safe-area-inset-left));
+  /* horizontal padding lives on .panel-body (scrollbar-at-edge, PR #9);
+     keep only the safe-area insets here */
+  padding: max(24px, env(safe-area-inset-top)) max(0px, env(safe-area-inset-right)) 0
+    max(0px, env(safe-area-inset-left));
 }
 
 .panel-mobile .panel-close {
@@ -120,10 +126,10 @@
 
 .panel h2 {
   flex: none;
-  /* symmetric gutters: the close button is position:absolute, so the left
-     margin costs nothing — keeps the title on the content axis (centered
-     layout, review round 3) */
-  margin: 0 48px 8px;
+  /* matches .panel-body's 28px padding so the title shares the body's
+     content box; the extra symmetric 20px clears the absolute close
+     button on the right without leaving the center axis */
+  margin: 0 48px 8px; /* 28 (body padding) + 20 (close-button clearance) */
   font-family: Fraunces, Georgia, serif;
   font-size: 24px;
   line-height: 1.2;
@@ -135,11 +141,12 @@
    padding-bottom 72px: the wave overlay paints over the card's last 60px,
    so the last list item must stay clear of it (review P1). Mobile overlay
    is bottom-anchored and 100px tall → 112px there.
-   Right padding is asymmetric (8px vs 28px left): the scrollbar sits at
-   the very right edge of the card, flush against the border stroke —
-   like the mock's scrollbar (user directive). The content axis stays
-   visually centered: the wider LEFT padding balances the scrollbar
-   gutter + narrower right padding on the other side. */
+   The horizontal padding lives HERE (not on .panel) so the scrollbar
+   renders at the card's very right edge — the scrollbar paints at the
+   element's border box, ignoring content padding (user directive + PR #9
+   review P1). Symmetric 28px keeps the content on the card's center axis:
+   the ~18px scrollbar gutter on the right is offset visually by the
+   border stroke; the title uses matching 28px margins. */
 .panel-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -147,7 +154,7 @@
   overflow-x: hidden;
   overscroll-behavior: contain;
   padding-left: 28px;
-  padding-right: 8px;
+  padding-right: 28px;
   padding-bottom: 72px;
 }
 
