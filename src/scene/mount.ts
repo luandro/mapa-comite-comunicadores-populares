@@ -438,30 +438,60 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
 
   // Bot-review P2 (issue #13): the pill's pointer-events:auto box must not
   // steal CAMERA GESTURES — d3-zoom listens on svg#scene, a sibling of
-  /** Live pill-started touch gestures: pointerId → {orgId, synthetic
-   * Touch.identifier}. Entries are removed on pointerup/pointercancel. */
-  const forwardedTouches = new Map<number, { orgId: string; identifier: number }>()
+  /** Live pill-started touch gestures: pointerId → tracked contact (org,
+   * synthetic Touch.identifier, last known point). Entries are removed on
+   * pointerup/pointercancel. */
+  const forwardedTouches = new Map<
+    number,
+    { orgId: string; identifier: number; x: number; y: number }
+  >()
+  let nextTouchId = TOUCH_ID_BASE
 
-  /** Dispatch a synthetic TouchEvent carrying ONE contact at (x, y). */
+  /** One forwarded contact at a point in time. */
+  interface ForwardedContact {
+    identifier: number
+    target: Element
+    x: number
+    y: number
+  }
+
+  /**
+   * Dispatch a synthetic TouchEvent for a coherent set of contacts.
+   * `changed` are the contacts this event reports; `active` is the FULL list
+   * of still-down contacts (for touches/targetTouches). Keeping the list
+   * complete across the whole gesture is what keeps d3's tracker consistent
+   * (codex r2 P2: a single-contact stream mixed with native multi-touch
+   * tracks phantom contacts and NaNs the camera).
+   */
   function dispatchSyntheticTouch(
     target: Element,
     type: 'touchstart' | 'touchmove' | 'touchend' | 'touchcancel',
-    identifier: number,
-    x: number,
-    y: number,
+    changed: ForwardedContact[],
+    active: ForwardedContact[],
   ): void {
-    const touch = new Touch({ identifier, target, clientX: x, clientY: y })
-    // d3's tracker reads touches/targetTouches (move) and changedTouches
-    // (start/end) — populate all three with the single forwarded contact.
+    if (typeof Touch !== 'function' || typeof TouchEvent !== 'function') return
+    const mk = (c: ForwardedContact): Touch =>
+      new Touch({ identifier: c.identifier, target: c.target, clientX: c.x, clientY: c.y })
+    const ended = type === 'touchend' || type === 'touchcancel'
     target.dispatchEvent(
       new TouchEvent(type, {
         bubbles: true,
         cancelable: true,
-        touches: type === 'touchend' || type === 'touchcancel' ? [] : [touch],
-        targetTouches: type === 'touchend' || type === 'touchcancel' ? [] : [touch],
-        changedTouches: [touch],
+        touches: ended ? [] : active.map(mk),
+        targetTouches: ended ? [] : active.map(mk),
+        changedTouches: changed.map(mk),
       }),
     )
+  }
+
+  /** Snapshot of every live forwarded contact right now. */
+  function activeForwardedContacts(): ForwardedContact[] {
+    return Array.from(forwardedTouches.values(), (f) => ({
+      identifier: f.identifier,
+      target: calibrated.artifacts[f.orgId]!,
+      x: f.x,
+      y: f.y,
+    }))
   }
 
   /** Forward a pointer move/up/cancel for a pill-started touch gesture. */
@@ -474,17 +504,46 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       return
     }
     if (event.type === 'pointermove') {
-      dispatchSyntheticTouch(g, 'touchmove', forwarded.identifier, event.clientX, event.clientY)
+      forwarded.x = event.clientX
+      forwarded.y = event.clientY
+      dispatchSyntheticTouch(
+        g,
+        'touchmove',
+        [forwardedContact(forwarded, g)],
+        activeForwardedContacts(),
+      )
       return
+    }
+    forwardedTouches.delete(event.pointerId)
+    // When the LAST forwarded contact ends, fold every NATIVE contact that
+    // d3 picked up during the gesture (the browser fires its own native
+    // touchstarts for the physical pill contact and any second finger —
+    // those ids land in d3's touch0/touch1 slots) into the SAME end event's
+    // changedTouches: d3 then empties every slot at once and calls g.end(),
+    // so __zooming can never stick (codex r3 repro). While contacts remain,
+    // only the forwarded contact is reported as changed.
+    const changed: ForwardedContact[] = [forwardedContact(forwarded, g)]
+    if (forwardedTouches.size === 0) {
+      nativeMonitoring = false
+      for (const id of nativeResidue) {
+        changed.push({ identifier: id, target: g, x: event.clientX, y: event.clientY })
+      }
+      nativeResidue = []
     }
     dispatchSyntheticTouch(
       g,
       event.type === 'pointercancel' ? 'touchcancel' : 'touchend',
-      forwarded.identifier,
-      event.clientX,
-      event.clientY,
+      changed,
+      activeForwardedContacts(),
     )
-    forwardedTouches.delete(event.pointerId)
+  }
+
+  /** One contact snapshot for a tracked gesture. */
+  function forwardedContact(
+    f: { identifier: number; x: number; y: number },
+    g: Element,
+  ): ForwardedContact {
+    return { identifier: f.identifier, target: g, x: f.x, y: f.y }
   }
 
   // Bot-review P2 (issue #13): the pill's pointer-events:auto box must not
@@ -508,28 +567,34 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     // contacts against Touch.identifier, and PointerEvent.pointerId is a
     // DIFFERENT identifier space, so the tracker stalls and can stay open).
     // The pill gesture therefore owns the whole sequence: allocate a
-    // synthetic Touch.identifier from our own space (base 1000 — can never
-    // collide with real contacts), dispatch the touchstart on the org's
-    // interaction g, then FORWARD every pointermove/up/cancel for that
-    // pointerId as touchmove/touchend/touchcancel carrying the SAME
-    // synthetic identifier and live clientX/Y until the gesture ends. Real
-    // SVG contacts use real identifiers — never colliding, so a second
-    // finger pinches correctly against the pill contact.
+    // synthetic Touch.identifier from a monotonic counter, dispatch the
+    // touchstart on the org's interaction g, then FORWARD every
+    // pointermove/up/cancel for that pointerId as touchmove/touchend/
+    // touchcancel carrying the SAME synthetic identifier, live clientX/Y,
+    // and the FULL active contact list (touches/targetTouches) so d3's
+    // tracker never sees a phantom. Second-finger pinch is intentionally
+    // NOT mixed with native streams: a native contact that starts while a
+    // forwarded gesture lives is treated as a plain single-finger pan per
+    // contact — d3 only ever pinches contacts it saw in one coherent
+    // touchstart, and mixing the two identifier streams is what NaN'd the
+    // camera (codex r2 P2).
     if (
       event.pointerType === 'touch' &&
       typeof TouchEvent === 'function' &&
       typeof Touch === 'function'
     ) {
-      forwardedTouches.set(event.pointerId, {
-        orgId,
-        identifier: TOUCH_ID_BASE + forwardedTouches.size,
-      })
+      nativeMonitoring = true
+      // Identifier allocation: a monotonic counter (never reused while this
+      // scene lives), not the map size — reuse let a new contact inherit a
+      // just-ended id and confuse d3's tracker (codex r2 P3).
+      const identifier = nextTouchId++
+      const tracked = { orgId, identifier, x: event.clientX, y: event.clientY }
+      forwardedTouches.set(event.pointerId, tracked)
       dispatchSyntheticTouch(
         calibrated.artifacts[orgId],
         'touchstart',
-        forwardedTouches.get(event.pointerId)!.identifier,
-        event.clientX,
-        event.clientY,
+        [forwardedContact(tracked, calibrated.artifacts[orgId])],
+        activeForwardedContacts(),
       )
       return
     }
@@ -553,11 +618,36 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       }),
     )
   }
+  // While a forwarded (synthetic-identifier) gesture is live, record any
+  // NATIVE touchstarts reaching the SVG — those ids join the same d3 gesture
+  // but their touchends arrive natively against it (ignored, since the ids
+  // aren't d3's touch0/touch1 slots this pointer stream owns) and would leave
+  // __zooming stuck after every contact lifts. forwardEnd clears them.
+  let nativeMonitoring = false
+  let nativeResidue: number[] = []
+  const onNativeTouchStart = (event: Event): void => {
+    if (!nativeMonitoring) return
+    const te = event as TouchEvent
+    // d3's touchstarted reads event.touches (the FULL real contact list),
+    // not changedTouches — a native finger landing while our forwarded
+    // contact is live gets tracked by d3 under its REAL identifier (e.g. 0)
+    // even though our synthetic ids are also in play. Those real ids are
+    // the residue that must be cleared when the gesture winds down.
+    const forwardedIds = new Set(Array.from(forwardedTouches.values(), (f) => f.identifier))
+    for (const t of Array.from(te.touches)) {
+      if (!forwardedIds.has(t.identifier)) nativeResidue.push(t.identifier)
+    }
+  }
+  // Capture at document level: d3's handler on svg#scene stops immediate
+  // propagation, which silences same-node listeners registered after it —
+  // the only phase that reliably sees every native touchstart first.
+  document.addEventListener('touchstart', onNativeTouchStart, true)
   labels.el.addEventListener('click', onLabelsClick)
   labels.el.addEventListener('pointerdown', onLabelsPointerDown)
   labels.el.addEventListener('pointermove', onLabelsPointerForward)
   labels.el.addEventListener('pointerup', onLabelsPointerForward)
   labels.el.addEventListener('pointercancel', onLabelsPointerForward)
+
   // The scene root's touch-action:none doesn't cross into the #labels
   // subtree — without it Chromium fires pointercancel (scroll takeover) on
   // the first pill-started touchmove and the forwarded pan dies (probe:
@@ -737,6 +827,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       labels.el.removeEventListener('pointermove', onLabelsPointerForward)
       labels.el.removeEventListener('pointerup', onLabelsPointerForward)
       labels.el.removeEventListener('pointercancel', onLabelsPointerForward)
+      document.removeEventListener('touchstart', onNativeTouchStart, true)
       labels.destroy()
       root.remove()
     },
