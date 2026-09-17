@@ -62,6 +62,16 @@ function innerSvg(processed: string): string {
 
 /** Native onda width (all three bands share the 2160.32 viewBox). */
 const WAVE_TILE_W = 2160.32
+/**
+ * Painted span: the onda inks run x ≈ 35.45…2117.97 inside their 2160.32
+ * viewBox (transparent side margins, getBBox-measured). Placing tiles at the
+ * FULL viewBox width leaves an ~85-unit unpainted break at every seam, so
+ * tiles are positioned at the painted span W instead: with placement
+ * translate(W·2)·scale(−1,1), the mirrored copy's ink starts exactly where
+ * the previous copy's ink ends (2W − (x0+w) = W ⇔ W = x0 + w).
+ */
+const WAVE_PAINT_X0 = 35.45
+const WAVE_PAINT_W = 2117.97 - WAVE_PAINT_X0
 /** Footer strip height in band units — onda1 bottom lands flush at the edge. */
 const WAVE_STRIP_H = 132
 /** Faintest on top, solid at the bottom edge (mock: densify downward). */
@@ -83,8 +93,8 @@ const ONDA_STACK = [
  */
 const TILE_POSITIONS: Array<{ x: number; mirror: boolean }> = [
   { x: 0, mirror: false },
-  { x: 2 * WAVE_TILE_W, mirror: true },
-  { x: 2 * WAVE_TILE_W, mirror: false },
+  { x: 2 * WAVE_PAINT_W, mirror: true },
+  { x: 2 * WAVE_PAINT_W, mirror: false },
 ]
 function waveTile(key: number): JSX.Element {
   const { x, mirror } = TILE_POSITIONS[key]
