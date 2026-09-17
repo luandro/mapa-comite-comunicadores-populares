@@ -144,15 +144,19 @@
    The horizontal padding lives HERE (not on .panel) so the scrollbar
    renders at the card's very right edge — the scrollbar paints at the
    element's border box, ignoring content padding (user directive + PR #9
-   review P1). Symmetric 28px keeps the content on the card's center axis:
-   the ~18px scrollbar gutter on the right is offset visually by the
-   border stroke; the title uses matching 28px margins. */
+   review P1). Symmetric 28px keeps the content on the card's center axis.
+   `scrollbar-gutter: stable both-edges` reserves the SAME gutter on both
+   sides on classic-scrollbar platforms (Windows/Linux), where the 10px
+   scrollbar lane would otherwise shift the content box 5px left of the
+   title/card axis; no-op on overlay-scrollbar platforms (macOS, mobile).
+   Title uses 48px margins = 28 body padding + 20 close-button clearance. */
 .panel-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
   padding-left: 28px;
   padding-right: 28px;
   padding-bottom: 72px;
@@ -165,7 +169,9 @@
 /* Scrollbar in the map's illustration language (user directive): the card
    border's dark green, cream paper track, organic rounded thumb like the
    hand-drawn ink strokes used everywhere else (border radii, buttons).
-   Firefox: thin + tinted. Chromium/Safari: full custom track + thumb. */
+   Firefox: thin + tinted. The webkit block serves Safari; Chromium ≥121
+   ignores it when scrollbar-width/color are set (draws its own green
+   arrows — visually equivalent, accepted). */
 .panel-body {
   scrollbar-width: thin;
   scrollbar-color: #304e23 #fdf6e3;
