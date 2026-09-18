@@ -96,6 +96,15 @@ const SVG_NS = 'http://www.w3.org/2000/svg'
 const CITY_REPLAY_DROP_DURATION = 0.5
 const CITY_REPLAY_ARROW_DURATION = 0.45
 
+/* User directive 2026-09-18: a city tap RE-INTRODUCES the dim (issue #12 had
+   removed it) AND filters the scene to the selected city's connected orgs —
+   other cities' totems, arrows, hit circles and title pills fade out and
+   stop hit-testing, so only the selected city's network stays legible. The
+   dim applies to the OTHER city groups; the filter applies per ORG (data
+   maps orgs to cities, cities to nothing). */
+const CITY_DIM_OPACITY = 0.35
+const CITY_FILTER_DURATION = 0.5
+
 /**
  * Keyboard-modality focus affordance (issue #12): the old `:focus-visible`
  * outline painted a black-bordered RECTANGLE around the group bbox on an SVG
@@ -292,6 +301,12 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       // camera fly is the caller's business (focusCity / App subscribers).
       cityTapHub.emit(nextId)
     }
+    // Filter LAST: the replay's settle pass force-restores its org set to
+    // opacity 1 — running the filter before it would let that settle clobber
+    // the just-hidden orgs. Filter-after-replay makes the filter the final
+    // word on visibility (and its fade-in overlaps the replay's own tweens
+    // benignly — both end at opacity 1).
+    applyCityFilter(nextId)
   }
 
   /** One org's attributed arrow elements in #layer-arrows (paths + tail dots).
@@ -356,6 +371,85 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     const orgIds = replayedOrgIds
     replayedOrgIds = []
     settleReplayedOrgs(orgIds)
+  }
+
+  // --- City filter + dim (user directive 2026-09-18) -------------------------
+  // `filteredCityId` is the single filter-state owner. Filtering is per ORG:
+  // every org NOT in the selected city fades out (totem interaction g, its
+  // arrows + tail dots, hit circle, title pill) and stops hit-testing; the
+  // other city GROUPS dim (the pre-#12 dim restored). The selected city's
+  // group and orgs stay at full opacity. Revert lives in cityCtx — destroy()
+  // returns the scene to rest (StrictMode-safe).
+  let filteredCityId: string | null = null
+  /** Org ids currently hidden by the filter (the revert set). */
+  let hiddenOrgIds: string[] = []
+
+  function applyCityFilter(nextCityId: string | null): void {
+    if (nextCityId === filteredCityId) return
+    filteredCityId = nextCityId
+    cityCtx.add(() => {
+      const dur = reduceMotion ? 0 : CITY_FILTER_DURATION
+      // 1) City-group dim: others to CITY_DIM_OPACITY, selected (or all, on
+      //    reverse) back to 1.
+      for (const [id, interaction] of Object.entries(calibrated.cities)) {
+        const target = nextCityId !== null && id !== nextCityId ? CITY_DIM_OPACITY : 1
+        gsap.to(interaction, {
+          opacity: target,
+          duration: dur,
+          ease: 'power2.out',
+          overwrite: 'auto',
+        })
+      }
+      // 2) Org-level filter. Next hidden set = every mounted org NOT in the
+      //    selected city (empty on reverse). Diff against hiddenOrgIds so
+      //    only orgs whose state actually changes tween.
+      const allMounted = Object.keys(calibrated.artifacts)
+      const nextHidden =
+        nextCityId !== null
+          ? allMounted.filter((orgId) => !orgIdsForCity(data, nextCityId).includes(orgId))
+          : []
+      const nextHiddenSet = new Set(nextHidden)
+      const prevHiddenSet = new Set(hiddenOrgIds)
+      const toShow = hiddenOrgIds.filter((orgId) => !nextHiddenSet.has(orgId))
+      const toHide = nextHidden.filter((orgId) => !prevHiddenSet.has(orgId))
+      hiddenOrgIds = nextHidden
+      for (const orgId of toShow) setOrgFiltered(orgId, true, dur)
+      for (const orgId of toHide) setOrgFiltered(orgId, false, dur)
+    })
+  }
+
+  /** Fade one org in (visible=false → opacity 1) or out. Org-scoped: the
+   * totem interaction g, its arrows/tails, its hit circle and its title
+   * pill. Hidden orgs also drop pointer events (hit circle + pill) so a
+   * filtered map only ever taps what it shows. aria stays intact — the
+   * org's button remains focusable (screen readers keep the full scene). */
+  function setOrgFiltered(orgId: string, visible: boolean, duration: number): void {
+    const g = calibrated.artifacts[orgId]
+    const hit = calibrated.hitCircles[orgId]
+    const arrows = orgArrows(orgId)
+    const opacity = visible ? 1 : 0
+    const pointer = visible ? 'auto' : 'none'
+    cityCtx.add(() => {
+      if (g) {
+        // Property-scoped: never disturb the replay's opacity/y tweens on the
+        // same node when both run (filter+replay of the SAME city overlap).
+        gsap.to(g, { opacity, duration, ease: 'power2.out', overwrite: 'auto' })
+      }
+      if (hit) {
+        gsap.to(hit, { opacity, duration, ease: 'power2.out', overwrite: 'auto' })
+        hit.style.pointerEvents = pointer
+      }
+      // Arrows have exactly one tween owner (redraws) — whole-element ops safe.
+      for (const node of [...arrows.paths, ...arrows.tails]) {
+        gsap.killTweensOf(node)
+        gsap.to(node, { opacity, duration, ease: 'power2.out', overwrite: 'auto' })
+      }
+      const label = labels.el.querySelector<HTMLElement>(`[data-label-id="${orgId}"] .label-pill`)
+      if (label) {
+        gsap.to(label, { opacity, duration, ease: 'power2.out', overwrite: 'auto' })
+        label.style.pointerEvents = pointer
+      }
+    })
   }
 
   /**
@@ -908,6 +1002,14 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
 
   return {
     destroy() {
+      // Filter pointer-events are style.pointerEvents (not gsap) — clear them
+      // explicitly so a remount starts hit-testable (StrictMode-safe).
+      for (const orgId of hiddenOrgIds) {
+        calibrated.hitCircles[orgId]?.style.removeProperty('pointer-events')
+        labels.el
+          .querySelector<HTMLElement>(`[data-label-id="${orgId}"] .label-pill`)
+          ?.style.removeProperty('pointer-events')
+      }
       if (destroyed) return
       destroyed = true
       // Revert the city context BEFORE the entrance context: mid-replay

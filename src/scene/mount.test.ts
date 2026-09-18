@@ -386,6 +386,91 @@ describe('mountScene', () => {
     c.destroy()
   })
 
+  it('city dim + filter: others dim to 0.35, non-city orgs hide, selected stays full (user directive)', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn() }),
+    )
+    try {
+      const c = mountScene(host, replayData)
+      tapCity('belem')
+      const cities = cityGroups()
+      // dim: other city group faded, selected group full
+      expect(getComputedStyle(cities['belem']!).opacity).toBe('1')
+      expect(getComputedStyle(cities['ananindeua']!).opacity).toBe('0.35')
+      // filter: the other city's org + arrows hidden, hit circle untappable
+      expect(getComputedStyle(artifactGroups()['rede']!).opacity).toBe('0')
+      const redeHit = host.querySelector<SVGCircleElement>('circle[data-artifact-id="rede"]')!
+      expect(redeHit.style.pointerEvents).toBe('none')
+      expect(getComputedStyle(orgArrowsOf('rede').paths[0]!).opacity).toBe('0')
+      expect(getComputedStyle(orgArrowsOf('rede').tails[0]!).opacity).toBe('0')
+      const redePill = host.querySelector<HTMLElement>('[data-label-id="rede"] .label-pill')!
+      expect(redePill.style.pointerEvents).toBe('none')
+      expect(getComputedStyle(redePill).opacity).toBe('0')
+      // selected city's org: untouched by the filter (rest, not '0'; the
+      // reduced-motion replay is a no-op so no end-at-1 tween exists)
+      expect(getComputedStyle(artifactGroups()['na_cuia']!).opacity).not.toBe('0')
+      c.destroy()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('filter reverse: empty-tap restores dimmed group + hidden org to full visibility', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn() }),
+    )
+    try {
+      const c = mountScene(host, replayData)
+      tapCity('belem')
+      backgroundClick()
+      const cities = cityGroups()
+      expect(getComputedStyle(cities['ananindeua']!).opacity).toBe('1')
+      expect(getComputedStyle(artifactGroups()['rede']!).opacity).toBe('1')
+      const redeHit = host.querySelector<SVGCircleElement>('circle[data-artifact-id="rede"]')!
+      expect(redeHit.style.pointerEvents).toBe('auto')
+      const redePill = host.querySelector<HTMLElement>('[data-label-id="rede"] .label-pill')!
+      expect(redePill.style.pointerEvents).toBe('auto')
+      expect(getComputedStyle(redePill).opacity).toBe('1')
+      c.destroy()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('filter switch: belem → ananindeua restores belem orgs and hides ananindeua orgs', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn() }),
+    )
+    try {
+      const c = mountScene(host, replayData)
+      tapCity('belem')
+      tapCity('ananindeua')
+      const cities = cityGroups()
+      expect(getComputedStyle(cities['belem']!).opacity).toBe('0.35')
+      expect(getComputedStyle(cities['ananindeua']!).opacity).toBe('1')
+      expect(getComputedStyle(artifactGroups()['na_cuia']!).opacity).toBe('0')
+      expect(getComputedStyle(artifactGroups()['rede']!).opacity).toBe('1')
+      c.destroy()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('destroy() clears filter pointer-events so a remount starts hit-testable', () => {
+    const c = mountScene(host, replayData)
+    tapCity('belem')
+    c.destroy()
+    const c2 = mountScene(host, replayData)
+    const hit = c2
+      ? host.querySelector<SVGCircleElement>('circle[data-interactive="artifact"]')!
+      : null
+    expect(hit!.style.pointerEvents).toBe('')
+    c2.destroy()
+  })
+
   it('no dim/lift: every city group stays at full rest opacity after a tap (issue #12)', () => {
     const c = mountScene(host, replayData)
     tapCity('belem')
@@ -445,9 +530,18 @@ describe('mountScene', () => {
       const c = mountScene(host, replayData)
       tapCity('belem')
       const groups = artifactGroups()
-      // the intro's reduced-motion no-priming fallback, extended to replays
-      expect(groups['na_cuia']!.hasAttribute('style')).toBe(false)
+      // Reduced-motion state jumps: the filter's fade renders instantly, so
+      // the selected city's orgs stay at rest (no inline style needed in
+      // jsdom — na_cuia is in toShow AND at rest, so no tween is created),
+      // while the OTHER city's org, arrows and pill fade out + drop hits.
+      expect(getComputedStyle(groups['na_cuia']!).opacity).not.toBe('0')
+      expect(getComputedStyle(groups['rede']!).opacity).toBe('0')
       expect(orgArrowsOf('na_cuia').paths[0]!.getAttribute('stroke-dasharray')).toBeNull()
+      expect(orgArrowsOf('rede').paths[0]!.getAttribute('stroke-dasharray')).toBeNull()
+      expect(getComputedStyle(orgArrowsOf('rede').paths[0]!).opacity).toBe('0')
+      expect(host.querySelector<HTMLElement>('[data-label-for="rede"]')!.style.pointerEvents).toBe(
+        'none',
+      )
       c.destroy()
     } finally {
       vi.unstubAllGlobals()
