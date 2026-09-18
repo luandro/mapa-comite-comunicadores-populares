@@ -579,7 +579,7 @@ describe('scene.css layer rules', () => {
     )
   })
 
-  it('desktop cursor affordance: grab canvas, pointer tap targets, grabbing drag (issue #25)', () => {
+  it('desktop cursor affordance: grab canvas, pointer tap targets, grabbing drag (issue #28)', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/scene/scene.css'), 'utf8')
     // The scene canvas is a drag surface…
     expect(css).toMatch(/#scene\s*\{[^}]*cursor:\s*grab/)
@@ -603,7 +603,7 @@ describe('scene.css layer rules', () => {
     )
   })
 
-  it('desktop totem hover glow: filter-only class hook, fine-pointer gated (issue #25)', () => {
+  it('desktop totem hover glow: filter-only class hook, fine-pointer gated (issue #28)', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/scene/scene.css'), 'utf8')
     // The transition lives on the BASE rule so hover-off fades too…
     expect(css).toMatch(/g\.artifact-target\s*\{[^}]*transition:\s*filter/)
