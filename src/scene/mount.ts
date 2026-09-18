@@ -383,6 +383,17 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   let filteredCityId: string | null = null
   /** Org ids currently hidden by the filter (the revert set). */
   let hiddenOrgIds: string[] = []
+  /** Exact-string index: org id → its .label-pill element. Built once at
+   * mount — org ids are interpolated into NO selector (schema permits
+   * arbitrary project keys; a quote/bracket id would make querySelector
+   * throw mid-filter, codex 18 P2 — same reasoning as orgArrows' index). */
+  const pillByOrgId: Record<string, HTMLElement> = {}
+  for (const anchor of Array.from(labels.el.children)) {
+    const anchorEl = anchor as HTMLElement
+    const pill = anchorEl.querySelector<HTMLElement>('.label-pill')
+    const orgId = pill?.dataset.labelFor
+    if (pill && orgId) pillByOrgId[orgId] = pill
+  }
 
   function applyCityFilter(nextCityId: string | null): void {
     if (nextCityId === filteredCityId) return
@@ -434,6 +445,10 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
         // Property-scoped: never disturb the replay's opacity/y tweens on the
         // same node when both run (filter+replay of the SAME city overlap).
         gsap.to(g, { opacity, duration, ease: 'power2.out', overwrite: 'auto' })
+        // The interaction g's PAINTED paths stay hit-testable at opacity 0 —
+        // pointer-events must go on the group itself, not only its siblings
+        // (codex 18 P1: elementFromPoint reached a hidden totem through them).
+        g.style.pointerEvents = pointer
       }
       if (hit) {
         gsap.to(hit, { opacity, duration, ease: 'power2.out', overwrite: 'auto' })
@@ -444,7 +459,7 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
         gsap.killTweensOf(node)
         gsap.to(node, { opacity, duration, ease: 'power2.out', overwrite: 'auto' })
       }
-      const label = labels.el.querySelector<HTMLElement>(`[data-label-id="${orgId}"] .label-pill`)
+      const label = pillByOrgId[orgId]
       if (label) {
         gsap.to(label, { opacity, duration, ease: 'power2.out', overwrite: 'auto' })
         label.style.pointerEvents = pointer
@@ -1005,10 +1020,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       // Filter pointer-events are style.pointerEvents (not gsap) — clear them
       // explicitly so a remount starts hit-testable (StrictMode-safe).
       for (const orgId of hiddenOrgIds) {
+        calibrated.artifacts[orgId]?.style.removeProperty('pointer-events')
         calibrated.hitCircles[orgId]?.style.removeProperty('pointer-events')
-        labels.el
-          .querySelector<HTMLElement>(`[data-label-id="${orgId}"] .label-pill`)
-          ?.style.removeProperty('pointer-events')
+        pillByOrgId[orgId]?.style.removeProperty('pointer-events')
       }
       if (destroyed) return
       destroyed = true

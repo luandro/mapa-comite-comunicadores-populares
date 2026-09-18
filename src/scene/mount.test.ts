@@ -471,13 +471,23 @@ describe('mountScene', () => {
     c2.destroy()
   })
 
-  it('no dim/lift: every city group stays at full rest opacity after a tap (issue #12)', () => {
+  it('dim reaches its final value and hidden totems are untappable (timer-advanced)', async () => {
     const c = mountScene(host, replayData)
-    tapCity('belem')
-    for (const g of Object.values(cityGroups())) {
-      expect(getComputedStyle(g).opacity).toBe('1')
+    try {
+      tapCity('belem')
+      // wait past the 0.5s filter tween — real browsers see this end state
+      await new Promise((r) => setTimeout(r, 700))
+      const cities = cityGroups()
+      expect(getComputedStyle(cities['ananindeua']!).opacity).toBe('0.35')
+      expect(getComputedStyle(cities['belem']!).opacity).toBe('1')
+      // hidden totem itself: invisible AND unhit-testable through its painted paths
+      const redeG = artifactGroups()['rede']!
+      expect(getComputedStyle(redeG).opacity).toBe('0')
+      expect(redeG.style.pointerEvents).toBe('none')
+      c.destroy()
+    } finally {
+      // noop — kept symmetric with the other filter tests' finally blocks
     }
-    c.destroy()
   })
 
   it('empty-tap after a replay re-finalizes the orgs to the pristine rest state', () => {
