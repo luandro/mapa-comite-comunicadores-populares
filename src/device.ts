@@ -13,3 +13,9 @@ export function isMobile(): boolean {
   }
   return cached
 }
+
+/** Test-only: clear the cached predicate so a re-stubbed matchMedia is read
+ * again (App.test.tsx switches device class between desktop/mobile cases). */
+export function resetIsMobileCache(): void {
+  cached = null
+}

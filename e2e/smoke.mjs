@@ -21,18 +21,21 @@ check(
   'load: 11 artifact totems',
   (await page.locator('#layer-artifacts [data-artifact-id]').count()) >= 11,
 )
-// Issue #10/#19: the title RETRACTS into a burger ~1.2s after intro-done —
-// at 4.5s the correct assertion is the retracted STATE (title hidden with
-// the is-retracted class + burger visible), not full opacity.
+// Issue #19/#24: MOBILE retracts the title into a burger ~1.2s after
+// intro-done; on DESKTOP the title stays and an info button replaces the
+// burger (user directive). Desktop assertion here = static title + info
+// button; the mobile retraction is asserted in the portrait pass below.
 check(
-  'load: title retracted into burger after intro (issue #19)',
+  'load: desktop keeps the title + info button (no burger)',
   await page.evaluate(() => {
     const title = document.querySelector('.app-title')
-    const burger = document.querySelector('.app-burger')
+    const info = document.querySelector('.app-info')
     return (
-      title?.classList.contains('is-retracted') === true &&
-      getComputedStyle(title).opacity !== '1' &&
-      burger != null
+      title != null &&
+      title.classList.contains('is-retracted') === false &&
+      Number(getComputedStyle(title).opacity) === 1 &&
+      info != null &&
+      document.querySelector('.app-burger') === null
     )
   }),
 )
@@ -125,22 +128,40 @@ await page.waitForTimeout(400)
 check('esc: panel closes', (await page.locator('.panel').count()) === 0)
 await page.close()
 
-// --- Portrait (cover fit) ---
-const portrait = await browser.newPage({ viewport: { width: 390, height: 844 } })
+// --- Portrait (cover fit + mobile title retraction into the burger) ---
+const portrait = await browser.newPage({
+  viewport: { width: 390, height: 844 },
+  hasTouch: true, // (pointer: coarse) must match or isMobile() takes the desktop path
+})
 await portrait.goto(BASE, { waitUntil: 'networkidle' })
-await portrait.waitForTimeout(4200)
+await portrait.waitForTimeout(4200) // intro + 1.2s read + retract
 const cover = await portrait.evaluate(() => {
   const svg = document.querySelector('svg#scene')
   return svg?.getAttribute('preserveAspectRatio')?.includes('slice')
 })
 check('portrait: slice cover fit', cover)
+check(
+  'portrait: mobile title retracted into burger (issue #19)',
+  await portrait.evaluate(() => {
+    const title = document.querySelector('.app-title')
+    const burger = document.querySelector('.app-burger')
+    return (
+      title?.classList.contains('is-retracted') === true &&
+      Number(getComputedStyle(title).opacity) !== 1 &&
+      burger != null &&
+      document.querySelector('.app-info') === null
+    )
+  }),
+)
 await portrait.close()
 
 // --- Reduced motion: final state immediately ---
 // Issue #10/#19: reduced-motion keeps READ delays (the title's 1.2s on-screen
-// time) and only jumps the ANIMATION — so at 800ms the title may legitimately
-// already be retracted (instant state jump). Assert the title node exists and
-// the intro settled (html.intro-done), not a specific opacity mid-lifecycle.
+// time) and only jumps the ANIMATION. Since the desktop static-title rework
+// (issue #23) this 1600×900 no-touch context has NO retraction at all, so the
+// final state is asserted directly: title fully visible + info button, no
+// burger, no is-retracted (opus 24 P2 — the old under-assertion would stay
+// green if desktop retraction regressed).
 const rm = await browser.newContext({
   reducedMotion: 'reduce',
   viewport: { width: 1600, height: 900 },
@@ -149,12 +170,18 @@ const rpage = await rm.newPage()
 await rpage.goto(BASE, { waitUntil: 'networkidle' })
 await rpage.waitForTimeout(2000)
 check(
-  'reduced-motion: instant final state',
-  await rpage.evaluate(
-    () =>
+  'reduced-motion: instant final state (desktop = static title + info)',
+  await rpage.evaluate(() => {
+    const title = document.querySelector('.app-title')
+    return (
       document.documentElement.classList.contains('intro-done') &&
-      document.querySelector('.app-title') != null,
-  ),
+      title != null &&
+      Number(getComputedStyle(title).opacity) === 1 &&
+      title.classList.contains('is-retracted') === false &&
+      document.querySelector('.app-info') != null &&
+      document.querySelector('.app-burger') === null
+    )
+  }),
 )
 await rm.close()
 
