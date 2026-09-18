@@ -55,10 +55,35 @@ export interface CameraOptions {
   domain?: Box
   /** called after every committed transform (gesture or tween) */
   onFrame: (state: TransformState) => void
+  /**
+   * Called after the camera's resize-owned layout refresh (RO fires): the
+   * moment the cached measurement CTM changes — consumers of getFrameState
+   * must re-project at least once so cached-metric labels re-clamp.
+   */
+  onResize?: () => void
+}
+
+/**
+ * Camera-plane readouts for the per-frame subscribers (labels, hit sizing):
+ * the camera-free measurement CTM plus the transform state. The CTM is
+ * refreshed on resize/layout only (refreshWindow) — a per-frame
+ * getScreenCTM() would force style/layout back into the main thread's hot
+ * path (perf-gate 2026-09-18: pan at 6× CPU throttle hit 6 fps; camera
+ * transforms stay composited, main-thread work is what scales with throttle).
+ */
+export interface FrameState {
+  measureCtm: DOMMatrix
+  state: TransformState
 }
 
 export interface Camera {
   getState(): TransformState
+  /**
+   * Camera-plane frame snapshot: recompute (onFrame callback) with the
+   * CURRENT controller state but the CACHED measurement CTM — cheap enough
+   * for every committed transform frame; the CTM part only changes on resize.
+   */
+  getFrameState(): FrameState
   /**
    * Scene-coord box visible right now (last-known window ∘ controller state).
    * Issue #11 captures this before a focus fly; the deselect flies back to it.

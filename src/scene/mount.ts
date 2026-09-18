@@ -32,7 +32,7 @@ import {
 } from './layers'
 import {
   createLabelsLayer,
-  IDENTITY_CTM,
+  invalidateLabelMetrics,
   pillTapPlan,
   renderLabels,
   updateLabels,
@@ -208,6 +208,8 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   const labels = createLabelsLayer(root)
 
   const transformHub = createHub<[TransformState]>()
+  /** Set once positionLabels exists (below) — camera's RO calls it on resize. */
+  let resizeHook: (() => void) | null = null
   const artifactTapHub = createHub<[string]>()
   const cityTapHub = createHub<[string]>()
   const emptyTapHub = createHub<[]>()
@@ -219,6 +221,9 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     measureSvg,
     initialCenter: initialFraming,
     onFrame: (state) => transformHub.emit(state),
+    // RO = the resize moment: cached CTM + cached pill sizes are stale. The
+    // callback is set after positionLabels exists — captured via `let`.
+    onResize: () => resizeHook?.(),
   })
 
   // Calibrated composite (SPEC §4 items 5–8) appends above layer-water-detail.
@@ -233,10 +238,12 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   }
   renderLabels(labels.el, data, artifactAnchors)
   const mobile = isMobile()
-  const positionLabels = (state: TransformState) => {
-    // jsdom ships no getScreenCTM at all (and browsers return null pre-layout)
-    // — IDENTITY_CTM keeps the math defined either way.
-    const measureCtm = measureSvg.getScreenCTM?.() ?? IDENTITY_CTM
+  // Perf-gate win (2026-09-18): positionLabels runs on EVERY committed
+  // transform frame. The measure SVG is untransformed — its CTM changes on
+  // resize/layout only, so it is read from the camera's resize-owned cache
+  // (getFrameState), never via a per-frame getScreenCTM() DOM call.
+  let lastHitR = NaN
+  const positionLabels = (state: TransformState, measureCtm: DOMMatrix) => {
     // Distance gate OFF (user QA round 4): top/bottom totems lost their titles
     // on mobile — every org title must stay visible; the zoom gate below still
     // hides pills zoomed out.
@@ -246,20 +253,40 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     if (mobile) updatePillFade(labels.el, state.k)
     // Phase 5 (AGENTS invariant 8): keep every artifact hit circle ≥ 24 CSS px
     // in diameter at every zoom. u = measureCtm.a × k with k from the
-    // CONTROLLER state carried in this callback (never a DOM camera read);
-    // measureCtm is the measurement owner's camera-free CTM — the same source
-    // updateLabels projects through, by construction.
+    // CONTROLLER state carried in this callback (never a DOM camera read).
+    // r changes only with k/resize — skip 22 identical attribute writes while
+    // panning (k constant).
     const r = rSceneFor(state.k, measureCtm.a)
-    for (const circle of Object.values(calibrated.hitCircles)) {
-      circle.setAttribute('r', String(r))
+    if (r !== lastHitR) {
+      lastHitR = r
+      for (const circle of Object.values(calibrated.hitCircles)) {
+        circle.setAttribute('r', String(r))
+      }
     }
   }
-  const offLabels = transformHub.on(positionLabels)
-  positionLabels(camera.getState()) // camera's initial frame predated this subscription
+  const offLabels = transformHub.on((state) => {
+    const frame = camera.getFrameState()
+    positionLabels(state, frame.measureCtm)
+  })
+  {
+    const frame = camera.getFrameState()
+    positionLabels(frame.state, frame.measureCtm) // camera's initial frame predated this subscription
+  }
+  resizeHook = () => {
+    invalidateLabelMetrics()
+    const frame = camera.getFrameState()
+    positionLabels(frame.state, frame.measureCtm)
+  }
   // Font swap (display=swap) changes pill metrics after first paint; pushes
-  // are layout-derived, so recompute once webfonts settle (opus r2 P1).
+  // are layout-derived, so recompute once webfonts settle (opus r2 P1). The
+  // pill size cache must drop too — its whole point is that metrics are
+  // stable BETWEEN such events (perf: per-frame offsetWidth = layout thrash).
   if (typeof document !== 'undefined' && 'fonts' in document) {
-    void document.fonts.ready.then(() => positionLabels(camera.getState()))
+    void document.fonts.ready.then(() => {
+      invalidateLabelMetrics()
+      const frame = camera.getFrameState()
+      positionLabels(frame.state, frame.measureCtm)
+    })
   }
 
   // DEV-only calibration tool (Phase 1.5): the dynamic import keeps its bytes

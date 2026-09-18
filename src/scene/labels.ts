@@ -107,6 +107,32 @@ export function renderLabels(
 }
 
 /**
+ * Cached pill box sizes (px): a pill's px size is camera-independent — the
+ * boxes live in screen space and only change when fonts finish loading (or
+ * text content changes, which content-only data.json edits cannot do at
+ * runtime). Reading offsetWidth/offsetHeight per frame FORCED a synchronous
+ * layout every drag frame: the previous frame's style.transform writes dirty
+ * layout, and the next frame's first layout read pays a full reflow of the
+ * whole document (perf gate 2026-09-18: pan @6× CPU throttle = 6 fps; after
+ * the cache: same scene, pan @6× ≈ 17 fps, pan @1× = 60 fps). Invalidate
+ * with `invalidateLabelMetrics()` on font-load/resize — NOT per frame.
+ */
+const pillSizeCache = new Map<HTMLElement, { w: number; h: number }>()
+
+export function invalidateLabelMetrics(): void {
+  pillSizeCache.clear()
+}
+
+function pillMetrics(pill: HTMLElement): { w: number; h: number } {
+  let size = pillSizeCache.get(pill)
+  if (!size) {
+    size = { w: pill.offsetWidth, h: pill.offsetHeight }
+    pillSizeCache.set(pill, size)
+  }
+  return size
+}
+
+/**
  * Position every label: `screen = ctm · (k·point + [tx, ty])` — the camera
  * transform applies in scene coords first, then the measurement owner's
  * camera-free CTM; both translations included, or pans drift (AGENTS 12).
@@ -145,8 +171,7 @@ export function updateLabels(
     const py = measureCtm.b * sx + measureCtm.d * sy + measureCtm.f
     const pill = child.querySelector<HTMLElement>('.label-pill')
     if (pill) {
-      const w = pill.offsetWidth
-      const h = pill.offsetHeight
+      const { w, h } = pillMetrics(pill)
       if (w > 0 && h > 0)
         rects.push({
           id: child.dataset.labelId ?? '',
