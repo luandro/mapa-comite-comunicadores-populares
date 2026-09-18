@@ -45,8 +45,8 @@ function naCuiaScene(): Plugin {
 
 export default defineConfig(({ mode }) => ({
   plugins: [react(), naCuiaScene()],
-  // GH Pages project site: /mapa-comunite-comunicadores-populares/ (Phase 7).
-  base: mode === 'production' ? '/mapa-comunite-comunicadores-populares/' : '/',
+  // GH Pages project site: /mapa-comite-comunicadores-populares/ (Phase 7).
+  base: mode === 'production' ? '/mapa-comite-comunicadores-populares/' : '/',
   // trycloudflare preview tunnels for the remote calibration loop (dev server only)
   server: { allowedHosts: ['.trycloudflare.com'] },
   test: {
