@@ -45,38 +45,96 @@ const PROJECT_ABOUT =
  * Issue #10: the title appears with the intro, then retracts into a
  * hand-drawn burger button; tapping it opens a paper-style menu with the
  * full title + about text. React state only — never scene SVG via JSX. */
+function useMenuDialog(
+  menuOpen: boolean,
+  close: () => void,
+  burgerRef: React.RefObject<HTMLButtonElement | null>,
+  menuRef: React.RefObject<HTMLDivElement | null>,
+): void {
+  useEffect(() => {
+    if (!menuOpen) return
+    menuRef.current?.querySelector<HTMLElement>('.app-menu-close')?.focus()
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation()
+        close()
+        return
+      }
+      if (event.key !== 'Tab' || !menuRef.current) return
+      const focusables = menuRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], [tabindex]:not([tabindex="-1"])',
+      )
+      if (focusables.length === 0) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      // Restore focus AFTER the menu unmounts — the burger re-takes it.
+      burgerRef.current?.focus()
+    }
+  }, [menuOpen, close, burgerRef, menuRef])
+}
+
+/** Title overlay — above the scene, below future controls (SPEC §3 z-order).
+ * Issue #10: the title appears with the intro, then retracts into a
+ * hand-drawn burger button; tapping it opens a paper-style menu with the
+ * full title + about text. React state only — never scene SVG via JSX. */
 export function TitleOverlay() {
   const [retracted, setRetracted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const burgerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
+  useMenuDialog(menuOpen, closeMenu, burgerRef, menuRef)
 
   // Retract once the scene intro settles (natural end or skip). The class
   // gate keeps reduced-motion as an instant state jump (CSS transition:none).
   useEffect(() => {
     let disposed = false
-    let cleanup = () => {}
+    // All teardown paths funnel through ONE cleanup (codex 19 P2): the
+    // observer disconnect + retract timer are registered as they are created
+    // so unmount at any point (before/after the import resolves, before or
+    // after intro-done) never leaks the observer or fires a stale update.
+    let cleanup: (() => void) | null = null
+    const armRetract = () => {
+      const t = window.setTimeout(() => {
+        if (!disposed) setRetracted(true)
+      }, 1200)
+      cleanup = () => {
+        window.clearTimeout(t)
+        observer.disconnect()
+      }
+    }
+    const observer = new MutationObserver(() => {
+      if (document.documentElement.classList.contains('intro-done') && !cleanup) {
+        armRetract()
+      }
+    })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     void import('./scene/intro').then(({ prefersReducedMotion }) => {
       if (disposed) return
       if (prefersReducedMotion()) {
         setRetracted(true)
+        observer.disconnect()
         return
       }
-      const observer = new MutationObserver(() => {
-        if (document.documentElement.classList.contains('intro-done')) {
-          const t = window.setTimeout(() => setRetracted(true), 1200)
-          cleanup = () => window.clearTimeout(t)
-          observer.disconnect()
-        }
-      })
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-      if (document.documentElement.classList.contains('intro-done')) {
-        const t = window.setTimeout(() => setRetracted(true), 1200)
-        cleanup = () => window.clearTimeout(t)
-        observer.disconnect()
+      if (document.documentElement.classList.contains('intro-done') && !cleanup) {
+        armRetract()
       }
     })
     return () => {
       disposed = true
-      cleanup()
+      cleanup?.()
+      observer.disconnect()
     }
   }, [])
 
@@ -98,10 +156,16 @@ export function TitleOverlay() {
       </div>
       <button
         type="button"
+        ref={burgerRef}
         className={retracted ? 'app-burger is-retracted' : 'app-burger'}
         aria-label="Abrir menu do projeto"
         aria-expanded={menuOpen}
         onClick={() => setMenuOpen(true)}
+        // Invisible until retraction — keep it out of the tab order then too
+        // (codex 19 P2): opacity:0 + pointer-events do not remove a button
+        // from tab order. No aria-hidden: it is a focusable control whose
+        // state simply hasn't arrived yet.
+        tabIndex={retracted ? 0 : -1}
       >
         <svg viewBox="0 0 110 50" aria-hidden="true">
           {BURGER_STROKES.map((d) => (
@@ -111,12 +175,9 @@ export function TitleOverlay() {
       </button>
       {menuOpen && (
         <>
+          <div className="app-menu-backdrop" onClick={closeMenu} aria-hidden="true" />
           <div
-            className="app-menu-backdrop"
-            onClick={() => setMenuOpen(false)}
-            aria-hidden="true"
-          />
-          <div
+            ref={menuRef}
             className="app-menu"
             role="dialog"
             aria-modal="true"
@@ -125,7 +186,7 @@ export function TitleOverlay() {
             <button
               type="button"
               className="app-menu-close"
-              onClick={() => setMenuOpen(false)}
+              onClick={closeMenu}
               aria-label="Fechar menu"
             >
               ×
