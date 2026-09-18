@@ -105,6 +105,24 @@
   animation-play-state: paused;
 }
 
+/* Desktop hover affordance: a warm bloom over the totem art while the
+   pointer is over it or its hit circle. FILTER ONLY — the interaction g's
+   transform is GSAP-owned (intro drop, tap pulse — invariant 6), and a
+   filter composes with (never fights) the .is-kbd-focus halo. The cream is
+   the poster ink family (#F2DCB0, the arrow stroke). The transition lives
+   on the BASE rule so hover-off fades too; the glow itself is gated to
+   hover-capable fine pointers (mount.ts also mouse-gates the class). */
+g.artifact-target {
+  transition: filter 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  g.artifact-target.is-pointer-hover {
+    filter: drop-shadow(0 0 2px rgba(242, 220, 176, 0.95))
+      drop-shadow(0 0 7px rgba(242, 220, 176, 0.75)) drop-shadow(0 0 14px rgba(242, 220, 176, 0.4));
+  }
+}
+
 /* Focusable interaction groups (role=button, tabindex=0 — layers.ts).
    Issue #12: the `:focus-visible` outline is GONE — on an SVG <g> an outline
    paints a black-bordered RECTANGLE around the group bbox, and mobile focus

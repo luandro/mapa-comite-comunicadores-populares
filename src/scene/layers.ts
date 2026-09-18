@@ -370,6 +370,9 @@ function mountArtifacts(
     const interaction = svg('g')
     interaction.setAttribute('data-interactive', 'artifact')
     interaction.setAttribute('data-artifact-id', orgId)
+    // Desktop hover hook (scene.css gates the glow to fine pointers;
+    // mount.ts toggles .is-pointer-hover from a delegated pointerover).
+    interaction.classList.add('artifact-target')
     // Phase 5 (SPEC §9): real button semantics like the cities — focusable,
     // labeled from data.json, aria-pressed is mount.ts's selection reflection.
     interaction.setAttribute('tabindex', '0')

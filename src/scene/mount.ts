@@ -741,6 +741,39 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   }
   sceneSvg.addEventListener('click', onSceneClick)
 
+  // --- Desktop totem hover glow (scene.css .artifact-target) -------------------
+  // One delegated pointerover/out pair: both the totem art and its sibling hit
+  // circle carry [data-artifact-id], so closest() resolves either entry point
+  // to the same interaction g. The class is mouse-only (a touch contact would
+  // otherwise stick the glow after the tap), and cleanup rides the same
+  // context guard as every other listener teardown in destroy().
+  let hoveredArtifact: SVGGElement | null = null
+  function clearHoveredArtifact(): void {
+    hoveredArtifact?.classList.remove('is-pointer-hover')
+    hoveredArtifact = null
+  }
+  function onScenePointerOver(event: PointerEvent): void {
+    if (event.pointerType !== 'mouse') return
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const id = target.closest('[data-artifact-id]')?.getAttribute('data-artifact-id')
+    const next = id && id in calibrated.artifacts ? calibrated.artifacts[id] : null
+    if (next === hoveredArtifact) return
+    clearHoveredArtifact()
+    if (next) {
+      next.classList.add('is-pointer-hover')
+      hoveredArtifact = next
+    }
+  }
+  function onScenePointerOut(event: PointerEvent): void {
+    if (event.pointerType !== 'mouse') return
+    const target = event.target
+    if (!(target instanceof Element)) return
+    if (target.closest('[data-artifact-id]')) clearHoveredArtifact()
+  }
+  sceneSvg.addEventListener('pointerover', onScenePointerOver)
+  sceneSvg.addEventListener('pointerout', onScenePointerOut)
+
   // --- Issue #13: title-pill tap opens the org modal ---------------------------
   // The pill box re-enables pointer hit testing (scene.css `.label-pill`);
   // everything else in #labels stays pointer-events:none and the layer stays
@@ -1113,6 +1146,8 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       sceneSvg.removeEventListener('touchstart', onSvgNativeTouch, true)
       sceneSvg.removeEventListener('touchend', onSvgNativeTouchEnd, true)
       sceneSvg.removeEventListener('touchcancel', onSvgNativeTouchEnd, true)
+      sceneSvg.removeEventListener('pointerover', onScenePointerOver)
+      sceneSvg.removeEventListener('pointerout', onScenePointerOut)
       labels.el.removeEventListener('touchstart', onLabelsTouchForward)
       labels.el.removeEventListener('touchmove', onLabelsTouchForward)
       labels.el.removeEventListener('touchend', onLabelsTouchForward)

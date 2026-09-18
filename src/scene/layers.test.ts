@@ -602,4 +602,17 @@ describe('scene.css layer rules', () => {
       css.indexOf('#scene.is-dragging ~ #labels'),
     )
   })
+
+  it('desktop totem hover glow: filter-only class hook, fine-pointer gated (issue #25)', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/scene/scene.css'), 'utf8')
+    // The transition lives on the BASE rule so hover-off fades too…
+    expect(css).toMatch(/g\.artifact-target\s*\{[^}]*transition:\s*filter/)
+    // …and the glow is a drop-shadow bloom gated to hover-capable fine
+    // pointers (touch devices never get it), never a transform (invariant 6:
+    // the interaction g's transform is GSAP-owned by the tap pulse).
+    expect(css).toMatch(
+      /@media \(hover: hover\) and \(pointer: fine\)\s*\{\s*g\.artifact-target\.is-pointer-hover\s*\{[^}]*filter:\s*drop-shadow/,
+    )
+    expect(css).not.toMatch(/g\.artifact-target[^{]*\{[^}]*transform/)
+  })
 })
