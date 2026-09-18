@@ -21,9 +21,20 @@ check(
   'load: 11 artifact totems',
   (await page.locator('#layer-artifacts [data-artifact-id]').count()) >= 11,
 )
+// Issue #10/#19: the title RETRACTS into a burger ~1.2s after intro-done —
+// at 4.5s the correct assertion is the retracted STATE (title hidden with
+// the is-retracted class + burger visible), not full opacity.
 check(
-  'load: title visible',
-  await page.evaluate(() => getComputedStyle(document.querySelector('.app-title')).opacity === '1'),
+  'load: title retracted into burger after intro (issue #19)',
+  await page.evaluate(() => {
+    const title = document.querySelector('.app-title')
+    const burger = document.querySelector('.app-burger')
+    return (
+      title?.classList.contains('is-retracted') === true &&
+      getComputedStyle(title).opacity !== '1' &&
+      burger != null
+    )
+  }),
 )
 
 // city tap raise — click a PAINTED point of the mass (the recalibrated Belém
@@ -47,10 +58,31 @@ const tapPoint = await city.evaluate((g) => {
 if (!tapPoint) failures.push('city tap: no painted point found in belem bbox')
 else await page.mouse.click(tapPoint.x, tapPoint.y)
 await page.waitForTimeout(500)
-const raised = await city.evaluate(
-  (g) => new DOMMatrixReadOnly(getComputedStyle(g).transform).m42 < 0,
+// Issue #12/#18 (user directives): tapping a city REPLAYS the entrance for
+// that city's orgs (totems drop from ARTIFACT_DROP_FROM) and dims the other
+// groups to 0.35 — there is NO translate lift anymore. Assert the shipped
+// contract: own group at opacity 1, another group dimmed to 0.35.
+const cityState = await page.evaluate(() => {
+  const op = (id) => {
+    const g = document.querySelector(`[data-city-id="${id}"]`)
+    return g ? Number(getComputedStyle(g).opacity) : -1
+  }
+  return { belem: op('belem'), ananindeua: op('ananindeua'), moju: op('moju') }
+})
+check(
+  'city tap: selected full + others dimmed (replay model, issue #18)',
+  cityState.belem > 0.99 &&
+    cityState.ananindeua >= 0.3 &&
+    cityState.ananindeua <= 0.4 &&
+    cityState.moju >= 0.3 &&
+    cityState.moju <= 0.4,
+  JSON.stringify(cityState),
 )
-check('city tap: raise', raised)
+// City tap FILTERS orgs not in the city: non-Belem orgs fade out + drop
+// pointer-events. Undo it before the artifact step with an empty tap (the
+// documented reset path) so the panel step sees the full scene again.
+await page.mouse.click(40, 860) // bottom-left water corner = tap-empty
+await page.waitForTimeout(700)
 
 // Arrows never intercept taps (opus r2): each Belém `pos.from` hub point sits
 // on the painted city mass, so its projected pixel must route to the city
@@ -105,17 +137,23 @@ check('portrait: slice cover fit', cover)
 await portrait.close()
 
 // --- Reduced motion: final state immediately ---
+// Issue #10/#19: reduced-motion keeps READ delays (the title's 1.2s on-screen
+// time) and only jumps the ANIMATION — so at 800ms the title may legitimately
+// already be retracted (instant state jump). Assert the title node exists and
+// the intro settled (html.intro-done), not a specific opacity mid-lifecycle.
 const rm = await browser.newContext({
   reducedMotion: 'reduce',
   viewport: { width: 1600, height: 900 },
 })
 const rpage = await rm.newPage()
 await rpage.goto(BASE, { waitUntil: 'networkidle' })
-await rpage.waitForTimeout(800)
+await rpage.waitForTimeout(2000)
 check(
   'reduced-motion: instant final state',
   await rpage.evaluate(
-    () => getComputedStyle(document.querySelector('.app-title')).opacity === '1',
+    () =>
+      document.documentElement.classList.contains('intro-done') &&
+      document.querySelector('.app-title') != null,
   ),
 )
 await rm.close()
