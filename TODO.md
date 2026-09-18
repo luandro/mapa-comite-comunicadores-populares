@@ -7,19 +7,8 @@ Order matters: each layer lands animated and verified before the next starts. "D
 User-locked scope: REMOVE the big wave-band animation (`onda 1/2/4` bands, mirror
 chains, `wave-drift`), KEEP the ondinhas squiggle with its animations, CUT the
 sea rect — `.scene-root { background: #5da9a9 }` is now THE ocean. waterDetail
-(rivers/marks) stays; a CSS water animation is deferred. Note: AGENTS.md
-invariants 4/5 still carry the pre-v1.1 counts/band text (protected-file edit
-pending user approval) — SPEC.md is updated and wins (SPEC-wins rule).
-
-## HANDOFF STATE (2026-09-15 · energy outage — resumed on coder.luandro.com)
-
-Phases 0 + 1 are committed, senior-APPROVED (codex / opus respectively) and pushed. Phase 1.5 is mid-flight: chunks A (static layers) + B (DEV calibration tool) are implemented and green (build/lint/test 71/71/prettier + composite renders all layer types), committed as WIP — **the calibration loop itself has NOT run**. Remaining Phase 1.5 work, in order:
-
-1. Calibrate `underlayPlacement` (Mapa.jpeg ↔ `mapa cru` sea/land edges; method: full-scene base-map screenshot at viewport 3024×2022 + PIL mask correlation, or the DEV toolbar + vision iteration).
-2. With the underlay fixed: calibrate cities (uniform scale only), wave rows, squiggle, first-pass artifact `pos`/`from` in data.json (11 orgs; totem base-point semantics; POS_MARGIN=0), then `initialFraming` (densest org cluster, portrait first paint).
-3. Senior-vision sign-off (special gate, next reviewer in rotation without consuming parity): timestamped landscape+portrait screenshots side-by-side vs `na cuia/Mapa.jpeg`, asymmetry preserved; evidence → `docs/reviews/phase-1.5.md`; only then tick the Phase 1.5 boxes and commit (`feat(phase-1.5): ...`).
-
-Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPROVE · next phase commit index 2 → **codex**; special gates (1.5, 5) take the next reviewer in sequence without consuming parity. Fix loop budget is per phase, ≤2 rounds then tie-breaker senior (see the process contract).
+(rivers/marks) stays; a CSS water animation is deferred. AGENTS.md invariants
+4/5 carry this ground truth since `60e2761`; SPEC.md wins on any conflict.
 
 ## Phase 0 — Scaffold & guardrails
 - [x] Vite + React 18 + TS strict in repo root; ESLint/Prettier (+ `format:check` script); Vitest wired; `@playwright/test` pinned `1.48.0` devDependency
