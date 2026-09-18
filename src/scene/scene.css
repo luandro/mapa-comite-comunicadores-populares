@@ -107,11 +107,14 @@
 
 /* Desktop hover affordance: a warm bloom over the totem art while the
    pointer is over it or its hit circle. FILTER ONLY — the interaction g's
-   transform is GSAP-owned (intro drop, tap pulse — invariant 6), and a
-   filter composes with (never fights) the .is-kbd-focus halo. The cream is
-   the poster ink family (#F2DCB0, the arrow stroke). The transition lives
-   on the BASE rule so hover-off fades too; the glow itself is gated to
-   hover-capable fine pointers (mount.ts also mouse-gates the class). */
+   transform is GSAP-owned (intro drop, tap pulse — invariant 6). The cream
+   is the poster ink family (#F2DCB0, the arrow stroke). The transition
+   lives on the BASE rule so hover-off fades too; the glow itself is gated
+   to hover-capable fine pointers (mount.ts also mouse-gates the class).
+   NOTE: filter is a single property — the .is-kbd-focus green halo
+   OUTRANKS this rule by specificity (0,3,1 vs 0,2,1), so a keyboard-focused
+   totem shows the halo only, never both (keyboard affordance wins — opus
+   r1 P2). */
 g.artifact-target {
   transition: filter 0.15s ease;
 }

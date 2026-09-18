@@ -613,6 +613,6 @@ describe('scene.css layer rules', () => {
     expect(css).toMatch(
       /@media \(hover: hover\) and \(pointer: fine\)\s*\{\s*g\.artifact-target\.is-pointer-hover\s*\{[^}]*filter:\s*drop-shadow/,
     )
-    expect(css).not.toMatch(/g\.artifact-target[^{]*\{[^}]*transform/)
+    expect(css).not.toMatch(/artifact-target[^{]*\{[^}]*transform/)
   })
 })

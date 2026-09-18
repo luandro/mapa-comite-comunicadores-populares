@@ -924,3 +924,57 @@ describe('mountScene', () => {
     }
   })
 })
+
+describe('desktop totem hover glow (mount wiring)', () => {
+  // jsdom (25.x) has no PointerEvent constructor — mount.ts only reads
+  // event.pointerType, so a MouseEvent subclass carrying the field dispatches
+  // identically through jsdom's event system.
+  class PointerEvent extends MouseEvent {
+    readonly pointerType: string
+    constructor(type: string, init: MouseEventInit & { pointerType?: string }) {
+      super(type, init)
+      this.pointerType = init.pointerType ?? ''
+    }
+  }
+
+  it('mouse pointerover on the hit circle lights the interaction g; pointerout clears it', () => {
+    const c = mountScene(host, data)
+    const g = host.querySelector<SVGGElement>('g.artifact-target[data-artifact-id="na_cuia"]')!
+    const hit = host.querySelector<SVGCircleElement>('circle[data-artifact-id="na_cuia"]')!
+    const over = new PointerEvent('pointerover', {
+      bubbles: true,
+      pointerType: 'mouse',
+    })
+    const out = new PointerEvent('pointerout', { bubbles: true, pointerType: 'mouse' })
+    hit.dispatchEvent(over)
+    expect(g.classList.contains('is-pointer-hover')).toBe(true)
+    // moving within the same group (art path → hit circle) keeps the glow
+    hit.dispatchEvent(over)
+    expect(g.classList.contains('is-pointer-hover')).toBe(true)
+    hit.dispatchEvent(out)
+    expect(g.classList.contains('is-pointer-hover')).toBe(false)
+    c.destroy()
+  })
+
+  it('touch and pen pointers never stick the glow', () => {
+    const c = mountScene(host, data)
+    const g = host.querySelector<SVGGElement>('g.artifact-target[data-artifact-id="na_cuia"]')!
+    const hit = host.querySelector<SVGCircleElement>('circle[data-artifact-id="na_cuia"]')!
+    for (const pointerType of ['touch', 'pen']) {
+      hit.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType }))
+      expect(g.classList.contains('is-pointer-hover')).toBe(false)
+      hit.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, pointerType }))
+      expect(g.classList.contains('is-pointer-hover')).toBe(false)
+    }
+    c.destroy()
+  })
+
+  it('destroy() removes the hover listeners — no class changes after teardown', () => {
+    const c = mountScene(host, data)
+    const g = host.querySelector<SVGGElement>('g.artifact-target[data-artifact-id="na_cuia"]')!
+    const hit = host.querySelector<SVGCircleElement>('circle[data-artifact-id="na_cuia"]')!
+    c.destroy()
+    hit.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType: 'mouse' }))
+    expect(g.classList.contains('is-pointer-hover')).toBe(false)
+  })
+})
