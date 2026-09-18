@@ -34,6 +34,44 @@
   animation: panel-in 0.28s ease-out forwards;
 }
 
+/* v1.3 user directive: the CARD ITSELF fades into the background toward its
+   bottom — a vertical alpha mask on the whole card. v1.3.2: the fade must
+   begin EXACTLY where the wave overlay's ink begins — 60px above the card's
+   bottom edge on desktop (.panel-waves-overlay top: calc(100% - 60px)),
+   100px on mobile (overlay bottom-anchored, 100px tall) — opaque above,
+   easing to 0% at the edge. The waves then paint on top of the translucent
+   zone over the live map. mask-image keeps the card one paint layer;
+   -webkit prefix serves Safari. */
+.panel {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - 60px),
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - 60px),
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+.panel-mobile .panel {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - 100px),
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - 100px),
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
 /* v1.2 user directive: content centered on the modal (the mock reads as a
    centered composition). */
 .panel {
@@ -138,18 +176,11 @@
 
 /* Scrollable middle: vertical only — `overflow-x: hidden` + wrap-safe
    children guarantee zero horizontal scrolling (user directive).
-   padding-bottom 72px: the wave overlay paints over the card's last 60px,
-   so the last list item must stay clear of it (review P1). Mobile overlay
-   is bottom-anchored and 100px tall → 112px there.
+   padding-bottom (v1.3.2): the card is opaque until the wave overlay's ink
+   starts — 60px above the bottom edge on desktop, 100px on mobile — so the
+   last list item must scroll clear ABOVE that line (+12px breathing room).
    The horizontal padding lives HERE (not on .panel) so the scrollbar
-   renders at the card's very right edge — the scrollbar paints at the
-   element's border box, ignoring content padding (user directive + PR #9
-   review P1). Symmetric 28px keeps the content on the card's center axis.
-   `scrollbar-gutter: stable both-edges` reserves the SAME gutter on both
-   sides on classic-scrollbar platforms (Windows/Linux), where the 10px
-   scrollbar lane would otherwise shift the content box 5px left of the
-   title/card axis; no-op on overlay-scrollbar platforms (macOS, mobile).
-   Title uses 48px margins = 28 body padding + 20 close-button clearance. */
+   renders at the card's very right edge (PR #9 review P1). */
 .panel-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -163,7 +194,7 @@
 }
 
 .panel-mobile .panel-body {
-  padding-bottom: 112px; /* bottom-anchored overlay covers the last 100px */
+  padding-bottom: 112px; /* 100px mobile fade/ink line + 12px */
 }
 
 /* Scrollbar in the map's illustration language (user directive): the card
@@ -269,7 +300,10 @@
    straddling its bottom edge — first pale bands on the cream (like the mock),
    then flowing over the live map and fading to transparent via the mask in
    Panel.tsx. Absolute inside .panel-frame, so it tracks the card edge with
-   pure CSS (no JS measurement, no entrance-animation race). */
+   pure CSS (no JS measurement, no entrance-animation race).
+   v1.3: the card under the first 60px is now itself masked to ~0 alpha
+   (.panel mask-image), so the bands there float over the map showing
+   through — waves on top of the fading modal bottom. */
 .panel-waves-overlay {
   position: absolute;
   left: 0;
