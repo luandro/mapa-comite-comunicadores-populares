@@ -424,7 +424,31 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       const toShow = hiddenOrgIds.filter((orgId) => !nextHiddenSet.has(orgId))
       const toHide = nextHidden.filter((orgId) => !prevHiddenSet.has(orgId))
       hiddenOrgIds = nextHidden
-      for (const orgId of toShow) setOrgFiltered(orgId, true, dur)
+      // Orgs being REPLAYED by this same selection keep their visibility
+      // owned by the replay: killing its arrow tweens would strand the dash
+      // scaffold (draw never runs, onComplete never fires) and a parallel
+      // opacity tween would lift staggered totems to full while still at the
+      // drop offset (opus 18 P1). Restore only their hit targets; the replay
+      // ends opacity/transform at rest itself. Reduced motion skips the
+      // replay entirely — the instant path below is correct there.
+      for (const orgId of toShow) {
+        if (!reduceMotion && replayedOrgIds.includes(orgId)) {
+          cityCtx.add(() => {
+            const hit = calibrated.hitCircles[orgId]
+            if (hit) {
+              gsap.set(hit, { opacity: 1 })
+              hit.style.pointerEvents = 'auto'
+            }
+            const label = pillByOrgId[orgId]
+            if (label) {
+              gsap.set(label, { opacity: 1 })
+              label.style.pointerEvents = 'auto'
+            }
+          })
+        } else {
+          setOrgFiltered(orgId, true, dur)
+        }
+      }
       for (const orgId of toHide) setOrgFiltered(orgId, false, dur)
     })
   }
@@ -619,7 +643,12 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
         }
       })
     }
-    if (opts.pulse && nextId !== null) redrawOrgArrows(nextId)
+    // Filter is the final word on visibility (opus 18): a keyboard
+    // activation of a hidden org must not paint its arrows back at full
+    // opacity while totem/pill/hit stay at 0 — skip the redraw entirely.
+    if (opts.pulse && nextId !== null && !hiddenOrgIds.includes(nextId)) {
+      redrawOrgArrows(nextId)
+    }
     // Issue #11: a real deselect (state CHANGE to null — empty-tap, toggling
     // the selected totem, or its keyboard toggle) also flies the camera back
     // to the pre-focus framing (initialFraming fallback). This is the single
@@ -1017,15 +1046,16 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
 
   return {
     destroy() {
+      if (destroyed) return
+      destroyed = true
       // Filter pointer-events are style.pointerEvents (not gsap) — clear them
-      // explicitly so a remount starts hit-testable (StrictMode-safe).
+      // explicitly so a remount starts hit-testable (StrictMode-safe). After
+      // the guard: repeat destroys are no-ops (opus 18 P3).
       for (const orgId of hiddenOrgIds) {
         calibrated.artifacts[orgId]?.style.removeProperty('pointer-events')
         calibrated.hitCircles[orgId]?.style.removeProperty('pointer-events')
         pillByOrgId[orgId]?.style.removeProperty('pointer-events')
       }
-      if (destroyed) return
-      destroyed = true
       // Revert the city context BEFORE the entrance context: mid-replay
       // teardown undoes every city-tap style first, then the intro revert
       // restores entrance-start styling — a StrictMode remount replays both
