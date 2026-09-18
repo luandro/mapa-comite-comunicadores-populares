@@ -492,6 +492,19 @@ describe('labels', () => {
     expect(pushes.get('zoomed')).toBeCloseTo(-746, 0)
   })
 
+  it('resolveEdgeClamp: the TOP reach stays at the baseline under zoom slack', () => {
+    // Opus r1 P1: art extends only UPWARD from the anchor, so an anchor above
+    // the top means the whole totem is off-screen — the zoom slack must NOT
+    // extend the top reach, or pills pin to the top margin with no art there.
+    // Anchor at −400 (y = −392 box top) is beyond −140 even at pillAnchorSlack(4).
+    const rect = { id: 'top-orphan', x: 700, y: -392, w: 130, h: 30 }
+    expect(resolveEdgeClamp([rect], 1600, 900, new Map(), pillAnchorSlack(4)).size).toBe(0)
+    // …while an anchor just past the baseline is still clamped down as before.
+    const near = { id: 'top-near', x: 700, y: -120, w: 130, h: 30 }
+    const pushes = resolveEdgeClamp([near], 1600, 900, new Map(), pillAnchorSlack(4))
+    expect(pushes.get('top-near')).toBeCloseTo(128, 0) // 8 − (−120)
+  })
+
   it('updateLabels applies the resolved push on the anchor, base offset kept', () => {
     const el = document.createElement('div')
     const anchors: Record<string, { x: number; y: number }> = {}

@@ -273,9 +273,13 @@ export function pillAnchorSlack(u: number): number {
  * pushed up over its own totem rather than hang clipped below the fold.
  * Vertical only (the anchor translate pushes on y); degenerate vw/vh (0 in
  * non-window environments) passes the inputs through untouched. The clamp
- * reaches ±`slack` past the edges (anchors of slice-cropped totems; zoom-aware
- * via `pillAnchorSlack`, see below) and leaves anchors beyond it alone — a
- * pill whose totem scrolled fully off-screen must not orphan at the edge
+ * reaches ±`slack` past the edges — asymmetrically: the BOTTOM reach is
+ * zoom-aware (`pillAnchorSlack`; totem art extends UPWARD from the anchor,
+ * so a below-the-fold anchor can still own visible art), while the TOP reach
+ * stays at the QA'd baseline — an anchor above the top means the whole art
+ * box is above it too, and a zoom-scaled top reach would pin orphan pills to
+ * the top margin (opus r1 P1). Anchors beyond either reach are left alone —
+ * a pill whose totem scrolled fully off-screen must not orphan at the edge
  * (v1.0.1 anchor-on-screen rule).
  */
 export function resolveEdgeClamp(
@@ -294,7 +298,10 @@ export function resolveEdgeClamp(
     // outside vw) are skipped too since the pill would be invisible anyway.
     const anchorY = r.y - PILL_BASE_OFFSET
     if (r.x + r.w < 0 || r.x > vw) continue
-    if (anchorY < -slack || anchorY > vh + slack) continue
+    // Asymmetric reach (opus r1 P1): art extends only UPWARD from the anchor,
+    // so the zoom-aware slack is valid below the fold only — an anchor above
+    // the top means the whole totem is off-screen; keep the QA'd baseline.
+    if (anchorY < -PILL_ANCHOR_SLACK || anchorY > vh + slack) continue
     const push = out.get(r.id) ?? 0
     const top = r.y + push
     if (top + r.h > vh - LABEL_EDGE_MARGIN) {
