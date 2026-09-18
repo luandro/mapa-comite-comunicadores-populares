@@ -436,14 +436,23 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
           cityCtx.add(() => {
             const hit = calibrated.hitCircles[orgId]
             if (hit) {
-              gsap.set(hit, { opacity: 1 })
+              // overwrite:true — a fast switch (A→B inside the 0.5s fade)
+              // leaves an in-flight fade-out tween rendering; a bare set()
+              // would lose that race and strand the target at opacity 0
+              // (opus 18 confirming round).
+              gsap.set(hit, { opacity: 1, overwrite: true })
               hit.style.pointerEvents = 'auto'
             }
             const label = pillByOrgId[orgId]
             if (label) {
-              gsap.set(label, { opacity: 1 })
+              gsap.set(label, { opacity: 1, overwrite: true })
               label.style.pointerEvents = 'auto'
             }
+            // Restore the interaction g's own pointer-events too — the filter
+            // set it to 'none' on the group (P1 fix), state hygiene says the
+            // replay-owned restore undoes everything it owns.
+            const g = calibrated.artifacts[orgId]
+            g?.style.removeProperty('pointer-events')
           })
         } else {
           setOrgFiltered(orgId, true, dur)

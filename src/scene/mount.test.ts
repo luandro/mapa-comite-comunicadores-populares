@@ -459,6 +459,26 @@ describe('mountScene', () => {
     }
   })
 
+  it('fast switch mid-fade: replay-owned restore overwrites the in-flight fade-out (no stranded pill)', async () => {
+    const c = mountScene(host, replayData)
+    try {
+      tapCity('belem')
+      // switch INSIDE the 0.5s filter fade — rede's fade-out tween is live
+      await new Promise((r) => setTimeout(r, 120))
+      tapCity('ananindeua')
+      await new Promise((r) => setTimeout(r, 1500))
+      // rede (ananindeua's org) must NOT be stranded at 0 by the racing tween
+      const redePill = host.querySelector<HTMLElement>('[data-label-id="rede"] .label-pill')!
+      expect(getComputedStyle(redePill).opacity).toBe('1')
+      expect(redePill.style.pointerEvents).toBe('auto')
+      const redeHit = host.querySelector<SVGCircleElement>('circle[data-artifact-id="rede"]')!
+      expect(getComputedStyle(redeHit).opacity).toBe('1')
+      c.destroy()
+    } finally {
+      // noop — symmetry with the other filter tests
+    }
+  })
+
   it('destroy() clears filter pointer-events so a remount starts hit-testable', () => {
     const c = mountScene(host, replayData)
     tapCity('belem')
