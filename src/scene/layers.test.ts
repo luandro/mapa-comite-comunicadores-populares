@@ -9,6 +9,7 @@ import {
   pillTapPlan,
   renderLabels,
   resolveEdgeClamp,
+  pillAnchorSlack,
   resolveLabelPush,
   updateLabels,
 } from './labels'
@@ -471,6 +472,37 @@ describe('labels', () => {
       new Map(),
     )
     expect(pushes.size).toBe(0)
+  })
+
+  it('pillAnchorSlack: floors at the k=1 baseline and grows with the camera', () => {
+    // k=1 phone: u ≈ 0.17 CSS px/scene-unit → baseline 140 wins.
+    expect(pillAnchorSlack(0.17)).toBe(140)
+    // Zoomed to k=4: 190 scene units × u must exceed the baseline so a
+    // mostly-visible cropped totem keeps its pill (issue #3 item 3).
+    expect(pillAnchorSlack(4)).toBe(190 * 4)
+  })
+
+  it('resolveEdgeClamp: a zoom-aware slack reaches anchors the fixed one skips', () => {
+    // k=4 on the same 900px viewport: anchor 700px below the fold — outside
+    // the fixed 140 reach (skipped) but inside pillAnchorSlack(4) = 760.
+    const rect = { id: 'zoomed', x: 700, y: 1608, w: 130, h: 30 }
+    expect(resolveEdgeClamp([rect], 1600, 900, new Map()).size).toBe(0)
+    const pushes = resolveEdgeClamp([rect], 1600, 900, new Map(), pillAnchorSlack(4))
+    // pulled UP so top + h = vh − margin: push = −(1608 + 30 − 892)
+    expect(pushes.get('zoomed')).toBeCloseTo(-746, 0)
+  })
+
+  it('resolveEdgeClamp: the TOP reach stays at the baseline under zoom slack', () => {
+    // Opus r1 P1: art extends only UPWARD from the anchor, so an anchor above
+    // the top means the whole totem is off-screen — the zoom slack must NOT
+    // extend the top reach, or pills pin to the top margin with no art there.
+    // Anchor at −400 (y = −392 box top) is beyond −140 even at pillAnchorSlack(4).
+    const rect = { id: 'top-orphan', x: 700, y: -392, w: 130, h: 30 }
+    expect(resolveEdgeClamp([rect], 1600, 900, new Map(), pillAnchorSlack(4)).size).toBe(0)
+    // …while an anchor just past the baseline is still clamped down as before.
+    const near = { id: 'top-near', x: 700, y: -120, w: 130, h: 30 }
+    const pushes = resolveEdgeClamp([near], 1600, 900, new Map(), pillAnchorSlack(4))
+    expect(pushes.get('top-near')).toBeCloseTo(128, 0) // 8 − (−120)
   })
 
   it('updateLabels applies the resolved push on the anchor, base offset kept', () => {

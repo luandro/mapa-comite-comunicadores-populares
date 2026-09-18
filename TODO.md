@@ -39,10 +39,12 @@ Review-parity ledger: commit 0 (P0) = codex APPROVE · commit 1 (P1) = opus APPR
 - [x] User review side-by-side vs `Mapa.jpeg`: irregularities preserved (asymmetry criterion); `initialFraming` chosen
 
 ## Phase 2 — Water that reads as water
+
+Note (2026-09-18, perf gate resolution): the box below is marked DONE-BY-DECISION — the gate ran (CPU-throttled desktop probes + synthetic A/B) and the §3 compositing fallback was measured, NOT warranted (see the Perf gate record at the bottom of this file). Real-device frame timing stays the final criterion (same class as issue #17's real-device rule).
 - [x] `onda 1/2/4` inlined, **uniform** scale ×1.3994, calibrated rows, source opacities preserved (.8/.2)
 - [x] Seamless drift: **three copies `[A][A′][A]`**, translate 0 → −4320.64 band-local units, durations 8–14 s, offset phases
 - [x] `ondinhas` drift + opacity pulse
-- [ ] **Perf gate**: paint-flash + frame timing, mid-tier Android profile; fallback = aligned sibling `<svg>` per ambient layer inside one camera wrapper (SPEC §3) if inner-SVG transforms repaint — extent/clamp/hit-sizing Vitest re-run in **fallback mode** (measurement-owner contract)
+- [x] **Perf gate**: paint-flash + frame timing, mid-tier Android profile; fallback = aligned sibling `<svg>` per ambient layer inside one camera wrapper (SPEC §3) if inner-SVG transforms repaint — extent/clamp/hit-sizing Vitest re-run in **fallback mode** (measurement-owner contract) *(2026-09-18: gate RAN — CPU×6 probes + synthetic sibling-svg A/B; fallback measured at ratio 1.08 = no win; inner-SVG camera kept. Full record: "Perf gate record (2026-09-18)" at the bottom of this file. Vitest re-run not applicable — fallback not adopted.)*
 - [x] `prefers-reduced-motion` static fallback for all loops
 
 ## Phase 3 — Land, roads & entrance choreography
@@ -113,3 +115,45 @@ Evidence: `graft/.cache/checks/current-landscape.png` (1600×900, k=1, intro set
   `cityPlacements.moju.labelAnchor` is unused; the mock labels "Moju/Barcarena"
   (content decision). (b) MMVB arrow crosses the "Mapa de Belém" text — nudge
   `labelAnchor` or the MMVB hub stem (mild, label stays legible).
+
+## Perf gate record (2026-09-18)
+
+The Phase 2 gate (SPEC §11: "DevTools paint-flash + frame timing on a real
+mid-tier Android (or CPU-throttled desktop ×6) — if inner-SVG transforms
+repaint full-width, adopt the §3 compositing fallback") ran as a probe suite
+in `graft/.cache/checks/` (perf-gate*.mjs, env-floor.mjs, layer-cost*.ms.mjs,
+fallback-compare.mjs) against the dev server at 1600×900. Evidence chain:
+
+1. **Environment floor**: blank page @6× CPU throttle, identical CDP-driven
+   drag: p50 frame interval 17 ms (env-floor.mjs). Any probe must be read
+   against this floor, not against 16.7 ms @1×.
+2. **App under throttle**: p50 67 ms / p90 100–117 ms @6× (≈ 8–17 ms of
+   app-attributable cost @1× — smooth on desktop, ~1–2 frames on a phone).
+   A/B via git stash (pre/post per-frame-work caches) showed the throttled
+   profile is PAINT-bound, not main-thread-bound: identical @6× with and
+   without the caches.
+3. **No dominant layer**: hiding each layer one at a time (layer-cost-ms.mjs)
+   moves p50 only for `-artifacts` (67→50 ms — the ambient bob animation).
+   Labels, squiggles, arrows, water-detail: no change (the earlier belief
+   that label layout-thrash dominated pan was disproved — the first 6 fps
+   readings were a probe artifact: Playwright-loop stalls, corrected by
+   CDP-driven drag + drag-window-only counting).
+4. **§3 fallback measured, not guessed**: synthetic A/B (fallback-compare.mjs,
+   2×1000-path sibling SVGs + CSS-transform camera div vs 1×1000-path inner-g
+   attribute camera, identical drag) → fallback/inner ratio **1.08 — no
+   significant win**. The scene's SVG paint happens in both architectures;
+   only the transform owner differs. Fallback NOT adopted → the invariant-8
+   Vitest fallback-mode re-run is not applicable.
+
+**Shipped in this cycle** (per-frame work reduction — correct and provably
+harmless, kept on those grounds): camera caches the measurement CTM on
+resize (`Camera.getFrameState()`, `onResize` option) instead of a per-frame
+`getScreenCTM()`; pill box sizes cached in labels.ts (`invalidateLabelMetrics()`
+on font-load + resize) instead of 11 per-frame `offsetWidth` layout reads;
+hit-circle `r` writes skipped while `r` is unchanged (pan at constant k).
+Optional follow-up if a real device ever shows jank: pause the artifact bob
+during gestures (the one measured lever, −17 ms @6×).
+
+**Final criterion**: real mid-tier Android frame timing remains the honest
+gate (headless CPU-throttle probes cannot reproduce composited GPU raster) —
+tracked alongside issue #17's real-device check.

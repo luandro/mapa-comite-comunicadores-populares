@@ -8,6 +8,7 @@ import type {
   Camera,
   CameraOptions,
   FlyToOptions,
+  FrameState,
   ObstructionRect,
   TransformState,
 } from './types'
@@ -39,6 +40,14 @@ export function createCamera(opts: CameraOptions): Camera {
   // Full-rect fallback until the first successful CTM read (jsdom / pre-layout).
   let win: SceneWindow = { x0: 0, y0: 0, x1: SCENE_WIDTH, y1: SCENE_HEIGHT }
   let ctmA = 1
+  /** Camera-free measurement CTM, cached: it changes on resize/layout only
+   * (refreshWindow callers: RO, obstruction, flies, construction) — the
+   * per-frame consumers read the cache, never a DOM call (getFrameState).
+   * Identity until the first successful read (jsdom ships no DOMMatrix). */
+  let measureCtm: DOMMatrix =
+    typeof DOMMatrix === 'function'
+      ? new DOMMatrix()
+      : ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 } as unknown as DOMMatrix)
   let obstruction: ObstructionRect | null = null
   let destroyed = false
   let flyTween: gsap.core.Tween | null = null
@@ -114,6 +123,10 @@ export function createCamera(opts: CameraOptions): Camera {
         f: ctm.f,
       })
       ctmA = ctm.a
+      measureCtm =
+        typeof DOMMatrix === 'function'
+          ? new DOMMatrix([ctm.a, ctm.b, ctm.c, ctm.d, ctm.e, ctm.f])
+          : ({ a: ctm.a, b: ctm.b, c: ctm.c, d: ctm.d, e: ctm.e, f: ctm.f } as unknown as DOMMatrix)
     }
     // Push extents even without a CTM (jsdom / pre-layout): leaving d3 on its
     // defaultExtent reads viewBox.baseVal — unimplemented there, wrong under
@@ -291,6 +304,7 @@ export function createCamera(opts: CameraOptions): Camera {
       : new ResizeObserver(() => {
           refreshWindow()
           reClampNow()
+          opts.onResize?.() // cached measureCtm just changed — consumers re-project
         })
   ro?.observe(container)
 
@@ -314,5 +328,12 @@ export function createCamera(opts: CameraOptions): Camera {
     svgSel.on('.zoom', null)
   }
 
-  return { getState: state, framing, setObstruction, flyTo, zoomBy, reset, destroy }
+  /** Camera-plane snapshot for per-frame subscribers: CURRENT controller
+   * state + the CACHED camera-free measurement CTM (resize-owned — the DOM
+   * is never read here; see the FrameState docblock in types.ts). */
+  function getFrameState(): FrameState {
+    return { measureCtm, state: state() }
+  }
+
+  return { getState: state, getFrameState, framing, setObstruction, flyTo, zoomBy, reset, destroy }
 }
