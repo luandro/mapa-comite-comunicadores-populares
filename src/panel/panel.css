@@ -35,27 +35,39 @@
 }
 
 /* v1.3 user directive: the CARD ITSELF fades into the background toward its
-   bottom — a vertical alpha mask on the whole card (fully opaque until a
-   FIXED 220px band above the bottom edge, then easing to 0% at the edge).
-   The animated wave overlay (Panel.tsx) paints ON TOP of that translucent
-   zone, so the waves read as the modal's bottom dissolving over the live
-   map. Fixed-px band start (not %) so the fade always hugs the bottom at
-   any card height — v1.3.1 user tweak: started "a bit further down" than
-   the original 55% stop. mask-image keeps the card's border/scrollbar/
-   content one paint layer; -webkit prefix serves Safari. */
+   bottom — a vertical alpha mask on the whole card. v1.3.2: the fade must
+   begin EXACTLY where the wave overlay's ink begins — 60px above the card's
+   bottom edge on desktop (.panel-waves-overlay top: calc(100% - 60px)),
+   100px on mobile (overlay bottom-anchored, 100px tall) — opaque above,
+   easing to 0% at the edge. The waves then paint on top of the translucent
+   zone over the live map. mask-image keeps the card one paint layer;
+   -webkit prefix serves Safari. */
 .panel {
   -webkit-mask-image: linear-gradient(
     to bottom,
     #000 0,
-    #000 calc(100% - 220px),
-    rgba(0, 0, 0, 0.55) calc(100% - 110px),
+    #000 calc(100% - 60px),
     rgba(0, 0, 0, 0) 100%
   );
   mask-image: linear-gradient(
     to bottom,
     #000 0,
-    #000 calc(100% - 220px),
-    rgba(0, 0, 0, 0.55) calc(100% - 110px),
+    #000 calc(100% - 60px),
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+.panel-mobile .panel {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - 100px),
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 calc(100% - 100px),
     rgba(0, 0, 0, 0) 100%
   );
 }
@@ -164,9 +176,11 @@
 
 /* Scrollable middle: vertical only — `overflow-x: hidden` + wrap-safe
    children guarantee zero horizontal scrolling (user directive).
-   padding-bottom 232px (v1.3.1): the card's bottom 220px are the mask's
-   fade zone (content there goes translucent and unreadable), so the last
-   list item must scroll clear ABOVE it + 12px breathing room. */
+   padding-bottom (v1.3.2): the card is opaque until the wave overlay's ink
+   starts — 60px above the bottom edge on desktop, 100px on mobile — so the
+   last list item must scroll clear ABOVE that line (+12px breathing room).
+   The horizontal padding lives HERE (not on .panel) so the scrollbar
+   renders at the card's very right edge (PR #9 review P1). */
 .panel-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -176,11 +190,11 @@
   scrollbar-gutter: stable both-edges;
   padding-left: 28px;
   padding-right: 28px;
-  padding-bottom: 232px;
+  padding-bottom: 72px;
 }
 
 .panel-mobile .panel-body {
-  padding-bottom: 232px; /* same fade zone clearance (mask is viewport-tall) */
+  padding-bottom: 112px; /* 100px mobile fade/ink line + 12px */
 }
 
 /* Scrollbar in the map's illustration language (user directive): the card
