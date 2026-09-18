@@ -53,6 +53,12 @@ function useMenuDialog(
 ): void {
   useEffect(() => {
     if (!menuOpen) return
+    // Inert the scene host while open (Panel.tsx §8 convention): a Tab that
+    // escapes to <body> would otherwise walk into the scene's tabbable
+    // cities/artifacts UNDER the backdrop and Enter could open the Panel
+    // beneath the menu (opus 19 P2).
+    const background = document.querySelector<HTMLElement>('[data-scene-host]')
+    background?.setAttribute('inert', '')
     menuRef.current?.querySelector<HTMLElement>('.app-menu-close')?.focus()
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -78,6 +84,7 @@ function useMenuDialog(
     document.addEventListener('keydown', onKey)
     return () => {
       document.removeEventListener('keydown', onKey)
+      background?.removeAttribute('inert')
       // Restore focus AFTER the menu unmounts — the burger re-takes it.
       burgerRef.current?.focus()
     }
@@ -122,12 +129,13 @@ export function TitleOverlay() {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     void import('./scene/intro').then(({ prefersReducedMotion }) => {
       if (disposed) return
-      if (prefersReducedMotion()) {
-        setRetracted(true)
-        observer.disconnect()
-        return
-      }
-      if (document.documentElement.classList.contains('intro-done') && !cleanup) {
+      // Reduced motion = no transition, not no title: keep the 1.2s read
+      // delay; the retract itself is the CSS state jump (media query).
+      if (
+        !prefersReducedMotion() &&
+        document.documentElement.classList.contains('intro-done') &&
+        !cleanup
+      ) {
         armRetract()
       }
     })

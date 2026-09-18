@@ -132,9 +132,12 @@ html.intro-done .app-title {
 }
 
 /* Retracting title: slides/fades toward the burger corner (transform/opacity
-   only — perf budget). Reduced motion: index.css already kills the .app-title
-   transition; the burger state-jumps via the same media query below. */
-.app-title.is-retracted {
+   only — perf budget). Selector is html.intro-done .app-title.is-retracted:
+   the intro-done reveal rule (0,2,1) would otherwise beat .app-title
+   .is-retracted (0,2,0) and the opacity/transform retract would never run —
+   the title would snap off after only the visibility delay (opus 19 P1,
+   cascade-verified). */
+html.intro-done .app-title.is-retracted {
   opacity: 0;
   transform: translate(-18px, -12px) scale(0.96);
   pointer-events: none;
@@ -147,7 +150,7 @@ html.intro-done .app-title {
 
 @media (prefers-reduced-motion: reduce) {
   .app-burger,
-  .app-title.is-retracted {
+  html.intro-done .app-title.is-retracted {
     transition: none;
   }
 }
