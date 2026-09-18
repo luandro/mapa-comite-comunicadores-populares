@@ -586,8 +586,16 @@ describe('scene.css layer rules', () => {
     // …every data-interactive target (cities, totems, hit circles) reads
     // pointer over it…
     expect(css).toMatch(/#scene \[data-interactive\]\s*\{[^}]*cursor:\s*pointer/)
-    // …and a live drag wins over both, on ANY descendant (a drag can begin
-    // on a totem — the cursor must still read grabbing).
-    expect(css).toMatch(/#scene\.is-dragging,\s*#scene\.is-dragging \*\s*\{[^}]*cursor:\s*grabbing/)
+    // …and a live drag wins on SPECIFICITY, not source order (opus r1: the
+    // grabbing rules are (1,2,0) vs the tap targets' (1,1,0) — reordering
+    // the file must not silently revert a totem mid-drag to pointer)…
+    expect(css).toMatch(
+      /#scene\.is-dragging,\s*#scene\.is-dragging \*,\s*#scene\.is-dragging ~ #labels \.label-pill\s*\{[^}]*cursor:\s*grabbing/,
+    )
+    // …covering a drag begun on a pill too (the pill lives in the sibling
+    // #labels subtree — the descendant rule cannot reach it).
+    expect(css.indexOf('#scene [data-interactive]')).toBeLessThan(
+      css.indexOf('#scene.is-dragging ~ #labels'),
+    )
   })
 })

@@ -33,12 +33,14 @@
 }
 
 /* Live drag state (camera.ts toggles it on real mousedown/touchstart gesture
-   starts, never on wheel/programmatic transforms). The id-scoped descendant
-   rule (1,1,0) outranks every tap-target cursor so the WHOLE canvas reads
-   "grabbing" while the camera moves — including when the drag began on a
-   totem. */
+   starts, never on wheel/programmatic transforms). The grabbing rules are
+   BOTH (1,2,0) — an explicit specificity win over the (1,1,0) tap-target
+   cursors above, not source-order luck (opus r1) — and cover a drag begun
+   anywhere, including on a totem or on a pill (the pill rides the sibling
+   #labels, which #scene.is-dragging * cannot reach; the ~ combinator does). */
 #scene.is-dragging,
-#scene.is-dragging * {
+#scene.is-dragging *,
+#scene.is-dragging ~ #labels .label-pill {
   cursor: grabbing;
 }
 
