@@ -88,6 +88,160 @@ html.intro-done .app-title {
   }
 }
 
+/* --- Issue #10: title retracts into a hand-drawn burger + menu ----------- */
+
+/* Burger button: hidden until retracted; then a small drawn cloud/tag in the
+   title's old corner. Same paper palette; wobbly strokes, no generic glyph.
+   Sits above #labels (10) and title (20) like the controls (30). */
+.app-burger {
+  position: fixed;
+  top: clamp(8px, 1.4vw, 18px);
+  left: clamp(12px, 1.25vw, 20px);
+  z-index: 30;
+  width: 56px;
+  height: 44px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  border: 2px solid #304e23;
+  border-radius: 14px 6px 16px 7px / 8px 14px 7px 12px;
+  background: #abd5f3;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
+  transition:
+    opacity 0.45s ease-out,
+    transform 0.45s ease-out;
+}
+.app-burger svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.app-burger path {
+  fill: #304e23;
+}
+.app-burger.is-retracted {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+.app-burger:focus-visible {
+  outline: 3px solid #304e23;
+  outline-offset: 2px;
+}
+
+/* Retracting title: slides/fades toward the burger corner (transform/opacity
+   only — perf budget). Reduced motion: index.css already kills the .app-title
+   transition; the burger state-jumps via the same media query below. */
+.app-title.is-retracted {
+  opacity: 0;
+  transform: translate(-18px, -12px) scale(0.96);
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity 0.5s ease-in,
+    transform 0.5s ease-in,
+    visibility 0s 0.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-burger,
+  .app-title.is-retracted {
+    transition: none;
+  }
+}
+
+/* Menu: paper/card look matching the modal (panel.css). */
+.app-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 50; /* above the modal (40) — the menu is a top-level surface */
+  margin: auto;
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 48px));
+  height: fit-content;
+  max-height: calc(100dvh - 48px);
+  padding: 28px 26px;
+  overflow: auto;
+  text-align: center;
+  background: #fdf6e3;
+  color: #1c2b1c;
+  font-family: Archivo, system-ui, sans-serif;
+  line-height: 1.6;
+  border: 3px solid #304e23;
+  border-radius: 18px 6px 22px 9px / 8px 20px 7px 24px;
+  box-shadow: 6px 8px 0 rgba(48, 78, 35, 0.25);
+  animation: app-menu-in 0.28s ease-out;
+}
+@keyframes app-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.app-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  background: rgba(28, 43, 28, 0.35);
+}
+.app-menu-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border: 2px solid #304e23;
+  border-radius: 50% 44% 52% 46%;
+  background: #fdf6e3;
+  color: #304e23;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.app-menu-close:focus-visible {
+  outline: 3px solid #304e23;
+  outline-offset: 2px;
+}
+.app-menu-title {
+  position: relative;
+  display: inline-block;
+  padding: 16px 22px;
+  margin-bottom: 14px;
+}
+.app-menu-title .app-title-blob {
+  inset: -4px -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 8px);
+}
+.app-menu-title h2 {
+  position: relative;
+  margin: 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: clamp(20px, 3.4vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #172d57;
+  line-height: 0.96;
+}
+.app-menu-title h2 span {
+  display: block;
+}
+.app-menu p {
+  margin: 0;
+  font-size: 15px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-menu {
+    animation: none;
+  }
+}
+
 /* --- Phase 7: zoom controls (React-owned, above labels) --- */
 .app-controls {
   position: fixed;
