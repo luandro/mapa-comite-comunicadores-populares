@@ -20,6 +20,31 @@
   display: block;
   /* d3-zoom owns every gesture on the scene */
   touch-action: none;
+  /* Desktop affordance: the whole scene is a draggable canvas (cursor is a
+     fine-pointer concept — touch devices never show it). */
+  cursor: grab;
+}
+
+/* Interaction groups (city masses, totems + their hit circles — layers.ts
+   stamps data-interactive on each) are tappable, not draggable: the pointer
+   cursor wins over #scene's grab wherever a tap target sits. */
+#scene [data-interactive] {
+  cursor: pointer;
+}
+
+/* Live drag state (camera.ts toggles it on real mousedown/touchstart gesture
+   starts, never on wheel/programmatic transforms). Specificity: the
+   [data-interactive] grabbing rule is (1,2,0) — an explicit win over the
+   (1,1,0) tap-target cursors regardless of source order (opus r1/r2). The
+   `*` and pill selectors tie or win on their own (the pill rule is (2,2,0)
+   over .label-pill's (0,1,0)) and are pinned by a source-order test; the
+   whole group covers a drag begun anywhere — totem, city, or pill (the pill
+   rides the sibling #labels, which #scene.is-dragging * cannot reach). */
+#scene.is-dragging,
+#scene.is-dragging *,
+#scene.is-dragging [data-interactive],
+#scene.is-dragging ~ #labels .label-pill {
+  cursor: grabbing;
 }
 
 /* Measurement owner (SPEC §3/§6): untransformed, full-viewport, never painted. */

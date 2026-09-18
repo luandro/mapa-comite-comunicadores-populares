@@ -578,4 +578,28 @@ describe('scene.css layer rules', () => {
       /\.pills-hidden \.label-pill,\s*\.label-pill\.is-far\s*\{[^}]*pointer-events:\s*none/,
     )
   })
+
+  it('desktop cursor affordance: grab canvas, pointer tap targets, grabbing drag (issue #25)', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/scene/scene.css'), 'utf8')
+    // The scene canvas is a drag surface…
+    expect(css).toMatch(/#scene\s*\{[^}]*cursor:\s*grab/)
+    // …every data-interactive target (cities, totems, hit circles) reads
+    // pointer over it…
+    expect(css).toMatch(/#scene \[data-interactive\]\s*\{[^}]*cursor:\s*pointer/)
+    // …and a live drag wins: the [data-interactive] grabbing selector is a
+    // genuine (1,2,0) specificity win over the (1,1,0) tap-target cursors
+    // (opus r2 — `*` contributes nothing, so the plain descendant rule only
+    // ties); the `*` and ~ pill rules are covered by the source-order pin
+    // below (the ~ rule itself wins outright: (2,2,0) vs .label-pill's
+    // (0,1,0)).
+    expect(css).toMatch(
+      /#scene\.is-dragging,\s*#scene\.is-dragging \*,\s*#scene\.is-dragging \[data-interactive\],\s*#scene\.is-dragging ~ #labels \.label-pill\s*\{[^}]*cursor:\s*grabbing/,
+    )
+    // The source-order pin guards the TIED rules only (`*` vs
+    // [data-interactive]) — reordering the file must not silently revert a
+    // mid-drag cursor to pointer.
+    expect(css.indexOf('#scene [data-interactive]')).toBeLessThan(
+      css.indexOf('#scene.is-dragging ~ #labels'),
+    )
+  })
 })

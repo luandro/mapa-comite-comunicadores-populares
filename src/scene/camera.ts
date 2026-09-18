@@ -73,6 +73,15 @@ export function createCamera(opts: CameraOptions): Camera {
     .on('start', (event) => {
       // Real gestures carry a sourceEvent; programmatic writes do not.
       if (event.sourceEvent) killActiveFly()
+      // Desktop cursor affordance: grab → grabbing only for true drags
+      // (mousedown/touchstart). Wheel and double-click zooms emit start too,
+      // but the canvas is not being dragged — leave the cursor alone.
+      const src = event.sourceEvent?.type
+      svgSel.classed('is-dragging', src === 'mousedown' || src === 'touchstart')
+    })
+    .on('end', () => {
+      // d3 always pairs an interrupted gesture with end — the class can't leak.
+      svgSel.classed('is-dragging', false)
     })
     .on('zoom', (event) => {
       // A pill-started touch forwards a synthetic stream into d3; if a
