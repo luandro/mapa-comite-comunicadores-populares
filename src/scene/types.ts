@@ -66,10 +66,11 @@ export interface CameraOptions {
 /**
  * Camera-plane readouts for the per-frame subscribers (labels, hit sizing):
  * the camera-free measurement CTM plus the transform state. The CTM is
- * refreshed on resize/layout only (refreshWindow) — a per-frame
- * getScreenCTM() would force style/layout back into the main thread's hot
- * path (perf-gate 2026-09-18: pan at 6× CPU throttle hit 6 fps; camera
- * transforms stay composited, main-thread work is what scales with throttle).
+ * refreshed on resize/layout only (refreshWindow) — caching removes a
+ * per-frame getScreenCTM() call from the frame path; the throttled-pan A/B
+ * showed no measurable fps change (see the TODO perf gate record,
+ * 2026-09-18). The cache is kept because the read is provably redundant
+ * between resize/layout events, not for a measured win.
  */
 export interface FrameState {
   measureCtm: DOMMatrix

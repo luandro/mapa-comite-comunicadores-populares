@@ -6,6 +6,7 @@
  * underlay JPEG import below must never leak into a production bundle.
  */
 import './calibration.css'
+import { invalidateLabelMetrics } from '../labels'
 import { visibleWindow } from '../clamp'
 import type { Point } from '../../data/types'
 import underlayUrl from '/na cuia/Mapa.jpeg?url'
@@ -216,6 +217,10 @@ export function attachCalibration(sceneRoot: HTMLElement, sceneSvg: SVGSVGElemen
     } else if (labelsDisplayBefore !== null) {
       labelsEl.style.display = labelsDisplayBefore
       labelsDisplayBefore = null
+      // display:none frames measure offsetWidth 0 — the pill size cache would
+      // hold {0,0} and skip push/clamp until the next resize/font event
+      // (opus final-gate note 2). Drop it when the labels come back.
+      invalidateLabelMetrics()
     }
   }
 

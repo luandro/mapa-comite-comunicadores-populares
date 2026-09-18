@@ -110,12 +110,12 @@ export function renderLabels(
  * Cached pill box sizes (px): a pill's px size is camera-independent — the
  * boxes live in screen space and only change when fonts finish loading (or
  * text content changes, which content-only data.json edits cannot do at
- * runtime). Reading offsetWidth/offsetHeight per frame FORCED a synchronous
- * layout every drag frame: the previous frame's style.transform writes dirty
- * layout, and the next frame's first layout read pays a full reflow of the
- * whole document (perf gate 2026-09-18: pan @6× CPU throttle = 6 fps; after
- * the cache: same scene, pan @6× ≈ 17 fps, pan @1× = 60 fps). Invalidate
- * with `invalidateLabelMetrics()` on font-load/resize — NOT per frame.
+ * runtime). The cache removes 11 synchronous offsetWidth/offsetHeight layout
+ * reads per frame (reads that revalidated layout the previous frame's
+ * transform writes had dirtied); the throttled-pan A/B showed no measurable
+ * fps change either way — see the TODO perf gate record (2026-09-18).
+ * Invalidate with `invalidateLabelMetrics()` on font-load/resize/visibility
+ * changes — NOT per frame.
  */
 const pillSizeCache = new Map<HTMLElement, { w: number; h: number }>()
 
