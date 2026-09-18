@@ -35,28 +35,27 @@
 }
 
 /* v1.3 user directive: the CARD ITSELF fades into the background toward its
-   bottom — a vertical alpha mask on the whole card (opaque through the title/
-   body start, easing to 0% at the card's bottom edge). The animated wave
-   overlay (Panel.tsx) paints ON TOP of that translucent zone, so the waves
-   read as the modal's bottom dissolving over the live map. mask-image keeps
-   the card's border/scrollbar/content one paint layer — no per-element
-   alpha needed; -webkit prefix serves Safari. `to bottom` stops are in
-   % so the fade tracks the card's real height at any viewport. */
+   bottom — a vertical alpha mask on the whole card (fully opaque until a
+   FIXED 220px band above the bottom edge, then easing to 0% at the edge).
+   The animated wave overlay (Panel.tsx) paints ON TOP of that translucent
+   zone, so the waves read as the modal's bottom dissolving over the live
+   map. Fixed-px band start (not %) so the fade always hugs the bottom at
+   any card height — v1.3.1 user tweak: started "a bit further down" than
+   the original 55% stop. mask-image keeps the card's border/scrollbar/
+   content one paint layer; -webkit prefix serves Safari. */
 .panel {
   -webkit-mask-image: linear-gradient(
     to bottom,
-    #000 0%,
-    #000 55%,
-    rgba(0, 0, 0, 0.55) 78%,
-    rgba(0, 0, 0, 0.15) 92%,
+    #000 0,
+    #000 calc(100% - 220px),
+    rgba(0, 0, 0, 0.55) calc(100% - 110px),
     rgba(0, 0, 0, 0) 100%
   );
   mask-image: linear-gradient(
     to bottom,
-    #000 0%,
-    #000 55%,
-    rgba(0, 0, 0, 0.55) 78%,
-    rgba(0, 0, 0, 0.15) 92%,
+    #000 0,
+    #000 calc(100% - 220px),
+    rgba(0, 0, 0, 0.55) calc(100% - 110px),
     rgba(0, 0, 0, 0) 100%
   );
 }
@@ -165,18 +164,9 @@
 
 /* Scrollable middle: vertical only — `overflow-x: hidden` + wrap-safe
    children guarantee zero horizontal scrolling (user directive).
-   padding-bottom 72px: the wave overlay paints over the card's last 60px,
-   so the last list item must stay clear of it (review P1). Mobile overlay
-   is bottom-anchored and 100px tall → 112px there.
-   The horizontal padding lives HERE (not on .panel) so the scrollbar
-   renders at the card's very right edge — the scrollbar paints at the
-   element's border box, ignoring content padding (user directive + PR #9
-   review P1). Symmetric 28px keeps the content on the card's center axis.
-   `scrollbar-gutter: stable both-edges` reserves the SAME gutter on both
-   sides on classic-scrollbar platforms (Windows/Linux), where the 10px
-   scrollbar lane would otherwise shift the content box 5px left of the
-   title/card axis; no-op on overlay-scrollbar platforms (macOS, mobile).
-   Title uses 48px margins = 28 body padding + 20 close-button clearance. */
+   padding-bottom 232px (v1.3.1): the card's bottom 220px are the mask's
+   fade zone (content there goes translucent and unreadable), so the last
+   list item must scroll clear ABOVE it + 12px breathing room. */
 .panel-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -186,11 +176,11 @@
   scrollbar-gutter: stable both-edges;
   padding-left: 28px;
   padding-right: 28px;
-  padding-bottom: 72px;
+  padding-bottom: 232px;
 }
 
 .panel-mobile .panel-body {
-  padding-bottom: 112px; /* bottom-anchored overlay covers the last 100px */
+  padding-bottom: 232px; /* same fade zone clearance (mask is viewport-tall) */
 }
 
 /* Scrollbar in the map's illustration language (user directive): the card
