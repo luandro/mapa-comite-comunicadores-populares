@@ -586,14 +586,18 @@ describe('scene.css layer rules', () => {
     // …every data-interactive target (cities, totems, hit circles) reads
     // pointer over it…
     expect(css).toMatch(/#scene \[data-interactive\]\s*\{[^}]*cursor:\s*pointer/)
-    // …and a live drag wins on SPECIFICITY, not source order (opus r1: the
-    // grabbing rules are (1,2,0) vs the tap targets' (1,1,0) — reordering
-    // the file must not silently revert a totem mid-drag to pointer)…
+    // …and a live drag wins: the [data-interactive] grabbing selector is a
+    // genuine (1,2,0) specificity win over the (1,1,0) tap-target cursors
+    // (opus r2 — `*` contributes nothing, so the plain descendant rule only
+    // ties); the `*` and ~ pill rules are covered by the source-order pin
+    // below (the ~ rule itself wins outright: (2,2,0) vs .label-pill's
+    // (0,1,0)).
     expect(css).toMatch(
-      /#scene\.is-dragging,\s*#scene\.is-dragging \*,\s*#scene\.is-dragging ~ #labels \.label-pill\s*\{[^}]*cursor:\s*grabbing/,
+      /#scene\.is-dragging,\s*#scene\.is-dragging \*,\s*#scene\.is-dragging \[data-interactive\],\s*#scene\.is-dragging ~ #labels \.label-pill\s*\{[^}]*cursor:\s*grabbing/,
     )
-    // …covering a drag begun on a pill too (the pill lives in the sibling
-    // #labels subtree — the descendant rule cannot reach it).
+    // The source-order pin guards the TIED rules only (`*` vs
+    // [data-interactive]) — reordering the file must not silently revert a
+    // mid-drag cursor to pointer.
     expect(css.indexOf('#scene [data-interactive]')).toBeLessThan(
       css.indexOf('#scene.is-dragging ~ #labels'),
     )

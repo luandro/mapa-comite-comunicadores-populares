@@ -33,13 +33,16 @@
 }
 
 /* Live drag state (camera.ts toggles it on real mousedown/touchstart gesture
-   starts, never on wheel/programmatic transforms). The grabbing rules are
-   BOTH (1,2,0) — an explicit specificity win over the (1,1,0) tap-target
-   cursors above, not source-order luck (opus r1) — and cover a drag begun
-   anywhere, including on a totem or on a pill (the pill rides the sibling
-   #labels, which #scene.is-dragging * cannot reach; the ~ combinator does). */
+   starts, never on wheel/programmatic transforms). Specificity: the
+   [data-interactive] grabbing rule is (1,2,0) — an explicit win over the
+   (1,1,0) tap-target cursors regardless of source order (opus r1/r2). The
+   `*` and pill selectors tie or win on their own (the pill rule is (2,2,0)
+   over .label-pill's (0,1,0)) and are pinned by a source-order test; the
+   whole group covers a drag begun anywhere — totem, city, or pill (the pill
+   rides the sibling #labels, which #scene.is-dragging * cannot reach). */
 #scene.is-dragging,
 #scene.is-dragging *,
+#scene.is-dragging [data-interactive],
 #scene.is-dragging ~ #labels .label-pill {
   cursor: grabbing;
 }
