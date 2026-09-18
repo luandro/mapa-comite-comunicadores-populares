@@ -33,6 +33,7 @@ import {
 import {
   createLabelsLayer,
   IDENTITY_CTM,
+  pillTapPlan,
   renderLabels,
   updateLabels,
   updatePillFade,
@@ -566,6 +567,183 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
   }
   sceneSvg.addEventListener('click', onSceneClick)
 
+  // --- Issue #13: title-pill tap opens the org modal ---------------------------
+  // The pill box re-enables pointer hit testing (scene.css `.label-pill`);
+  // everything else in #labels stays pointer-events:none and the layer stays
+  // aria-hidden (AGENTS invariant 12) — a pointer-ONLY affordance, so the
+  // totem SVG button remains the single focusable control per org (SPEC §9).
+  // ONE delegated listener on the labels root. Double-fire guard: #labels and
+  // the scene SVG are SIBLINGS, so a click's single target can reach at most
+  // one of the two handlers — a tap near the totem base that lands on the pill
+  // can no longer fall through to the hit circle underneath (one gesture, one
+  // action, by construction); stopPropagation additionally keeps the click out
+  // of any future ancestor-level handler.
+  function onLabelsClick(event: Event): void {
+    // Same double-tap guard as onSceneClick (opus P2): the compat click after
+    // a double-tap zoom must not fight the zoom by opening the modal.
+    if ('detail' in event && (event as MouseEvent).detail > 1) return
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const orgId = target.closest<HTMLElement>('[data-label-for]')?.dataset.labelFor ?? null
+    const plan = pillTapPlan(
+      orgId,
+      selectedArtifactId,
+      orgId !== null && orgId in calibrated.artifacts,
+    )
+    if (!plan) return
+    event.stopPropagation()
+    // Pills NEVER toggle (issue #13): a pill tap always means "open this org's
+    // modal", unlike a totem re-tap which deselects. applyArtifactState does
+    // everything a totem tap does (selection, aria-pressed, pulse, arrow
+    // redraw) and emits artifact-tap on the state CHANGE — App opens the modal
+    // and focus-flies from there; for an already-selected org it never
+    // re-emits (opus P2 — a re-emit would loop the panel), so the direct emit
+    // re-opens instead.
+    // Focus the totem SVG button first (codex r1 P2): the pill is not
+    // focusable, so Panel's restore-focus capture would otherwise record
+    // <body>/an unrelated control and SPEC §8's return-focus contract would
+    // break on modal close. The interaction g already carries tabindex="0"
+    // (layers.ts); focus({preventScroll}) never scrolls the camera.
+    calibrated.artifacts[plan.orgId]?.focus({ preventScroll: true })
+    applyArtifactState(plan.orgId, { pulse: true })
+    if (plan.emitDirect) artifactTapHub.emit(plan.orgId)
+  }
+
+  /** Org whose pill hosts the live forwarded touch gesture (null = none). */
+  let forwardedOrgId: string | null = null
+
+  /**
+   * Clone a native pill-anchored touch event onto the org's interaction g.
+   * The ORIGINAL Touch objects are reused — identifiers stay in the
+   * browser's native space, so d3's tracker sees exactly the contacts it
+   * would have seen had the pill not intercepted the event: a second
+   * finger on the SVG becomes a real touch1 and pinch works natively
+   * (opus gate r2 P2). targetTouches is not meaningful from the new target
+   * and d3 does not read it on the SVG — touches and changedTouches carry
+   * everything it uses.
+   */
+  function cloneTouchEvent(
+    target: Element,
+    type: 'touchstart' | 'touchmove' | 'touchend' | 'touchcancel',
+    event: TouchEvent,
+  ): void {
+    if (typeof TouchEvent !== 'function') return
+    target.dispatchEvent(
+      new TouchEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        touches: Array.from(event.touches),
+        targetTouches: [],
+        changedTouches: Array.from(event.changedTouches),
+      }),
+    )
+  }
+
+  /** Native contact ids already seen reaching the SVG (dedup for clones). */
+  const nativeSeen = new Set<number>()
+  // Capture-phase: record which contact ids the SVG already received
+  // natively — the browser delivers a pill contact's touchstart to the SVG
+  // on any subsequent touch event (touches list), and d3 then tracks it
+  // there; cloning ours too would re-start d3's gesture and kill pinch.
+  const onSvgNativeTouch = (event: Event): void => {
+    const te = event as TouchEvent
+    for (const t of Array.from(te.changedTouches)) nativeSeen.add(t.identifier)
+  }
+  // Capture phase: d3's SVG handler stops immediate propagation, which
+  // silences same-node listeners registered after it — capture is the only
+  // reliable position. Cleanup pairs with native touchend/touchcancel so
+  // browser-reused identifiers never linger in the set.
+  const onSvgNativeTouchEnd = (event: Event): void => {
+    const te = event as TouchEvent
+    for (const t of Array.from(te.changedTouches)) nativeSeen.delete(t.identifier)
+  }
+  sceneSvg.addEventListener('touchstart', onSvgNativeTouch, true)
+  sceneSvg.addEventListener('touchend', onSvgNativeTouchEnd, true)
+  sceneSvg.addEventListener('touchcancel', onSvgNativeTouchEnd, true)
+
+  /** Forward native touch events for the live pill gesture. */
+  function onLabelsTouchForward(event: TouchEvent): void {
+    if (!forwardedOrgId) return
+    const g = calibrated.artifacts[forwardedOrgId]
+    if (!g) {
+      forwardedOrgId = null
+      return
+    }
+    const type = event.type as 'touchstart' | 'touchmove' | 'touchend' | 'touchcancel'
+    const unseen = Array.from(event.changedTouches).filter((t) => !nativeSeen.has(t.identifier))
+    if (type === 'touchstart' && unseen.length === 0) return // d3 already tracks these
+    if (unseen.length > 0) {
+      for (const t of unseen) nativeSeen.add(t.identifier)
+    }
+    cloneTouchEvent(g, type, event)
+    if (type === 'touchend' || type === 'touchcancel') {
+      for (const t of Array.from(event.changedTouches)) nativeSeen.delete(t.identifier)
+      forwardedOrgId = null
+    }
+  }
+
+  // Bot-review P2 (issue #13): the pill's pointer-events:auto box must not
+  // steal CAMERA GESTURES — d3-zoom listens on svg#scene, a sibling of
+  // #labels, so a drag/pinch/double-tap STARTED on a pill would fall into
+  // the label subtree and neither pan/zoom nor cancel an active fly (wheel
+  // on the pill box stays a known, accepted gap — the box is small).
+  // Pointerdown on a pill therefore retargets the gesture onto the totem's
+  // interaction g (same org, same scene position — the pill is anchored to
+  // it): d3-zoom sees a native pointerdown on the SVG and pans normally; a
+  // clean tap produces no drag and the click handler above still opens the
+  // modal.
+  function onLabelsPointerDown(event: PointerEvent): void {
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const orgId = target.closest<HTMLElement>('[data-label-for]')?.dataset.labelFor
+    if (!orgId || !(orgId in calibrated.artifacts)) return
+    event.stopPropagation()
+    // Touch: capture the pill finger's NATIVE touch events and forward them
+    // (cloned, original Touch objects) onto the org's interaction g — d3's
+    // touch path binds on svg#scene, a SIBLING of #labels, so without this
+    // a pill-started pan never reaches it. Native identifiers keep d3's
+    // view of event.touches coherent. KNOWN GAP (issue #17): a pinch with
+    // one finger ON a pill does not zoom — the gesture degrades to the
+    // second finger's single-contact pan; native two-finger pinch anywhere
+    // else is untouched.
+    if (event.pointerType === 'touch') {
+      forwardedOrgId = orgId
+      return
+    }
+    // Retarget as a REAL mousedown on the totem's interaction g: d3-zoom
+    // binds "mousedown.zoom" (not pointer events), so the retargeted event
+    // must be a MouseEvent('mousedown') to start a pan; the interaction g
+    // lives inside svg#scene, so d3's gesture continues on real mousemove/up.
+    // (A synthetic PointerEvent was tried first — it bubbles but d3 ignores
+    // it.) clientX/Y are preserved so the pan anchors at the pill point.
+    // jsdom ships no mousedown-capable MouseEvent init in d3's path, but the
+    // tests dispatch click separately — the retarget is probe-verified.
+    calibrated.artifacts[orgId].dispatchEvent(
+      new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: event.button,
+        buttons: event.buttons,
+      }),
+    )
+  }
+  labels.el.addEventListener('click', onLabelsClick)
+  labels.el.addEventListener('pointerdown', onLabelsPointerDown)
+  labels.el.addEventListener('touchstart', onLabelsTouchForward)
+  labels.el.addEventListener('touchmove', onLabelsTouchForward)
+  labels.el.addEventListener('touchend', onLabelsTouchForward)
+  labels.el.addEventListener('touchcancel', onLabelsTouchForward)
+
+  // The scene root's touch-action:none doesn't cross into the #labels
+  // subtree — without it Chromium fires pointercancel (scroll takeover) on
+  // the first pill-started touchmove and the forwarded pan dies (probe:
+  // 8 touchmoves → 1 forwarded move + a cancel). pills keep pointer-events:
+  // auto, so this is scoped to the labels layer, not the SVG.
+  labels.el.style.touchAction = 'none'
+
   // Keyboard activation (SPEC §9): Enter/Space act exactly like a tap; Space
   // is cancelled so the page never scrolls. Focus also flies the camera to
   // the city (SPEC §8 focus-fly) and paints the issue-#12 keyboard halo.
@@ -748,6 +926,15 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       document.removeEventListener('visibilitychange', onVisibilityChange)
       camera.destroy()
       offLabels()
+      labels.el.removeEventListener('click', onLabelsClick)
+      labels.el.removeEventListener('pointerdown', onLabelsPointerDown)
+      sceneSvg.removeEventListener('touchstart', onSvgNativeTouch, true)
+      sceneSvg.removeEventListener('touchend', onSvgNativeTouchEnd, true)
+      sceneSvg.removeEventListener('touchcancel', onSvgNativeTouchEnd, true)
+      labels.el.removeEventListener('touchstart', onLabelsTouchForward)
+      labels.el.removeEventListener('touchmove', onLabelsTouchForward)
+      labels.el.removeEventListener('touchend', onLabelsTouchForward)
+      labels.el.removeEventListener('touchcancel', onLabelsTouchForward)
       labels.destroy()
       root.remove()
     },
