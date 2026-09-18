@@ -578,4 +578,16 @@ describe('scene.css layer rules', () => {
       /\.pills-hidden \.label-pill,\s*\.label-pill\.is-far\s*\{[^}]*pointer-events:\s*none/,
     )
   })
+
+  it('desktop cursor affordance: grab canvas, pointer tap targets, grabbing drag (issue #25)', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/scene/scene.css'), 'utf8')
+    // The scene canvas is a drag surface…
+    expect(css).toMatch(/#scene\s*\{[^}]*cursor:\s*grab/)
+    // …every data-interactive target (cities, totems, hit circles) reads
+    // pointer over it…
+    expect(css).toMatch(/#scene \[data-interactive\]\s*\{[^}]*cursor:\s*pointer/)
+    // …and a live drag wins over both, on ANY descendant (a drag can begin
+    // on a totem — the cursor must still read grabbing).
+    expect(css).toMatch(/#scene\.is-dragging,\s*#scene\.is-dragging \*\s*\{[^}]*cursor:\s*grabbing/)
+  })
 })

@@ -20,6 +20,26 @@
   display: block;
   /* d3-zoom owns every gesture on the scene */
   touch-action: none;
+  /* Desktop affordance: the whole scene is a draggable canvas (cursor is a
+     fine-pointer concept — touch devices never show it). */
+  cursor: grab;
+}
+
+/* Interaction groups (city masses, totems + their hit circles — layers.ts
+   stamps data-interactive on each) are tappable, not draggable: the pointer
+   cursor wins over #scene's grab wherever a tap target sits. */
+#scene [data-interactive] {
+  cursor: pointer;
+}
+
+/* Live drag state (camera.ts toggles it on real mousedown/touchstart gesture
+   starts, never on wheel/programmatic transforms). The id-scoped descendant
+   rule (1,1,0) outranks every tap-target cursor so the WHOLE canvas reads
+   "grabbing" while the camera moves — including when the drag began on a
+   totem. */
+#scene.is-dragging,
+#scene.is-dragging * {
+  cursor: grabbing;
 }
 
 /* Measurement owner (SPEC §3/§6): untransformed, full-viewport, never painted. */
