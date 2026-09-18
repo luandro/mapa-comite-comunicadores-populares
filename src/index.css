@@ -23,7 +23,11 @@ body {
   top: clamp(8px, 1.4vw, 18px);
   left: clamp(12px, 1.25vw, 20px);
   box-sizing: border-box;
-  width: min(900px, calc(100vw - 32px));
+  /* −52px reserves the desktop .app-info button (40px + margins) so the blob
+     never slides under it on ≲930px-wide fine-pointer windows (opus 24 P2).
+     The ≤640px mobile query below overrides width, so this only costs
+     desktop space. */
+  width: min(900px, calc(100vw - 32px - 52px));
   padding: clamp(12px, 1.15vw, 16px) clamp(14px, 1.45vw, 22px) clamp(14px, 1.2vw, 17px);
   z-index: 20; /* above #labels (10), below future controls (30) — SPEC §3.9 */
   pointer-events: none;
@@ -134,7 +138,10 @@ html.intro-done .app-title {
 /* Desktop about button (user directive — supersedes the burger on non-coarse
    pointers): the title stays on screen, so the about entry point is a small
    hand-drawn info button in the TOP-RIGHT corner instead of the burger. Same
-   paper palette + wobbly-border language as .app-controls; always visible. */
+   paper palette + wobbly-border language as .app-controls; always visible.
+   DESKTOP-ONLY scope: the base rules below apply only where .app-title uses
+   its wide desktop width (≥ 641px); the ≤ 640px media query (mobile layout)
+   never renders this button — TitleOverlay gates it on isMobile(). */
 .app-info {
   position: fixed;
   top: clamp(10px, 1.4vw, 18px);

@@ -49,7 +49,8 @@ const INFO_GLYPH = [
   'M51,27 C58,25.4 64,27.4 63.6,31.6 C63.3,34.8 62,38 61.4,42 C60.8,46 61.4,49.4 58.6,50.4 C55.6,51.4 51.2,50.6 50.2,47.4 C49.4,44.8 50.8,41 51.6,37 C52.3,33.6 51.4,31.8 47.8,32.2 C44.6,32.5 43.4,29 45.6,27.6 C47.2,26.6 49,27.4 51,27 Z',
 ] as const
 
-/** About-the-project copy (pt-BR, issue #10 — shown inside the burger menu). */
+/** About-the-project copy (pt-BR, issue #10 — shown inside the about dialog,
+ * opened by the mobile burger or the desktop info button). */
 const PROJECT_ABOUT =
   'O Na Cuia mapeia 25 coletivos de comunicadores populares de Belém, Ananindeua e Moju (Pará), integrantes do Comitê de Comunicadores Populares. Cada totem no mapa representa um coletivo: toque nele para conhecer seus conflitos, ações, território, futuro, memória e identidade.'
 
@@ -217,7 +218,7 @@ export function TitleOverlay() {
           aria-expanded={menuOpen}
           onClick={openMenu}
         >
-          <svg viewBox="0 0 110 58" aria-hidden="true">
+          <svg viewBox="41 3 26 52" aria-hidden="true">
             {INFO_GLYPH.map((d) => (
               <path key={d} d={d} />
             ))}

@@ -157,9 +157,11 @@ await portrait.close()
 
 // --- Reduced motion: final state immediately ---
 // Issue #10/#19: reduced-motion keeps READ delays (the title's 1.2s on-screen
-// time) and only jumps the ANIMATION — so at 800ms the title may legitimately
-// already be retracted (instant state jump). Assert the title node exists and
-// the intro settled (html.intro-done), not a specific opacity mid-lifecycle.
+// time) and only jumps the ANIMATION. Since the desktop static-title rework
+// (issue #23) this 1600×900 no-touch context has NO retraction at all, so the
+// final state is asserted directly: title fully visible + info button, no
+// burger, no is-retracted (opus 24 P2 — the old under-assertion would stay
+// green if desktop retraction regressed).
 const rm = await browser.newContext({
   reducedMotion: 'reduce',
   viewport: { width: 1600, height: 900 },
@@ -168,12 +170,18 @@ const rpage = await rm.newPage()
 await rpage.goto(BASE, { waitUntil: 'networkidle' })
 await rpage.waitForTimeout(2000)
 check(
-  'reduced-motion: instant final state',
-  await rpage.evaluate(
-    () =>
+  'reduced-motion: instant final state (desktop = static title + info)',
+  await rpage.evaluate(() => {
+    const title = document.querySelector('.app-title')
+    return (
       document.documentElement.classList.contains('intro-done') &&
-      document.querySelector('.app-title') != null,
-  ),
+      title != null &&
+      Number(getComputedStyle(title).opacity) === 1 &&
+      title.classList.contains('is-retracted') === false &&
+      document.querySelector('.app-info') != null &&
+      document.querySelector('.app-burger') === null
+    )
+  }),
 )
 await rm.close()
 
