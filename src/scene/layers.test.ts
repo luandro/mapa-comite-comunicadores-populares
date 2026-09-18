@@ -9,6 +9,7 @@ import {
   pillTapPlan,
   renderLabels,
   resolveEdgeClamp,
+  pillAnchorSlack,
   resolveLabelPush,
   updateLabels,
 } from './labels'
@@ -471,6 +472,24 @@ describe('labels', () => {
       new Map(),
     )
     expect(pushes.size).toBe(0)
+  })
+
+  it('pillAnchorSlack: floors at the k=1 baseline and grows with the camera', () => {
+    // k=1 phone: u ≈ 0.17 CSS px/scene-unit → baseline 140 wins.
+    expect(pillAnchorSlack(0.17)).toBe(140)
+    // Zoomed to k=4: 190 scene units × u must exceed the baseline so a
+    // mostly-visible cropped totem keeps its pill (issue #3 item 3).
+    expect(pillAnchorSlack(4)).toBe(190 * 4)
+  })
+
+  it('resolveEdgeClamp: a zoom-aware slack reaches anchors the fixed one skips', () => {
+    // k=4 on the same 900px viewport: anchor 700px below the fold — outside
+    // the fixed 140 reach (skipped) but inside pillAnchorSlack(4) = 760.
+    const rect = { id: 'zoomed', x: 700, y: 1608, w: 130, h: 30 }
+    expect(resolveEdgeClamp([rect], 1600, 900, new Map()).size).toBe(0)
+    const pushes = resolveEdgeClamp([rect], 1600, 900, new Map(), pillAnchorSlack(4))
+    // pulled UP so top + h = vh − margin: push = −(1608 + 30 − 892)
+    expect(pushes.get('zoomed')).toBeCloseTo(-746, 0)
   })
 
   it('updateLabels applies the resolved push on the anchor, base offset kept', () => {

@@ -7,7 +7,7 @@
  */
 import { gsap } from 'gsap'
 import type { ComiteData, Point } from '../data/types'
-import { orgProjects } from './layers'
+import { orgProjects, TOTEM_HEIGHT } from './layers'
 import { cityPlacements } from './placements'
 import type { TransformState } from './types'
 
@@ -159,7 +159,16 @@ export function updateLabels(
     child.dataset.px = String(px)
     child.dataset.py = String(py)
   }
-  const pushes = resolveEdgeClamp(rects, vw, vh, resolveLabelPush(rects))
+  // Issue #3 (item 3): the anchor reach scales with the camera so a totem
+  // zoomed in near the crop line keeps its pill — u = measureCtm.a × k is
+  // CSS px per scene unit (controller state + measurement owner, no DOM read).
+  const pushes = resolveEdgeClamp(
+    rects,
+    vw,
+    vh,
+    resolveLabelPush(rects),
+    pillAnchorSlack(measureCtm.a * state.k),
+  )
   for (const child of el.children) {
     if (!(child instanceof HTMLDivElement)) continue
     const px = Number(child.dataset.px)
@@ -235,15 +244,26 @@ export function resolveLabelPush(rects: LabelRect[]): Map<string, number> {
 export const LABEL_EDGE_MARGIN = 8
 
 /**
- * How far past the viewport edge (px) an anchor may sit and still get clamped
- * into view: a totem's art box is TOTEM_HEIGHT scene units tall, so at the
- * slice crop its upper half stays on-screen long after its base (the pill
- * anchor) slipped below the fold — the pill is then pulled up to hug the
- * visible art instead of vanishing with the base (2026-09-16 user QA: the
- * bottom-row totems lost their titles). Generous fixed slack ≈ half the
- * totem height in CSS px at k = 1 on a phone.
+ * Baseline reach (px) past the viewport edge for the anchor-on-screen rule:
+ * ≈ half the totem height in CSS px at k = 1 on a phone. A totem's art box is
+ * TOTEM_HEIGHT scene units tall, so at the slice crop its upper half stays
+ * on-screen long after its base (the pill anchor) slipped below the fold —
+ * the pill is then pulled up to hug the visible art instead of vanishing with
+ * the base (2026-09-16 user QA: the bottom-row totems lost their titles).
  */
 export const PILL_ANCHOR_SLACK = 140
+
+/**
+ * Zoom-aware slack (issue #3, item 3): the FIXED 140px slack undershoots at
+ * k > 1 — zoomed in, a cropped totem can show much more than half its art
+ * while its anchor sits far past the fold, and its pill would be silently
+ * skipped. The correct reach is the totem's full on-screen height
+ * (TOTEM_HEIGHT × u CSS px, u = measureCtm.a × k from the controller state —
+ * never a DOM read), floored at the QA-passed k=1 baseline.
+ */
+export function pillAnchorSlack(u: number): number {
+  return Math.max(PILL_ANCHOR_SLACK, TOTEM_HEIGHT * u)
+}
 
 /**
  * Pure viewport edge clamp (unit-tested, no DOM): a second pass over the
@@ -253,15 +273,17 @@ export const PILL_ANCHOR_SLACK = 140
  * pushed up over its own totem rather than hang clipped below the fold.
  * Vertical only (the anchor translate pushes on y); degenerate vw/vh (0 in
  * non-window environments) passes the inputs through untouched. The clamp
- * reaches ±PILL_ANCHOR_SLACK past the edges (anchors of slice-cropped totems)
- * and leaves anchors beyond it alone — a pill whose totem scrolled fully
- * off-screen must not orphan at the edge (v1.0.1 anchor-on-screen rule).
+ * reaches ±`slack` past the edges (anchors of slice-cropped totems; zoom-aware
+ * via `pillAnchorSlack`, see below) and leaves anchors beyond it alone — a
+ * pill whose totem scrolled fully off-screen must not orphan at the edge
+ * (v1.0.1 anchor-on-screen rule).
  */
 export function resolveEdgeClamp(
   rects: LabelRect[],
   vw: number,
   vh: number,
   pushes: Map<string, number>,
+  slack: number = PILL_ANCHOR_SLACK,
 ): Map<string, number> {
   const out = new Map(pushes)
   if (vw <= 0 || vh <= 0) return out
@@ -272,7 +294,7 @@ export function resolveEdgeClamp(
     // outside vw) are skipped too since the pill would be invisible anyway.
     const anchorY = r.y - PILL_BASE_OFFSET
     if (r.x + r.w < 0 || r.x > vw) continue
-    if (anchorY < -PILL_ANCHOR_SLACK || anchorY > vh + PILL_ANCHOR_SLACK) continue
+    if (anchorY < -slack || anchorY > vh + slack) continue
     const push = out.get(r.id) ?? 0
     const top = r.y + push
     if (top + r.h > vh - LABEL_EDGE_MARGIN) {

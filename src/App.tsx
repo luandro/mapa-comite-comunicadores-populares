@@ -82,11 +82,15 @@ function useMenuDialog(
       }
     }
     document.addEventListener('keydown', onKey)
+    // Copy the ref to a local: the cleanup closure must focus the burger
+    // button that existed when the menu OPENED, not whatever node the ref
+    // holds by teardown time (react-hooks/exhaustive-deps).
+    const burger = burgerRef.current
     return () => {
       document.removeEventListener('keydown', onKey)
       background?.removeAttribute('inert')
       // Restore focus AFTER the menu unmounts — the burger re-takes it.
-      burgerRef.current?.focus()
+      burger?.focus()
     }
   }, [menuOpen, close, burgerRef, menuRef])
 }
