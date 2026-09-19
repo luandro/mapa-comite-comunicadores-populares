@@ -138,15 +138,15 @@ describe('mountCalibratedLayers', () => {
     )
   })
 
-  it('rSceneFor: 12 CSS px floor, 120 ceiling, grows as zoom-out shrinks u', () => {
+  it('rSceneFor: 12 CSS px floor, 175 ceiling (overlap bound), grows as zoom-out shrinks u', () => {
     // u = measureA × k ≥ 1 → raw 12/u ≤ 12 → floor 12 dominates
     expect(rSceneFor(1, 1)).toBe(12)
     expect(rSceneFor(4, 1)).toBe(12)
     expect(rSceneFor(1, 2)).toBe(12)
     // zoomed out (u < 1): raw exceeds the floor, still under the ceiling
     expect(rSceneFor(0.5, 1)).toBe(24)
-    // extreme zoom-out: the raw floor 12/0.2 = 60 sits below the new 120
-    // ceiling — the value is the raw floor here, not the clamp
+    // extreme zoom-out: the raw floor 12/0.2 = 60 sits below the 175 overlap
+    // bound — the value is the raw floor here, not the clamp
     expect(rSceneFor(1, 0.2)).toBe(60)
   })
 
@@ -154,26 +154,44 @@ describe('mountCalibratedLayers', () => {
     // portrait 390×844: measureA = 844/2021.19 ≈ 0.4176
     const portrait = rSceneFor(0.55, 0.4176)
     expect(portrait).toBeGreaterThanOrEqual(12 / (0.4176 * 0.55)) // ≈ 52.25 raw floor
-    expect(portrait).toBeLessThanOrEqual(120)
+    expect(portrait).toBeLessThanOrEqual(175)
     expect(2 * portrait * 0.4176 * 0.55).toBeCloseTo(24, 6) // rendered diameter
     // landscape 1600×900: measureA = 1600/3023.11 ≈ 0.5293
     const landscape = rSceneFor(0.55, 0.5293)
     expect(landscape).toBeGreaterThanOrEqual(12 / (0.5293 * 0.55)) // ≈ 41.23 raw floor
-    expect(landscape).toBeLessThanOrEqual(120)
+    expect(landscape).toBeLessThanOrEqual(175)
     expect(2 * landscape * 0.5293 * 0.55).toBeCloseTo(24, 6)
-    // 375×667 + 320×568 portrait AND 667×375 + 568×320 landscape (opus r1 P2 +
-    // confirm-round P3): smaller/rotated phones push the raw floor past 60/80 —
-    // the ceiling must swallow them all or the invariant silently breaks.
+    // 375×667 + 320×568 portrait AND 667×375 + 568×320 + 480×320 landscape
+    // (opus r1 P2, confirm P3, codex r2 P2): smaller/rotated viewports push the
+    // raw floor past earlier ceilings — the cap must swallow them all or the
+    // invariant silently breaks.
     for (const [w, h] of [
       [375, 667],
       [320, 568],
       [667, 375],
       [568, 320],
+      [480, 320],
     ] as const) {
       const a = Math.max(w / 3023.11, h / 2021.19)
       const r = rSceneFor(0.55, a)
-      expect(r).toBeLessThanOrEqual(120)
+      expect(r).toBeLessThanOrEqual(175)
       expect(2 * r * a * 0.55).toBeGreaterThanOrEqual(24)
+    }
+    // Supported-viewport bound (codex r2 P2, formally pinned): the rendered
+    // diameter is min(24, 192.5 × measureA) — ≥ 24 for EVERY viewport whose
+    // larger CSS dimension is ≥ 380 px (a ≥ 380/3023.11 > 0.1247), any
+    // orientation. Sweep the boundary to prove the claim, not just samples.
+    for (let dim = 380; dim <= 1600; dim += 20) {
+      for (const other of [240, 320, 375, 667, 844]) {
+        const a = Math.max(dim / 3023.11, other / 2021.19, other / 3023.11, dim / 2021.19)
+        const r = rSceneFor(0.55, a)
+        // float tolerance: the raw floor is mathematically exactly 24, but the
+        // round-trip through division/multiplication lands 1-2 ulp low at the
+        // boundary — allow 1e-9
+        expect(2 * r * a * 0.55).toBeGreaterThanOrEqual(24 - 1e-9)
+        // overlap bound: no two orgs' hit circles ever touch
+        expect(2 * r).toBeLessThanOrEqual(351)
+      }
     }
   })
 
