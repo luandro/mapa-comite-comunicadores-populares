@@ -12,6 +12,7 @@ import {
   splitItems,
   toCsv,
 } from './content-core'
+import { partitionRows } from './content-import'
 
 describe('parseCsv (RFC 4180)', () => {
   it('parses quoted cells with embedded newlines and commas', () => {
@@ -106,5 +107,40 @@ describe('blank line inside a quoted cell (Opus gate blocker)', () => {
     const rows = parseCsv(csv)
     expect(rows[1][4]).toBe('a\n\nb')
     expect(splitItems(rows[1][4])).toEqual(['a', 'b'])
+  })
+})
+
+describe('partitionRows (Opus gate-2 blocker: blank/helper columns)', () => {
+  it('keeps the editor’s REAL header row so inserted blank columns stay aligned', () => {
+    // blank column between memoria and identidade — signature matching must
+    // still detect the header AND the partition must keep THIS row, not a
+    // canonical rebuild (which would shift every section index).
+    const rows = [
+      ['id', 'mapa', 'nome', 'icone', 'conflitos', 'acao', 'identificacao_e_territorio', 'futuro', 'memoria', '', 'identidade'],
+      ['org_x', 'belem', 'ORG X', 'icone-1', 'c1', 'a1', 't1', 'f1', 'm1', '', 'i1'],
+    ]
+    const { coletivos, textos } = partitionRows(rows)
+    expect(coletivos).toHaveLength(2)
+    expect(textos).toHaveLength(0)
+    expect(coletivos[0][9]).toBe('')
+    expect(coletivos[1][10]).toBe('i1') // identidade survived the blank column
+  })
+
+  it('splits pasted tabs and tolerates a title row above the header', () => {
+    const rows = [
+      ['Planilha do Comitê — export'],
+      ['chave', 'onde aparece', 'valor'],
+      ['sobre.texto', 'menu', 'texto aqui'],
+      [],
+      ['id', 'mapa', 'nome', 'icone', 'conflitos', 'acao', 'identificacao_e_territorio', 'futuro', 'memoria', 'identidade'],
+      ['org_y', 'moju', 'ORG Y', 'icone-2', 'c', 'a', 't', 'f', 'm', 'i'],
+    ]
+    const { coletivos, textos } = partitionRows(rows)
+    expect(coletivos).toHaveLength(2)
+    // the empty separator row before the Coletivos header lands in textos —
+    // harmless: parseTextos skips blank rows
+    expect(textos).toHaveLength(3)
+    expect(coletivos[1][2]).toBe('ORG Y')
+    expect(textos[1][2]).toBe('texto aqui')
   })
 })

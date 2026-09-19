@@ -85,20 +85,52 @@ function readLocalCsv(path: string): { name: string; raw: string } {
 
 // --- 2. Header-signature tab detection ------------------------------------
 
-function rowSignature(row: string[]): string {
-  return row.map(foldHeader).filter(Boolean).join('|')
+function foldRow(row: string[]): string[] {
+  return row.map(foldHeader)
 }
 
-const COLETIVOS_SIG = rowSignature([...COLETIVOS_HEADERS])
-const TEXTOS_SIG = rowSignature([...TEXTOS_HEADERS])
+/** A row is a tab header when it CONTAINS every expected header cell
+ * (order- and blank-tolerant — editors insert helper/blank columns). */
+function isHeaderRow(row: string[], expected: readonly string[]): boolean {
+  const cells = foldRow(row)
+  return expected.every((h) => cells.includes(foldHeader(h)))
+}
 
 function detectTab(rows: string[][]): 'coletivos' | 'textos' | null {
   for (const row of rows.slice(0, 3)) {
-    const sig = rowSignature(row)
-    if (sig === COLETIVOS_SIG) return 'coletivos'
-    if (sig === TEXTOS_SIG) return 'textos'
+    if (isHeaderRow(row, COLETIVOS_HEADERS)) return 'coletivos'
+    if (isHeaderRow(row, TEXTOS_HEADERS)) return 'textos'
   }
   return null
+}
+
+/**
+ * Partition parsed CSV rows into tab payloads, splitting at header-signature
+ * rows (the REAL header row is kept — an editor's blank/helper columns must
+ * survive so column indices stay aligned; Opus gate-2 blocker). Exported for
+ * tests; used by BOTH the local-file and URL paths.
+ */
+export function partitionRows(
+  rows: string[][],
+): { coletivos: string[][]; textos: string[][] } {
+  const coletivos: string[][] = []
+  const textos: string[][] = []
+  let current: 'coletivos' | 'textos' | null = null
+  for (const row of rows) {
+    if (isHeaderRow(row, COLETIVOS_HEADERS)) {
+      current = 'coletivos'
+      if (coletivos.length === 0) coletivos.push(row)
+      continue
+    }
+    if (isHeaderRow(row, TEXTOS_HEADERS)) {
+      current = 'textos'
+      if (textos.length === 0) textos.push(row)
+      continue
+    }
+    if (current === 'coletivos') coletivos.push(row)
+    else if (current === 'textos') textos.push(row)
+  }
+  return { coletivos, textos }
 }
 
 function headerMap(row: string[], expected: readonly string[], tab: string): Map<string, number> {
@@ -327,35 +359,28 @@ async function main(): Promise<void> {
     }
     const coletivosCsv = gids.coletivos ? await fetchSheetCsv(spreadsheetId, gids.coletivos) : ''
     const textosCsv = gids.textos ? await fetchSheetCsv(spreadsheetId, gids.textos) : ''
-    if (coletivosCsv) coletivosRows = parseCsv(coletivosCsv)
-    if (textosCsv) textosRows = parseCsv(textosCsv)
+    // Same partition logic as the local path (shared code path — Opus r2):
+    // a fetched tab is parsed once and split at header rows, tolerating a
+    // title row above the header.
+    const parsed = partitionRows([
+      ...(coletivosCsv ? parseCsv(coletivosCsv) : []),
+      ...(textosCsv ? parseCsv(textosCsv) : []),
+    ])
+    coletivosRows = parsed.coletivos
+    textosRows = parsed.textos
   } else {
     const file = readLocalCsv(resolve(process.cwd(), sourceArg))
     // Parse ONCE, then partition the ROW array at header-signature rows —
     // never split the raw text on blank lines: a blank line inside a quoted
     // cell (Alt+Enter twice in Sheets) would cut the file mid-cell and the
     // tail rows would silently vanish (Opus gate blocker). A file may hold
-    // ONE tab (Google per-tab download) or BOTH pasted back-to-back.
-    const rows = parseCsv(file.raw)
-    let current: 'coletivos' | 'textos' | null = null
-    for (const row of rows) {
-      const sig = rowSignature(row)
-      if (sig === COLETIVOS_SIG) {
-        current = 'coletivos'
-        continue
-      }
-      if (sig === TEXTOS_SIG) {
-        current = 'textos'
-        continue
-      }
-      if (current === 'coletivos') coletivosRows.push(row)
-      else if (current === 'textos') textosRows.push(row)
-    }
-    if (coletivosRows.length > 0 || textosRows.length > 0) {
-      // re-attach the matching header row so parseX's headerMap works
-      if (coletivosRows.length > 0) coletivosRows.unshift([...COLETIVOS_HEADERS])
-      if (textosRows.length > 0) textosRows.unshift([...TEXTOS_HEADERS])
-    } else {
+    // ONE tab (Google per-tab download) or BOTH pasted back-to-back. The
+    // REAL header row is kept per partition, so editor blank/helper columns
+    // stay index-aligned (Opus gate-2 blocker).
+    const parsed = partitionRows(parseCsv(file.raw))
+    coletivosRows = parsed.coletivos
+    textosRows = parsed.textos
+    if (coletivosRows.length === 0 && textosRows.length === 0) {
       fail(
         file.name,
         'Não reconheci as colunas deste arquivo — é a aba Coletivos ou Textos do site?',
@@ -426,7 +451,10 @@ function reportAndExit(): never {
   process.exit(1)
 }
 
-main().catch((error) => {
-  console.error(error)
-  process.exit(1)
-})
+// CLI entry only — importing partitionRows (tests) must not run main().
+if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop() ?? '')) {
+  main().catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
+}
