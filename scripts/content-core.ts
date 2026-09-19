@@ -87,7 +87,13 @@ export const TEXTOS_KEYS = TEXTOS_ROWS.map((row) => row.key)
 
 /** Strip BOM + NFC + NBSP normalization for one raw CSV cell. */
 export function cleanCell(value: string): string {
-  return value.replace(/^\uFEFF/, '').normalize('NFC').replace(/\u00A0/g, ' ')
+  return value
+    .replace(/^\uFEFF/, '')
+    .normalize('NFC')
+    .replace(/\u00A0/g, ' ')
+    // a CRLF inside a quoted multi-line cell stays in the parsed cell —
+    // normalize so ui.json doesn't drift with noisy \r (Opus post-merge P2)
+    .replace(/\r\n/g, '\n')
 }
 
 /**

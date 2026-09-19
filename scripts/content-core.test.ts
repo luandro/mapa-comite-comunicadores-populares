@@ -90,4 +90,21 @@ describe('cleanCell', () => {
     const decomposed = 'e\u0301' // é as e + combining acute
     expect(cleanCell(decomposed)).toBe('é')
   })
+
+  it('normalizes CRLF inside quoted cells (Opus post-merge P2)', () => {
+    const rows = parseCsv('"para1\r\npara2",x')
+    expect(rows[0][0]).toBe('para1\npara2')
+  })
+})
+
+describe('blank line inside a quoted cell (Opus gate blocker)', () => {
+  it('survives a raw-text blank-line split — the regression that wiped sections', () => {
+    // An editor pressing Alt+Enter twice inside a cell produces \n\n INSIDE
+    // the quoted cell. Parsing must keep it as one cell (partitioning happens
+    // on the row array, never on raw text).
+    const csv = 'id,mapa,nome,icone,conflitos\r\norg_x,belem,ORG X,icone-1,"a\n\nb"\r\n'
+    const rows = parseCsv(csv)
+    expect(rows[1][4]).toBe('a\n\nb')
+    expect(splitItems(rows[1][4])).toEqual(['a', 'b'])
+  })
 })

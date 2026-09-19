@@ -52,15 +52,22 @@ async function fetchSheetCsv(url: string, gid: string): Promise<string> {
     `https://docs.google.com/spreadsheets/d/${url}/export?format=csv&gid=${encodeURIComponent(gid)}`
   const response = await fetch(endpoint, { redirect: 'follow' })
   const body = await response.text()
-  const contentType = response.headers.get('content-type') ?? ''
-  if (
-    !response.ok ||
-    (!contentType.includes('text/csv') && !foldHeader(body.split('\n')[0] ?? '').length)
-  ) {
+  // Wrong sharing → 302 → accounts.google.com → HTTP 200 text/html. The
+  // reliable signal is the redirect target / non-CSV body, not the status
+  // (Opus pre-merge fix: a 200 HTML page passed the old content-type check).
+  if (!response.ok || response.url.includes('accounts.google.com')) {
     fail(
       'planilha',
       `Não consegui baixar a aba (gid ${gid}). A planilha está compartilhada como ` +
-        `"Qualquer pessoa com o link · Leitor"? (HTTP ${response.status}, ${contentType || 'sem content-type'})`,
+        `"Qualquer pessoa com o link · Leitor"? (HTTP ${response.status})`,
+    )
+    return ''
+  }
+  if (detectTab(parseCsv(body)) === null) {
+    fail(
+      'planilha',
+      `A aba (gid ${gid}) baixou, mas não reconheci as colunas — o gid está certo? ` +
+        `(esperado: Coletivos ou Textos do site)`,
     )
     return ''
   }
@@ -121,8 +128,7 @@ interface ColetivosRow {
   sections: Record<string, string[]>
 }
 
-function parseColetivos(raw: string): ColetivosRow[] {
-  const rows = parseCsv(raw)
+function parseColetivos(rows: string[][]): ColetivosRow[] {
   const tab = detectTab(rows) === 'coletivos' ? 'Coletivos' : 'aba desconhecida'
   if (rows.length === 0) {
     fail(`${tab}!1`, 'Arquivo vazio')
@@ -175,8 +181,7 @@ function parseColetivos(raw: string): ColetivosRow[] {
 
 // --- 4. Parse + validate the Textos tab -----------------------------------
 
-function parseTextos(raw: string): Map<string, string> {
-  const rows = parseCsv(raw)
+function parseTextos(rows: string[][]): Map<string, string> {
   const tab = detectTab(rows) === 'textos' ? 'Textos do site' : 'aba desconhecida'
   const values = new Map<string, string>()
   if (rows.length === 0) {
@@ -186,6 +191,7 @@ function parseTextos(raw: string): Map<string, string> {
   const index = headerMap(rows[0], TEXTOS_HEADERS, tab)
   const keyAt = index.get('chave') ?? 0
   const valAt = index.get('valor') ?? 2
+  const seen = new Set<string>()
   rows.slice(1).forEach((row, rowAt) => {
     const key = (row[keyAt] ?? '').trim()
     if (!key) return
@@ -194,6 +200,11 @@ function parseTextos(raw: string): Map<string, string> {
       fail(`${tab}!A${rowAt + 2}`, `chave desconhecida "${key}" (não edite a coluna chave)`)
       return
     }
+    if (seen.has(key)) {
+      fail(`${tab}!A${rowAt + 2}`, `chave duplicada "${key}" (cada chave deve aparecer uma única vez)`)
+      return
+    }
+    seen.add(key)
     if (!value) {
       fail(`${tab}!C${rowAt + 2}`, `"${key}": valor vazio`)
       return
@@ -295,8 +306,8 @@ async function main(): Promise<void> {
     process.exit(2)
   }
 
-  let coletivosRaw = ''
-  let textosRaw = ''
+  let coletivosRows: string[][] = []
+  let textosRows: string[][] = []
   if (looksLikeSpreadsheetId(sourceArg)) {
     const spreadsheetId = (sourceArg.match(/\/d\/([\w-]+)/) ?? [])[1] ?? sourceArg
     let config: { tabs?: { coletivos?: string; textos?: string } } = {}
@@ -314,26 +325,47 @@ async function main(): Promise<void> {
     if (!gids.coletivos || !gids.textos) {
       fail('content.config.json', 'Preencha tabs.coletivos e tabs.textos com os gids das abas.')
     }
-    coletivosRaw = gids.coletivos ? await fetchSheetCsv(spreadsheetId, gids.coletivos) : ''
-    textosRaw = gids.textos ? await fetchSheetCsv(spreadsheetId, gids.textos) : ''
+    const coletivosCsv = gids.coletivos ? await fetchSheetCsv(spreadsheetId, gids.coletivos) : ''
+    const textosCsv = gids.textos ? await fetchSheetCsv(spreadsheetId, gids.textos) : ''
+    if (coletivosCsv) coletivosRows = parseCsv(coletivosCsv)
+    if (textosCsv) textosRows = parseCsv(textosCsv)
   } else {
     const file = readLocalCsv(resolve(process.cwd(), sourceArg))
-    const raw = file.raw
-    // A file may hold ONE tab (Google per-tab download) or BOTH pasted
-    // back-to-back — always scan tab blocks, don't trust the first line.
-    for (const block of raw.split(/\n\s*\n/)) {
-      const blockKind = detectTab(parseCsv(block))
-      if (blockKind === 'coletivos' && !coletivosRaw) coletivosRaw = block
-      else if (blockKind === 'textos' && !textosRaw) textosRaw = block
+    // Parse ONCE, then partition the ROW array at header-signature rows —
+    // never split the raw text on blank lines: a blank line inside a quoted
+    // cell (Alt+Enter twice in Sheets) would cut the file mid-cell and the
+    // tail rows would silently vanish (Opus gate blocker). A file may hold
+    // ONE tab (Google per-tab download) or BOTH pasted back-to-back.
+    const rows = parseCsv(file.raw)
+    let current: 'coletivos' | 'textos' | null = null
+    for (const row of rows) {
+      const sig = rowSignature(row)
+      if (sig === COLETIVOS_SIG) {
+        current = 'coletivos'
+        continue
+      }
+      if (sig === TEXTOS_SIG) {
+        current = 'textos'
+        continue
+      }
+      if (current === 'coletivos') coletivosRows.push(row)
+      else if (current === 'textos') textosRows.push(row)
     }
-    if (!coletivosRaw && !textosRaw) {
-      fail(file.name, 'Não reconheci as colunas deste arquivo — é a aba Coletivos ou Textos do site?')
+    if (coletivosRows.length > 0 || textosRows.length > 0) {
+      // re-attach the matching header row so parseX's headerMap works
+      if (coletivosRows.length > 0) coletivosRows.unshift([...COLETIVOS_HEADERS])
+      if (textosRows.length > 0) textosRows.unshift([...TEXTOS_HEADERS])
+    } else {
+      fail(
+        file.name,
+        'Não reconheci as colunas deste arquivo — é a aba Coletivos ou Textos do site?',
+      )
     }
   }
 
   // A missing tab is fine: the missing one just contributes no edits (its
   // section is skipped below). Only a source with NO recognizable tab errors.
-  if (!coletivosRaw && !textosRaw) {
+  if (coletivosRows.length === 0 && textosRows.length === 0) {
     fail('fonte', 'Nenhuma aba reconhecida — forneça os CSVs (Coletivos / Textos do site) ou a URL com gids')
   }
   if (failures.length > 0) reportAndExit()
@@ -343,9 +375,9 @@ async function main(): Promise<void> {
 
   // Missing-tab policy: the absent tab is treated as "sem mudanças" — its
   // parse produces empty structures and buildX loops simply don't run.
-  const coletivos = coletivosRaw ? parseColetivos(coletivosRaw) : []
-  const textos = textosRaw ? parseTextos(textosRaw) : new Map<string, string>()
-  if (coletivosRaw) {
+  const coletivos = coletivosRows.length > 0 ? parseColetivos(coletivosRows) : []
+  const textos = textosRows.length > 0 ? parseTextos(textosRows) : new Map<string, string>()
+  if (coletivosRows.length > 0) {
     const sheetIds = new Set(coletivos.map((row) => row.id))
     for (const map of Object.values(baseData.maps)) {
       for (const projectId of Object.keys(map.projects)) {
