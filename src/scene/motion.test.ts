@@ -94,3 +94,22 @@ describe('Phase 2 scene.css keyframes (read as text)', () => {
     )
   })
 })
+
+describe('layer-context zoom-out reveal (SPEC §4, opus r1 P2)', () => {
+  const css = () => readFileSync(resolve(process.cwd(), 'src/scene/scene.css'), 'utf8')
+
+  it('pins the context layer invisible at the home framing (default opacity 0)', () => {
+    const m = css().match(/#layer-context\s*{[^}]*}/)
+    expect(m).not.toBeNull()
+    expect(m![0]).toMatch(/opacity:\s*0/)
+    // transform/opacity-only contract + never intercepts taps
+    expect(m![0]).toMatch(/pointer-events:\s*none/)
+  })
+
+  it('pins the zoom-out band attributes (near/far) and the transition', () => {
+    const cssText = css()
+    expect(cssText).toMatch(/#layer-context\[data-zoom-out='near']\s*{[^}]*opacity:\s*0\.35/)
+    expect(cssText).toMatch(/#layer-context\[data-zoom-out='far']\s*{[^}]*opacity:\s*1/)
+    expect(cssText).toMatch(/#layer-context\s*{[^}]*transition:\s*opacity/)
+  })
+})

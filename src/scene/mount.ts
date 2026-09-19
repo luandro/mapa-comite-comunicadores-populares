@@ -269,14 +269,25 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     // on mobile — every org title must stay visible; the zoom gate below still
     // hides pills zoomed out.
     updateLabels(labels.el, state, measureCtm, false)
-    // Phase 5 (SPEC §5, mobile only): zoom-gated pill fade with ±10%
-    // hysteresis inside updatePillFade — opacity/visibility only.
+    // Phase 5 (SPEC §5, mobile only): zoom-gated pill fade — hysteresis band
+    // [0.9, 1.0)·labelK inside updatePillFade — opacity/visibility only.
     if (mobile) updatePillFade(labels.el, state.k)
     // Phase 5 (AGENTS invariant 8): keep every artifact hit circle ≥ 24 CSS px
     // in diameter at every zoom. u = measureCtm.a × k with k from the
     // CONTROLLER state carried in this callback (never a DOM camera read).
     // r changes only with k/resize — skip 22 identical attribute writes while
     // panning (k constant).
+    // Zoom-out context reveal (SPEC §4): the underlayer fades in only as the
+    // camera moves below k = 1 — the home framing keeps the shipped flat-ocean
+    // look (opus r1 P2). Band setting keeps the attribute stable while panning
+    // at constant zoom (3 bands: k ≥ 1 hidden, 0.8–1 near, < 0.8 far).
+    const band = state.k >= 1 ? null : state.k >= 0.8 ? 'near' : 'far'
+    const current = contextG.getAttribute('data-zoom-out')
+    if (band === null) {
+      if (current !== null) contextG.removeAttribute('data-zoom-out')
+    } else if (current !== band) {
+      contextG.setAttribute('data-zoom-out', band)
+    }
     const r = rSceneFor(state.k, measureCtm.a)
     if (r !== lastHitR) {
       lastHitR = r

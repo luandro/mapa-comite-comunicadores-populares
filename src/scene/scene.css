@@ -291,3 +291,23 @@ g[data-city-id].is-kbd-focus:focus-visible {
     animation-name: none;
   }
 }
+
+/* Zoom-out context underlayer (mapa contexto.svg, SPEC §4): decorative regional
+   content that only exists to be revealed when the camera zooms OUT past k = 1
+   (K_MIN = 0.55). At the home framing (k = 1) it must be invisible so the
+   shipped v1.0 look — base map on flat #5da9a9 ocean — stays pixel-identical
+   (opus r1 P2). Driven by a data attribute set in mount.ts's transform handler:
+   transform/opacity ONLY (invariant 6 — no other transform owner), CSS
+   transition eases the reveal. Full opacity by k ≈ 0.8, invisible at k ≥ 1. */
+#layer-context {
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+  pointer-events: none;
+}
+
+#layer-context[data-zoom-out='near'] {
+  opacity: 0.35;
+}
+#layer-context[data-zoom-out='far'] {
+  opacity: 1;
+}

@@ -76,7 +76,8 @@ describe('mountScene', () => {
     const camera = host.querySelector('svg#scene #camera')
     expect(camera).not.toBeNull()
     const ids = Array.from(camera!.children, (g) => g.id)
-    // Full §4 stack order is asserted in layers.test.ts; here the zoom-out
+    // §4 stack order is pinned HERE (layers.test.ts has no layer-context
+    // case); here the zoom-out
     // context underlayer must be the FIRST child and the base partition the
     // next three, untouched by the composite. v1.1: no layer-water — the
     // .scene-root CSS background is the ocean.
@@ -108,6 +109,9 @@ describe('mountScene', () => {
     expect(context.getAttribute('transform')).toBeNull()
     expect(context.querySelectorAll('path')).toHaveLength(38) // 31 land + 5 water + 2 road
     expect(host.querySelector('svg#scene #layer-land')!.childElementCount).toBe(42)
+    // Home framing (k = 1): the reveal band attribute is ABSENT — the shipped
+    // flat-ocean look is untouched until the camera zooms out (opus r1 P2).
+    expect(context.hasAttribute('data-zoom-out')).toBe(false)
     c.destroy()
   })
 

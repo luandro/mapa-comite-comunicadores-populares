@@ -138,15 +138,15 @@ describe('mountCalibratedLayers', () => {
     )
   })
 
-  it('rSceneFor: 12 CSS px floor, 60 ceiling, grows as zoom-out shrinks u', () => {
+  it('rSceneFor: 12 CSS px floor, 80 ceiling, grows as zoom-out shrinks u', () => {
     // u = measureA × k ≥ 1 → raw 12/u ≤ 12 → floor 12 dominates
     expect(rSceneFor(1, 1)).toBe(12)
     expect(rSceneFor(4, 1)).toBe(12)
     expect(rSceneFor(1, 2)).toBe(12)
     // zoomed out (u < 1): raw exceeds the floor, still under the ceiling
     expect(rSceneFor(0.5, 1)).toBe(24)
-    // extreme zoom-out: ceiling clamp keeps neighbors tappable (raised
-    // 40 → 60 for the K_MIN zoom-out; still capped)
+    // extreme zoom-out: the raw floor 12/0.2 = 60 sits below the new 80
+    // ceiling — the value is the raw floor here, not the clamp
     expect(rSceneFor(1, 0.2)).toBe(60)
   })
 
@@ -159,8 +159,19 @@ describe('mountCalibratedLayers', () => {
     // landscape 1600×900: measureA = 1600/3023.11 ≈ 0.5293
     const landscape = rSceneFor(0.55, 0.5293)
     expect(landscape).toBeGreaterThanOrEqual(12 / (0.5293 * 0.55)) // ≈ 41.23 raw floor
-    expect(landscape).toBeLessThanOrEqual(60)
+    expect(landscape).toBeLessThanOrEqual(80)
     expect(2 * landscape * 0.5293 * 0.55).toBeCloseTo(24, 6)
+    // 375×667 + 320×568 (opus r1 P2): smaller phones push the raw floor past
+    // 60 — the ceiling must swallow them too or the invariant silently breaks.
+    for (const [w, h] of [
+      [375, 667],
+      [320, 568],
+    ] as const) {
+      const a = Math.max(w / 3023.11, h / 2021.19)
+      const r = rSceneFor(0.55, a)
+      expect(r).toBeLessThanOrEqual(80)
+      expect(2 * r * a * 0.55).toBeGreaterThanOrEqual(24)
+    }
   })
 
   it('bob: ambient g gets .artifact-bob with stepped negative animation-delay', () => {

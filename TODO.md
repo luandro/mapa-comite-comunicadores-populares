@@ -70,7 +70,7 @@ Note (2026-09-18, perf gate resolution): the box below is marked DONE-BY-DECISIO
 ## Zoom-out context map (2026-09-18, branch feat/zoom-out-context-map)
 
 User-supplied AI-generated zoomed-out regional map, traced to
-`na cuia/icons/svg/mapa contexto.svg` (60 KB raw / 21 KB gz) and mounted as
+`na cuia/icons/svg/mapa contexto.svg` (≈62.4 KB raw / ≈22.2 KB gz, decimal — matches SPEC §1) and mounted as
 `layer-context` below `layer-land` at identity transform. Camera k floor
 dropped 1 → `K_MIN = 0.55` (SPEC §6/§4 updated same commit): scaleExtent,
 writeTransform, zoomBy, flyTo `minK` option (focus flights pin minK: 1);
