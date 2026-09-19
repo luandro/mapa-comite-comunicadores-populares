@@ -25,7 +25,13 @@ function uiHtml(): Plugin {
       if (typeof node !== 'string') {
         throw new Error(`uiHtml: placeholder %ui.${path}% resolves to a non-string`)
       }
+      // Editors type free text (quotes, `<`, `&`) that lands inside <title>
+      // and quoted attribute values — escape for both contexts (CodeRabbit).
       return node
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
     })
   return {
     name: 'na-cuia-ui-html',

@@ -228,21 +228,27 @@ function buildUi(base: UiModel, values: Map<string, string>): UiModel {
 
 function buildData(base: ComiteData, rows: ColetivosRow[]): ComiteData {
   const data: ComiteData = JSON.parse(JSON.stringify(base))
-  // ids must match exactly — a missing row is an editor mistake, never a delete
-  for (const map of Object.values(data.maps)) {
-    for (const projectId of Object.keys(map.projects)) {
-      if (!rows.some((row) => row.id === projectId)) {
-        fail('Coletivos!id', `"${projectId}" sumiu da planilha — a coluna id foi editada? (renomear/remover coletivos não é permitido aqui)`)
-      }
-    }
-  }
   for (const row of rows) {
     if (!Object.hasOwn(data.maps, row.mapa)) {
       fail('Coletivos!mapa', `"${row.id}": mapa desconhecido "${row.mapa}" (use: ${Object.keys(data.maps).join(', ')})`)
       continue
     }
     const map = data.maps[row.mapa]
-    const existing = map.projects[row.id]
+    let existing = map.projects[row.id]
+    // Moving an org between maps: locate it anywhere first — a duplicate
+    // record would lose the calibrated `pos` (CodeRabbit P1). Transfer the
+    // project object intact, then apply the sheet edits below.
+    if (!existing) {
+      for (const otherMap of Object.values(data.maps)) {
+        if (otherMap !== map && otherMap.projects[row.id]) {
+          existing = otherMap.projects[row.id]
+          delete otherMap.projects[row.id]
+          change(`${row.id}: movido para ${row.mapa} (pos preservada)`)
+          map.projects[row.id] = existing
+          break
+        }
+      }
+    }
     if (!existing) {
       // new org: content-only addition (AGENTS honest-data promise) — pos/icon
       // calibration remain human steps; the schema fills the section contract
@@ -263,6 +269,11 @@ function buildData(base: ComiteData, rows: ColetivosRow[]): ComiteData {
     if (existing.name !== row.nome) {
       change(`${row.id}: nome "${existing.name}" → "${row.nome}"`)
       existing.name = row.nome
+    }
+    // `icone` is a sheet-editable field: sync it (absent cell = keep current)
+    if (row.icone && row.icone !== existing.icon) {
+      change(`${row.id}: ícone ${existing.icon ?? 'icone-6'} → ${row.icone}`)
+      existing.icon = row.icone
     }
     for (const key of Object.keys(SECTION_HEADER_PT)) {
       const next = row.sections[key] ?? []
@@ -320,15 +331,30 @@ async function main(): Promise<void> {
     }
   }
 
-  if (!coletivosRaw) fail('Coletivos', 'aba Coletivos não fornecida (CSV ou URL com gids)')
-  if (!textosRaw) fail('Textos do site', 'aba Textos do site não fornecida (CSV ou URL com gids)')
+  // A missing tab is fine: the missing one just contributes no edits (its
+  // section is skipped below). Only a source with NO recognizable tab errors.
+  if (!coletivosRaw && !textosRaw) {
+    fail('fonte', 'Nenhuma aba reconhecida — forneça os CSVs (Coletivos / Textos do site) ou a URL com gids')
+  }
   if (failures.length > 0) reportAndExit()
 
   const baseData = JSON.parse(readFileSync(resolve(root, 'data.json'), 'utf8')) as ComiteData
   const baseUi = JSON.parse(readFileSync(resolve(root, 'src/data/ui.json'), 'utf8')) as UiModel
 
-  const coletivos = parseColetivos(coletivosRaw)
-  const textos = parseTextos(textosRaw)
+  // Missing-tab policy: the absent tab is treated as "sem mudanças" — its
+  // parse produces empty structures and buildX loops simply don't run.
+  const coletivos = coletivosRaw ? parseColetivos(coletivosRaw) : []
+  const textos = textosRaw ? parseTextos(textosRaw) : new Map<string, string>()
+  if (coletivosRaw) {
+    const sheetIds = new Set(coletivos.map((row) => row.id))
+    for (const map of Object.values(baseData.maps)) {
+      for (const projectId of Object.keys(map.projects)) {
+        if (!sheetIds.has(projectId)) {
+          fail('Coletivos!id', `"${projectId}" sumiu da planilha — a coluna id foi editada? (renomear/remover coletivos não é permitido aqui)`)
+        }
+      }
+    }
+  }
   const nextData = buildData(baseData, coletivos)
   const nextUi = buildUi(baseUi, textos)
 
