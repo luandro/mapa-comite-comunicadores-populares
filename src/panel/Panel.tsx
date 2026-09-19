@@ -11,6 +11,7 @@
  */
 import { useCallback, useEffect, useRef } from 'react'
 import { SECTION_KEYS, type Project } from '../data/types'
+import { ui } from '../data/ui'
 import icone1 from '/na cuia/icons/svg/icone 1.svg?url'
 import icone2 from '/na cuia/icons/svg/icone 2.svg?url'
 import icone3 from '/na cuia/icons/svg/icone 3.svg?url'
@@ -21,14 +22,15 @@ import onda1 from '/na cuia/icons/svg/onda 1.svg?scene'
 import onda2 from '/na cuia/icons/svg/onda 2.svg?scene'
 import onda4 from '/na cuia/icons/svg/onda 4.svg?scene'
 
-/** pt-BR headings, whitelisted section keys in contract order (AGENTS §9). */
-const SECTION_LABELS: Record<(typeof SECTION_KEYS)[number], string> = {
-  conflitos: 'Conflitos',
-  acao: 'Ação',
-  identificacao_e_territorio: 'Identificação e território',
-  futuro: 'Futuro',
-  memoria: 'Memória',
-  identidade: 'Identidade',
+/** pt-BR headings live in `ui.json` (`sectionLabels`) — content-editable via
+ * the spreadsheet pipeline; whitelisted section keys in contract order
+ * (AGENTS §9). A missing label is a hard error, never a silent fallback. */
+function sectionLabel(key: (typeof SECTION_KEYS)[number]): string {
+  const label = ui.sectionLabels[key]
+  if (typeof label !== 'string' || label.length === 0) {
+    throw new Error(`Panel: missing ui.sectionLabels.${key} (run content:import?)`)
+  }
+  return label
 }
 
 /** The scene's deselect fly-back duration (mount.ts UNFOCUS_DURATION, s→ms).
@@ -282,7 +284,7 @@ export function Panel({
             className="panel-close"
             type="button"
             onClick={handleClose}
-            aria-label="Fechar painel"
+            aria-label={ui.labels.closePanel}
           >
             ×
           </button>
@@ -292,7 +294,7 @@ export function Panel({
               <section key={key} className="panel-section">
                 <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
                 <div className="panel-section-content">
-                  <h3 className="panel-section-label">{SECTION_LABELS[key]}</h3>
+                  <h3 className="panel-section-label">{sectionLabel(key)}</h3>
                   <ul>
                     {items.map((item, i) => (
                       <li key={i}>{item}</li>

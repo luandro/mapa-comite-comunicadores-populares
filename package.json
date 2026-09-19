@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "test": "vitest run",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "content:export": "bun scripts/content-export.ts",
+    "content:import": "bun scripts/content-import.ts"
   },
   "dependencies": {
     "d3-zoom": "^3.0.0",

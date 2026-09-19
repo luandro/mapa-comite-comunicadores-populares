@@ -3,6 +3,38 @@ import { basename, resolve } from 'node:path'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 import { processSvg } from './src/scene/pipeline.build'
+import ui from './src/data/ui.json'
+
+/**
+ * Build-time HTML content injection: `%ui.titleLines.0%`-style placeholders in
+ * `index.html` are replaced from `src/data/ui.json` (the one externalized copy
+ * of every user-facing string). Build-time, not runtime — link unfurlers
+ * (WhatsApp etc.) don't run JS, so `<title>`/meta MUST be real HTML in the
+ * served file. Zero hardcoded copy, zero runtime bytes, no title flash.
+ */
+function uiHtml(): Plugin {
+  const apply = (html: string): string =>
+    html.replace(/%ui\.([\w.]+)%/g, (_whole, path: string) => {
+      let node: unknown = ui
+      for (const key of path.split('.')) {
+        if (node === null || typeof node !== 'object' || !Object.hasOwn(node, key)) {
+          throw new Error(`uiHtml: unknown placeholder %ui.${path}% (missing ui.json key)`)
+        }
+        node = (node as Record<string, unknown>)[key]
+      }
+      if (typeof node !== 'string') {
+        throw new Error(`uiHtml: placeholder %ui.${path}% resolves to a non-string`)
+      }
+      return node
+    })
+  return {
+    name: 'na-cuia-ui-html',
+    transformIndexHtml: {
+      order: 'post',
+      handler: (html) => apply(html),
+    },
+  }
+}
 
 /**
  * `?scene` imports: an asset id marked with the `scene` query (e.g.
@@ -44,13 +76,13 @@ function naCuiaScene(): Plugin {
 }
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), naCuiaScene()],
+  plugins: [react(), naCuiaScene(), uiHtml()],
   // GH Pages project site: /mapa-comite-comunicadores-populares/ (Phase 7).
   base: mode === 'production' ? '/mapa-comite-comunicadores-populares/' : '/',
   // trycloudflare preview tunnels for the remote calibration loop (dev server only)
   server: { allowedHosts: ['.trycloudflare.com'] },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.{ts,tsx}'],
   },
 }))
