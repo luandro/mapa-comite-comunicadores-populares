@@ -45,6 +45,7 @@ import './scene.css'
 import type { Box, Camera, FlyToOptions, ObstructionRect, TransformState } from './types'
 import { unfocusFlight } from './unfocus'
 import processedBase from '/na cuia/icons/svg/mapa cru.svg?scene'
+import processedContext from '/na cuia/icons/svg/mapa contexto.svg?scene'
 
 export interface SceneController {
   /** Idempotent: tears down camera, listeners and injected DOM — StrictMode/HMR safe. */
@@ -201,6 +202,26 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     cameraNode.appendChild(g)
   }
 
+  // Zoom-out context underlayer (mapa contexto.svg, SPEC §4): below layer-land,
+  // at IDENTITY transform — scene coords are baked into the asset (solve: 0.204
+  // image-px/scene-unit, scene (0,0) at image px (282, 280); header comment in
+  // the asset). The processed string still carries its outer <svg> root, so the
+  // root's children are adopted (layers.ts adoptChildren pattern) — setting
+  // innerHTML verbatim would nest an <svg> viewport and re-scale through the
+  // asset's own viewBox, undoing the bake. Content-only decorative art: no ids,
+  // no partition, outside the 42/5/20 base counts.
+  const contextG = document.createElementNS(SVG_NS, 'g')
+  contextG.id = 'layer-context'
+  const contextRoot = new DOMParser().parseFromString(
+    processedContext,
+    'image/svg+xml',
+  ).documentElement
+  for (const child of Array.from(contextRoot.children)) {
+    child.removeAttribute('id')
+    contextG.appendChild(child) // DOM4 auto-adopt, fill-group order preserved
+  }
+  cameraNode.insertBefore(contextG, cameraNode.firstChild)
+
   root.appendChild(sceneSvg)
   root.appendChild(measureSvg)
   el.appendChild(root)
@@ -248,14 +269,25 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     // on mobile — every org title must stay visible; the zoom gate below still
     // hides pills zoomed out.
     updateLabels(labels.el, state, measureCtm, false)
-    // Phase 5 (SPEC §5, mobile only): zoom-gated pill fade with ±10%
-    // hysteresis inside updatePillFade — opacity/visibility only.
+    // Phase 5 (SPEC §5, mobile only): zoom-gated pill fade — hysteresis band
+    // [0.9, 1.0)·labelK inside updatePillFade — opacity/visibility only.
     if (mobile) updatePillFade(labels.el, state.k)
     // Phase 5 (AGENTS invariant 8): keep every artifact hit circle ≥ 24 CSS px
     // in diameter at every zoom. u = measureCtm.a × k with k from the
     // CONTROLLER state carried in this callback (never a DOM camera read).
     // r changes only with k/resize — skip 22 identical attribute writes while
     // panning (k constant).
+    // Zoom-out context reveal (SPEC §4): the underlayer fades in only as the
+    // camera moves below k = 1 — the home framing keeps the shipped flat-ocean
+    // look (opus r1 P2). Band setting keeps the attribute stable while panning
+    // at constant zoom (3 bands: k ≥ 1 hidden, 0.8–1 near, < 0.8 far).
+    const band = state.k >= 1 ? null : state.k >= 0.8 ? 'near' : 'far'
+    const current = contextG.getAttribute('data-zoom-out')
+    if (band === null) {
+      if (current !== null) contextG.removeAttribute('data-zoom-out')
+    } else if (current !== band) {
+      contextG.setAttribute('data-zoom-out', band)
+    }
     const r = rSceneFor(state.k, measureCtm.a)
     if (r !== lastHitR) {
       lastHitR = r
@@ -985,12 +1017,15 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     const placement = cityPlacements[cityId]
     const [w, h] = CITY_VIEWBOX[cityId]
     const scale = placement.scale ?? 1
-    camera.flyTo({
-      x: placement.x,
-      y: placement.y,
-      width: w * scale,
-      height: h * scale,
-    })
+    camera.flyTo(
+      {
+        x: placement.x,
+        y: placement.y,
+        width: w * scale,
+        height: h * scale,
+      },
+      { minK: 1 }, // focus target stays legible — never rests at a zoom-out k
+    )
   }
   function onCityFocusOut(event: FocusEvent): void {
     // Unconditional: whatever modality brought focus here, it is leaving —
@@ -1013,12 +1048,15 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
     const id = target.getAttribute('data-artifact-id')
     if (!id || !(id in artifactAnchors)) return
     const anchor = artifactAnchors[id]
-    camera.flyTo({
-      x: anchor.x - ARTIFACT_FOCUS_BOX,
-      y: anchor.y - ARTIFACT_FOCUS_BOX,
-      width: ARTIFACT_FOCUS_BOX * 2,
-      height: ARTIFACT_FOCUS_BOX * 2,
-    })
+    camera.flyTo(
+      {
+        x: anchor.x - ARTIFACT_FOCUS_BOX,
+        y: anchor.y - ARTIFACT_FOCUS_BOX,
+        width: ARTIFACT_FOCUS_BOX * 2,
+        height: ARTIFACT_FOCUS_BOX * 2,
+      },
+      { minK: 1 }, // same focus-flight floor as focusArtifact
+    )
   }
   function onArtifactFocusOut(event: FocusEvent): void {
     const target = event.currentTarget as Element
@@ -1186,12 +1224,15 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       const placement = cityPlacements[cityId]
       const [w, h] = CITY_VIEWBOX[cityId]
       const scale = placement.scale ?? 1
-      camera.flyTo({
-        x: placement.x,
-        y: placement.y,
-        width: w * scale,
-        height: h * scale,
-      })
+      camera.flyTo(
+        {
+          x: placement.x,
+          y: placement.y,
+          width: w * scale,
+          height: h * scale,
+        },
+        { minK: 1 }, // focus flight: target stays legible, never a zoom-out k
+      )
     },
     focusArtifact(id) {
       // Gate on the MOUNTED set (an org with no calibrated pos renders no
@@ -1208,12 +1249,15 @@ export function mountScene(el: HTMLElement, data: ComiteData): SceneController {
       // flies back to this box. The assignment supersedes any prior capture
       // (the captured state resets when a new focusArtifact begins).
       preFocusFraming = camera.framing()
-      camera.flyTo({
-        x: anchor.x - ARTIFACT_FOCUS_BOX,
-        y: anchor.y - ARTIFACT_FOCUS_BOX,
-        width: ARTIFACT_FOCUS_BOX * 2,
-        height: ARTIFACT_FOCUS_BOX * 2,
-      })
+      camera.flyTo(
+        {
+          x: anchor.x - ARTIFACT_FOCUS_BOX,
+          y: anchor.y - ARTIFACT_FOCUS_BOX,
+          width: ARTIFACT_FOCUS_BOX * 2,
+          height: ARTIFACT_FOCUS_BOX * 2,
+        },
+        { minK: 1 }, // focus flight: target stays legible, never a zoom-out k
+      )
     },
     deselectArtifact() {
       // Same flow as the empty-tap deselect (applyArtifactState(null)): settle

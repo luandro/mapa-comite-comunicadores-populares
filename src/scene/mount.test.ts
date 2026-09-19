@@ -71,16 +71,23 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  it('builds #camera with the 3 base layers first, then the calibrated composite', () => {
+  it('builds #camera with layer-context first, then the 3 base layers, then the calibrated composite', () => {
     const c = mountScene(host, data)
     const camera = host.querySelector('svg#scene #camera')
     expect(camera).not.toBeNull()
     const ids = Array.from(camera!.children, (g) => g.id)
-    // Full §4 stack order is asserted in layers.test.ts; here the base
-    // partition must remain the first three, untouched by the composite.
-    // v1.1: no layer-water — the .scene-root CSS background is the ocean.
-    expect(ids.slice(0, 3)).toEqual(['layer-land', 'layer-roads', 'layer-water-detail'])
-    expect(ids.slice(3)).toEqual([
+    // §4 stack order is pinned HERE (layers.test.ts has no layer-context
+    // case); here the zoom-out
+    // context underlayer must be the FIRST child and the base partition the
+    // next three, untouched by the composite. v1.1: no layer-water — the
+    // .scene-root CSS background is the ocean.
+    expect(ids.slice(0, 4)).toEqual([
+      'layer-context',
+      'layer-land',
+      'layer-roads',
+      'layer-water-detail',
+    ])
+    expect(ids.slice(4)).toEqual([
       'layer-squiggles',
       'layer-city-belem',
       'layer-city-ananindeua',
@@ -88,6 +95,23 @@ describe('mountScene', () => {
       'layer-artifacts',
       'layer-arrows',
     ])
+    c.destroy()
+  })
+
+  it("mounts the zoom-out context map as #camera's first child (identity transform, content-only)", () => {
+    const c = mountScene(host, data)
+    const camera = host.querySelector('svg#scene #camera')!
+    const context = camera.firstElementChild as SVGGElement
+    expect(context.id).toBe('layer-context')
+    // Decorative underlayer (mapa contexto.svg): scene coords are baked into
+    // the asset — identity transform (no attribute), separate ?scene import,
+    // NOT part of the 42/5/20 base partition counts.
+    expect(context.getAttribute('transform')).toBeNull()
+    expect(context.querySelectorAll('path')).toHaveLength(38) // 31 land + 5 water + 2 road
+    expect(host.querySelector('svg#scene #layer-land')!.childElementCount).toBe(42)
+    // Home framing (k = 1): the reveal band attribute is ABSENT — the shipped
+    // flat-ocean look is untouched until the camera zooms out (opus r1 P2).
+    expect(context.hasAttribute('data-zoom-out')).toBe(false)
     c.destroy()
   })
 
@@ -783,21 +807,22 @@ describe('mountScene', () => {
     c.destroy()
   })
 
-  it('pills-hidden: ±10% hysteresis around labelK (drives the same updatePillFade the controller calls)', () => {
+  it('pills-hidden: hysteresis band entirely below 1 (hide < 0.9, show ≥ 1.0 — drives the same updatePillFade the controller calls)', () => {
     const labels = document.createElement('div')
     // below 0.9 → hidden
-    updatePillFade(labels, 0.8)
+    updatePillFade(labels, 0.6)
     expect(labels.classList.contains('pills-hidden')).toBe(true)
-    // inside the hysteresis band → unchanged (still hidden)
+    // inside the band (0.9..1.0) → unchanged (still hidden)
+    updatePillFade(labels, 0.95)
+    expect(labels.classList.contains('pills-hidden')).toBe(true)
+    // at exactly 1.0 → shown: reset() lands at k = 1 and pills must return
+    // (the old >1.1 show edge left pills hidden after a K_MIN zoom-out reset)
     updatePillFade(labels, 1.0)
-    expect(labels.classList.contains('pills-hidden')).toBe(true)
-    // above 1.1 → shown
-    updatePillFade(labels, 1.2)
     expect(labels.classList.contains('pills-hidden')).toBe(false)
     // falling back in from above does NOT re-hide inside the band
-    updatePillFade(labels, 1.0)
+    updatePillFade(labels, 0.95)
     expect(labels.classList.contains('pills-hidden')).toBe(false)
-    updatePillFade(labels, 0.8)
+    updatePillFade(labels, 0.6)
     expect(labels.classList.contains('pills-hidden')).toBe(true)
   })
 

@@ -32,7 +32,7 @@ Decisions locked in the grilling session (2026-09-14); spec revised through dual
 
 PNGs (`na cuia/icons/png/`, **12 files**): 6 icon rasters, 2 populated map mockups, 1 solid base map, 3 transparent landmass rasters — reference only. `Mapa cuia.ai` = source artwork; never edited.
 
-**Verified facts**: Illustrator re-traced every export — zero shared path data; every non-base layer needs a calibrated transform. Weight (decimal KB): **shipped set (15 files above) = 318 KB raw / ≈ 131 KB gz**; all repo SVGs together = 993 KB raw / 377 KB gz (reference files excluded from budget). No lazy-loading required.
+**Verified facts**: Illustrator re-traced every export — zero shared path data; every non-base layer needs a calibrated transform. Weight (decimal KB): **shipped set (15 files above) = 318 KB raw / ≈ 131 KB gz**; post-ship additions: `mapa contexto.svg` (zoom-out context underlayer, §4) ≈ 62.4 KB raw / ≈ 22.2 KB gz → **shipped total ≈ 380 KB raw / ≈ 153 KB gz**; all repo SVGs together = 993 KB raw / 377 KB gz (reference files excluded from budget). No lazy-loading required.
 
 ## 2. `mapa cru.svg` partition — by resolved fill, with node-count assertions
 
@@ -70,13 +70,14 @@ Rules:
 ## 4. Layer stack (bottom → top)
 
 0. (v1.1) `.scene-root` CSS background `#5da9a9` — the ocean (below the SVG, never a scene node)
-1. `layer-land` (42)
-2. `layer-roads` (5)
-3. `layer-water-detail` (17 marks + 3 river — preserves source paint order over land)
-4. `layer-squiggles` (`ondinhas`)
-5. `layer-city-{belem,ananindeua,moju}` (city name labels render in `#labels`, controller-owned)
-6. `layer-artifacts` (totems + invisible hit circles; taps) < `layer-arrows` (authored paths, `pointer-events: none` — decorative, never intercepts taps)
-7. HTML overlay (paints above the whole SVG): `#labels` (controller-owned pills) < title < zoom controls / skip button — explicit z-index in that order.
+1. `layer-context` — zoom-out context underlayer (`mapa contexto.svg`, traced AI-generated regional map; scene coords baked in at identity transform, solve: 0.204 image-px/scene-unit, scene (0,0) at image px (282,280); visible at `k < 1`, content-only decorative, NOT part of the 42/5/20 base counts)
+2. `layer-land` (42)
+3. `layer-roads` (5)
+4. `layer-water-detail` (17 marks + 3 river — preserves source paint order over land)
+5. `layer-squiggles` (`ondinhas`)
+6. `layer-city-{belem,ananindeua,moju}` (city name labels render in `#labels`, controller-owned)
+7. `layer-artifacts` (totems + invisible hit circles; taps) < `layer-arrows` (authored paths, `pointer-events: none` — decorative, never intercepts taps)
+8. HTML overlay (paints above the whole SVG): `#labels` (controller-owned pills) < title < zoom controls / skip button — explicit z-index in that order.
 
 ## 5. Motion design
 
@@ -97,9 +98,9 @@ CSS background (no node) → land + roads fade/rise → water-detail → squiggl
 
 Single controller in the island. All state lives in d3-zoom's element-owned transform: GSAP animates numbers but **every frame writes through `zoom.transform`**; any user gesture (`pointerdown`/`wheel`) cancels the active fly. Clamp **per frame**.
 
-- **Cover is native**: `preserveAspectRatio="xMidYMid slice"` fits the scene to the viewport; the camera is a pure multiplier `k ∈ [1, 4]` with `k_max = 4` (k = 1 ≡ the slice fit). No hand-derived scale factors anywhere. Pan clamped to the **union of the scene rect and the transformed bounds of all hit targets** (calibrated content may exceed the rect; targets must never be unreachable). **Obstruction**: `setObstruction(rect)` extends the pan-clamp domain on the obstructed side by the rect's viewport span so focus targets sit fully in the unobstructed region; `setObstruction(null)` re-clamps with a short tween (no jump).
+- **Cover is native**: `preserveAspectRatio="xMidYMid slice"` fits the scene to the viewport; the camera is a pure multiplier `k ∈ [0.55, 4]` with `k_max = 4`, `k_min = 0.55` (k = 1 ≡ the slice fit is the home framing; the zoom-out floor reveals the context layer). **Supported-viewport bound:** the ≥24 CSS px hit-target guarantee holds for every viewport whose larger CSS dimension is ≥ 380 px, in any orientation (below that, tap-overlap — not the 24 px floor — becomes the binding limit; sub-380 px viewports are out of contract). No hand-derived scale factors anywhere. Pan clamped to the **union of the scene rect and the transformed bounds of all hit targets** (calibrated content may exceed the rect; targets must never be unreachable). **Obstruction**: `setObstruction(rect)` extends the pan-clamp domain on the obstructed side by the rect's viewport span so focus targets sit fully in the unobstructed region; `setObstruction(null)` re-clamps with a short tween (no jump).
 - **d3-zoom `extent` must be set explicitly**: the default reads the `viewBox`, which under `slice` is larger than the visible rect (portrait 390×844 shows ≈934 of 3023 units at k=1). Set `zoom.extent` = the viewport corners mapped through the **measurement owner's** `getScreenCTM().inverse()` (§3), recomputed in the `ResizeObserver`; Vitest cases for 16:9 and 9:19.5 aspect ratios, primary and fallback modes.
-- **Hit targets in CSS px — measured, never derived**: in `onTransform`, read `getScreenCTM()` from the **measurement owner** (§3 — untransformed, so `ctm.a` never contains camera transforms in either mode); `u = measureCtm.a × k`, with `k` taken from **controller state** (never a DOM-read transform); hold each hit circle at `r_scene ≥ 12/u` (≥ 24 CSS px diameter at every zoom). Reading any CTM from inside the camera wrapper would double-count k.
+- **Hit targets in CSS px — measured, never derived**: in `onTransform`, read `getScreenCTM()` from the **measurement owner** (§3 — untransformed, so `ctm.a` never contains camera transforms in either mode); `u = measureCtm.a × k`, with `k` taken from **controller state** (never a DOM-read transform); hold each hit circle at `r_scene ≥ 12/u` (≥ 24 CSS px diameter at every zoom within the supported-viewport bound — §6: larger CSS dimension ≥ 380 px). Reading any CTM from inside the camera wrapper would double-count k.
 - Double-tap zoom; `+ / − / reset` buttons.
 
 ## 7. Data model (`data.json` — canonical)
@@ -150,7 +151,7 @@ interface SceneController {
 
 ## 11. Performance budget
 
-- Shipped assets ≈ **131 KB gz** (§1, decimal) + fonts: Fraunces + Archivo **latin subsets only**, target ≤ 100 KB gz combined; total ≤ ~300 KB gz.
+- Shipped assets ≈ **153 KB gz** (§1, decimal — includes the zoom-out context underlayer) + fonts: Fraunces + Archivo **latin subsets only**, target ≤ 100 KB gz combined; total ≤ ~320 KB gz.
 - Ambient loops: transform/opacity only, whole-group. Budget (v1.1, post band retirement): 1 squiggle group + 1 artifact-bob group rule.
 - Interaction transients (dash draw, shadow) allowed; ≤ 4 concurrently tweened groups.
 - Panel decoration: inline-SVG textures ≤ ~5 KB, no raster textures; body text ≥ 16 px / 1.6 — readability beats decoration.
@@ -162,9 +163,9 @@ interface SceneController {
 2. ~~Wave bands are not natively tileable — 3-copy mirror chain is v1~~ **v1.1: the wave-band system was removed** (user scope); the ocean is CSS. A designed CSS water layer (gradients/ripples) is the potential future upgrade.
 3. Per-org icons are placeholders (default = icone 6) until per-org art arrives via `data.json`.
 4. Fonts: Fraunces (title) + Archivo (UI), Google Fonts, latin subset, pt-BR confirmed.
-5. Cover-only camera (no k < 1): portrait users pan instead of seeing the whole map — accepted design choice (map-app convention).
+5. ~~Cover-only camera (no k < 1)~~ **superseded (zoom-out context map): the camera now reaches `k_min = 0.55` (§6), revealing the `layer-context` regional underlayer (§4) — portrait users see surrounding context without panning.**
 6. **Underlay calibration**: `Mapa geral` is 3000×2000 vs the 3023.11×2021.19 scene and `Mapa.jpeg`'s crop/aspect is unknown — calibrate the overlay to `mapa cru` sea/land edges first, verify under `slice` at 16:9 and 9:19.5, or every placement is wrong together, invisibly.
-7. Portrait users may not guess at off-screen content (cover-only camera, item 5) — watch in testing; a "ver mapa inteiro" overview/minimap stays deferred and must not break `k ≥ 1` or reduced motion if ever added.
+7. ~~Portrait users may not guess at off-screen content~~ **largely addressed by the k = 0.55 zoom-out context view (item 5)** — a "ver mapa inteiro" overview/minimap stays deferred and must not break the camera clamp contract (§6) or reduced motion if ever added.
 8. `POS_MARGIN` must be decided before the calibration pass — far-edge orgs (Guamá) sit at rect edges by design.
 
 ## 13. Acceptance criteria
@@ -173,7 +174,7 @@ interface SceneController {
 - Water reads as water: v1.1 the ocean is the `.scene-root` CSS background (visually identical to the retired sea rect, full-bleed at every pan/zoom); the ondinhas squiggle keeps its drift + pulse; artifact bob unchanged.
 - Tap city → camera flies, ONLY that city's connected orgs replay their entrance (totem drop + arrow dash-draw with tail-dot fade), other city groups dim to 0.35, and all other orgs hide (untappable) — user directive 2026-09-18, superseding the issue-#12 no-dim rule; tap empty resets everything to the pristine post-intro rest state.
 - Tap artifact → pulse + panel with the six whitelisted sections (empty hidden). Desktop: artifact visible at `k ≥ min(1.6, k_max = 4)` beside the drawer (obstruction-aware clamp, §6). Mobile: occlusion intentional; close returns to context.
-- Camera: pinch/drag/wheel/double-tap on touch + desktop; **slice cover** fills portrait and landscape at k = 1; per-frame clamped; targets reachable after resize/orientation/panel-open; fly-to cancelled by user gesture; no state jump after gesture; hit circles ≥ 24 CSS px at every zoom (CTM-measured).
+- Camera: pinch/drag/wheel/double-tap on touch + desktop; **slice cover** fills portrait and landscape at k = 1; per-frame clamped; targets reachable after resize/orientation/panel-open; fly-to cancelled by user gesture; no state jump after gesture; hit circles ≥ 24 CSS px at every zoom (CTM-measured) for supported viewports — larger CSS dimension ≥ 380 px (§6).
 - Keyboard: full tour of cities + artifacts (`tabindex=0`, Enter/Space, focus → fly), panel focus lifecycle complete with `aria-labelledby`.
 - Org addition: dummy org with default icon + calibration-tool-authored `pos` renders with **zero TypeScript edits**; schema violations (incl. out-of-rect `from` points) fail loudly.
 - Camera extent/obstruction unit-tested for 16:9 and 9:19.5 aspect ratios (Vitest, per §6).

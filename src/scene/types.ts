@@ -24,6 +24,9 @@ export interface FlyToOptions {
   padding?: number
   /** upper zoom clamp for this flight; default K_MAX */
   maxK?: number
+  /** lower zoom clamp for this flight; default K_MIN. Focus flights pass 1 —
+   * their targets must stay legible, never rest at a zoom-out scale. */
+  minK?: number
 }
 
 /**

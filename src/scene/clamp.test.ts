@@ -192,6 +192,34 @@ describe('clampDomain', () => {
   })
 })
 
+describe('clampTransform · K_MIN zoom-out (context map)', () => {
+  // 16:9 window per the brief: visibleWindow on a 1600×900 rect, ctm a≈0.5293.
+  // The context asset (mapa contexto.svg) spans scene x −1382.4→5715.6,
+  // y −1372.5→3951 — the clamp must keep the k=0.55 window inside it.
+  const zoomOutWin = visibleWindow(0, 0, 1600, 900, coverCtm(1600, 900))
+  const CONTEXT_ASSET = { x0: -1382.4, y0: -1372.5 }
+
+  it('centers the scene domain on both axes at k=0.55 (k·domain < window)', () => {
+    const t = clampTransform({ x: 1e9, y: -1e9, k: 0.55 }, zoomOutWin, SCENE_RECT)
+    // clampAxis centers when k·(d1−d0) ≤ w1−w0 — no unreachable pan exists.
+    expect(t.x).toBeCloseTo((SCENE_WIDTH / 2) * (1 - 0.55), 6) // ≈ 680.2
+    expect(t.y).toBeCloseTo(((zoomOutWin.y0 + zoomOutWin.y1) / 2) * (1 - 0.55), 6) // ≈ 454.8
+  })
+
+  it('the centered transform is a fixed point — clamping it again changes nothing', () => {
+    const centered = clampTransform({ x: 0, y: 0, k: 0.55 }, zoomOutWin, SCENE_RECT)
+    expect(clampTransform(centered, zoomOutWin, SCENE_RECT)).toEqual(centered)
+  })
+
+  it('the centered k=0.55 window stays inside the context asset (no empty strip)', () => {
+    const centered = clampTransform({ x: 0, y: 0, k: 0.55 }, zoomOutWin, SCENE_RECT)
+    // Left/top reach of the visible band: (w0 − t)/k — K_MIN was chosen (over
+    // 0.5) so these clear the asset edges (codex r1 P2).
+    expect((zoomOutWin.x0 - centered.x) / centered.k).toBeGreaterThan(CONTEXT_ASSET.x0)
+    expect((zoomOutWin.y0 - centered.y) / centered.k).toBeGreaterThan(CONTEXT_ASSET.y0)
+  })
+})
+
 describe('effectiveWindow', () => {
   it('shrinks only the right edge, by the obstruction width in scene units', () => {
     const ctmA = LAND_W / SCENE_WIDTH

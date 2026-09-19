@@ -20,6 +20,8 @@ export function unfocusFlight(captured: Box | null, initial: Point): UnfocusFlig
   if (captured) return { box: captured, opts: { padding: 0 } }
   return {
     box: { x: initial.x, y: initial.y, width: 0, height: 0 },
-    opts: { padding: 0, maxK: 1 },
+    // k pinned at exactly 1 on both edges: this is the reset() target — the
+    // default K_MIN floor must not turn the empty point box into a zoom-out.
+    opts: { padding: 0, maxK: 1, minK: 1 },
   }
 }

@@ -45,11 +45,22 @@ export const SQUIGGLE_MOTION = { duration: 12, pulseDuration: 6 } as const
  * ≥ 24 CSS px at every zoom. `u = measureCtm.a × k` maps scene units to CSS
  * px through the measurement owner's camera-free CTM, so the scene radius is
  * `max(base, 12/u)` clamped to a sane ceiling so circles never swallow
- * neighboring artifacts at k = 1. Pure math — mount.ts feeds it per frame.
+ * neighboring artifacts. Ceiling raised 40 → 175 for the K_MIN zoom-out. The
+ * raw floor `12 / (measureA × k)` renders at EXACTLY 24 CSS px by construction —
+ * only clamping can break the invariant — so the ceiling is set by the OTHER
+ * constraint: overlap. Min pairwise org spacing in data.json is ≈351 scene
+ * units, so radii up to 351/2 ≈ 175.5 keep every pair independently tappable.
+ * With the cap at 175, the rendered diameter is `min(24, 192.5 × measureA)`:
+ * exactly 24 for any viewport whose LARGER CSS dimension is ≥ ~377 px (a =
+ * max(w/3023.11, h/2021.19) ≥ 0.1247), i.e. every phone/tablet/desktop in any
+ * orientation — 480×320 landscape included (raw 137.3 < 175). Below that bound
+ * (sub-380 px viewports, outside the supported range per SPEC §6) overlap, not
+ * the 24 px floor, becomes the binding limit. Pure math — mount.ts feeds it
+ * per frame.
  */
 export const HIT_MIN_RADIUS_PX = 12
 export const HIT_BASE_R = 12
-export const HIT_MAX_R = 40
+export const HIT_MAX_R = 175
 
 export function rSceneFor(k: number, measureA: number): number {
   const u = Math.max(measureA * k, Number.EPSILON) // never divide by zero
