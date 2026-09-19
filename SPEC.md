@@ -32,7 +32,7 @@ Decisions locked in the grilling session (2026-09-14); spec revised through dual
 
 PNGs (`na cuia/icons/png/`, **12 files**): 6 icon rasters, 2 populated map mockups, 1 solid base map, 3 transparent landmass rasters — reference only. `Mapa cuia.ai` = source artwork; never edited.
 
-**Verified facts**: Illustrator re-traced every export — zero shared path data; every non-base layer needs a calibrated transform. Weight (decimal KB): **shipped set (15 files above) = 318 KB raw / ≈ 131 KB gz**; all repo SVGs together = 993 KB raw / 377 KB gz (reference files excluded from budget). No lazy-loading required.
+**Verified facts**: Illustrator re-traced every export — zero shared path data; every non-base layer needs a calibrated transform. Weight (decimal KB): **shipped set (15 files above) = 318 KB raw / ≈ 131 KB gz**; post-ship additions: `mapa contexto.svg` (zoom-out context underlayer, §4) ≈ 62.4 KB raw / ≈ 22.2 KB gz → **shipped total ≈ 380 KB raw / ≈ 153 KB gz**; all repo SVGs together = 993 KB raw / 377 KB gz (reference files excluded from budget). No lazy-loading required.
 
 ## 2. `mapa cru.svg` partition — by resolved fill, with node-count assertions
 
@@ -151,7 +151,7 @@ interface SceneController {
 
 ## 11. Performance budget
 
-- Shipped assets ≈ **131 KB gz** (§1, decimal) + fonts: Fraunces + Archivo **latin subsets only**, target ≤ 100 KB gz combined; total ≤ ~300 KB gz.
+- Shipped assets ≈ **153 KB gz** (§1, decimal — includes the zoom-out context underlayer) + fonts: Fraunces + Archivo **latin subsets only**, target ≤ 100 KB gz combined; total ≤ ~320 KB gz.
 - Ambient loops: transform/opacity only, whole-group. Budget (v1.1, post band retirement): 1 squiggle group + 1 artifact-bob group rule.
 - Interaction transients (dash draw, shadow) allowed; ≤ 4 concurrently tweened groups.
 - Panel decoration: inline-SVG textures ≤ ~5 KB, no raster textures; body text ≥ 16 px / 1.6 — readability beats decoration.
@@ -163,9 +163,9 @@ interface SceneController {
 2. ~~Wave bands are not natively tileable — 3-copy mirror chain is v1~~ **v1.1: the wave-band system was removed** (user scope); the ocean is CSS. A designed CSS water layer (gradients/ripples) is the potential future upgrade.
 3. Per-org icons are placeholders (default = icone 6) until per-org art arrives via `data.json`.
 4. Fonts: Fraunces (title) + Archivo (UI), Google Fonts, latin subset, pt-BR confirmed.
-5. Cover-only camera (no k < 1): portrait users pan instead of seeing the whole map — accepted design choice (map-app convention).
+5. ~~Cover-only camera (no k < 1)~~ **superseded (zoom-out context map): the camera now reaches `k_min = 0.55` (§6), revealing the `layer-context` regional underlayer (§4) — portrait users see surrounding context without panning.**
 6. **Underlay calibration**: `Mapa geral` is 3000×2000 vs the 3023.11×2021.19 scene and `Mapa.jpeg`'s crop/aspect is unknown — calibrate the overlay to `mapa cru` sea/land edges first, verify under `slice` at 16:9 and 9:19.5, or every placement is wrong together, invisibly.
-7. Portrait users may not guess at off-screen content (cover-only camera, item 5) — watch in testing; a "ver mapa inteiro" overview/minimap stays deferred and must not break `k ≥ 1` or reduced motion if ever added.
+7. ~~Portrait users may not guess at off-screen content~~ **largely addressed by the k = 0.55 zoom-out context view (item 5)** — a "ver mapa inteiro" overview/minimap stays deferred and must not break the camera clamp contract (§6) or reduced motion if ever added.
 8. `POS_MARGIN` must be decided before the calibration pass — far-edge orgs (Guamá) sit at rect edges by design.
 
 ## 13. Acceptance criteria
