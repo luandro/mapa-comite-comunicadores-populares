@@ -183,14 +183,21 @@ describe('mountCalibratedLayers', () => {
     // orientation. Sweep the boundary to prove the claim, not just samples.
     for (let dim = 380; dim <= 1600; dim += 20) {
       for (const other of [240, 320, 375, 667, 844]) {
-        const a = Math.max(dim / 3023.11, other / 2021.19, other / 3023.11, dim / 2021.19)
-        const r = rSceneFor(0.55, a)
-        // float tolerance: the raw floor is mathematically exactly 24, but the
-        // round-trip through division/multiplication lands 1-2 ulp low at the
-        // boundary — allow 1e-9
-        expect(2 * r * a * 0.55).toBeGreaterThanOrEqual(24 - 1e-9)
-        // overlap bound: no two orgs' hit circles ever touch
-        expect(2 * r).toBeLessThanOrEqual(351)
+        // both orientations separately (codex r3): [dim, other] and
+        // [other, dim] can take different max() branches — test each
+        for (const [w, h] of [
+          [dim, other],
+          [other, dim],
+        ] as const) {
+          const a = Math.max(w / 3023.11, h / 2021.19)
+          const r = rSceneFor(0.55, a)
+          // float tolerance: the raw floor is mathematically exactly 24, but
+          // the round-trip through division/multiplication lands 1-2 ulp low
+          // at the boundary — allow 1e-9
+          expect(2 * r * a * 0.55).toBeGreaterThanOrEqual(24 - 1e-9)
+          // overlap bound: no two orgs' hit circles ever touch
+          expect(2 * r).toBeLessThanOrEqual(351)
+        }
       }
     }
   })
