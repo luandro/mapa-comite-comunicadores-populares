@@ -138,14 +138,14 @@ describe('mountCalibratedLayers', () => {
     )
   })
 
-  it('rSceneFor: 12 CSS px floor, 80 ceiling, grows as zoom-out shrinks u', () => {
+  it('rSceneFor: 12 CSS px floor, 120 ceiling, grows as zoom-out shrinks u', () => {
     // u = measureA × k ≥ 1 → raw 12/u ≤ 12 → floor 12 dominates
     expect(rSceneFor(1, 1)).toBe(12)
     expect(rSceneFor(4, 1)).toBe(12)
     expect(rSceneFor(1, 2)).toBe(12)
     // zoomed out (u < 1): raw exceeds the floor, still under the ceiling
     expect(rSceneFor(0.5, 1)).toBe(24)
-    // extreme zoom-out: the raw floor 12/0.2 = 60 sits below the new 80
+    // extreme zoom-out: the raw floor 12/0.2 = 60 sits below the new 120
     // ceiling — the value is the raw floor here, not the clamp
     expect(rSceneFor(1, 0.2)).toBe(60)
   })
@@ -154,22 +154,25 @@ describe('mountCalibratedLayers', () => {
     // portrait 390×844: measureA = 844/2021.19 ≈ 0.4176
     const portrait = rSceneFor(0.55, 0.4176)
     expect(portrait).toBeGreaterThanOrEqual(12 / (0.4176 * 0.55)) // ≈ 52.25 raw floor
-    expect(portrait).toBeLessThanOrEqual(60)
+    expect(portrait).toBeLessThanOrEqual(120)
     expect(2 * portrait * 0.4176 * 0.55).toBeCloseTo(24, 6) // rendered diameter
     // landscape 1600×900: measureA = 1600/3023.11 ≈ 0.5293
     const landscape = rSceneFor(0.55, 0.5293)
     expect(landscape).toBeGreaterThanOrEqual(12 / (0.5293 * 0.55)) // ≈ 41.23 raw floor
-    expect(landscape).toBeLessThanOrEqual(80)
+    expect(landscape).toBeLessThanOrEqual(120)
     expect(2 * landscape * 0.5293 * 0.55).toBeCloseTo(24, 6)
-    // 375×667 + 320×568 (opus r1 P2): smaller phones push the raw floor past
-    // 60 — the ceiling must swallow them too or the invariant silently breaks.
+    // 375×667 + 320×568 portrait AND 667×375 + 568×320 landscape (opus r1 P2 +
+    // confirm-round P3): smaller/rotated phones push the raw floor past 60/80 —
+    // the ceiling must swallow them all or the invariant silently breaks.
     for (const [w, h] of [
       [375, 667],
       [320, 568],
+      [667, 375],
+      [568, 320],
     ] as const) {
       const a = Math.max(w / 3023.11, h / 2021.19)
       const r = rSceneFor(0.55, a)
-      expect(r).toBeLessThanOrEqual(80)
+      expect(r).toBeLessThanOrEqual(120)
       expect(2 * r * a * 0.55).toBeGreaterThanOrEqual(24)
     }
   })
