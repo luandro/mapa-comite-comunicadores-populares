@@ -14,6 +14,9 @@ import type {
 } from './types'
 
 export const K_MAX = 4
+/** Zoom-out floor (context map): 0.55 shows ≈3.3× the k=1 area — the context
+ * asset's solved margins (content past all four scene edges, none exposed). */
+export const K_MIN = 0.55
 
 const DEFAULT_DURATION = 1.1
 const DEFAULT_EASE = 'power2.inOut'
@@ -69,7 +72,7 @@ export function createCamera(opts: CameraOptions): Camera {
   }
 
   const behavior = zoom<SVGSVGElement, unknown>()
-    .scaleExtent([1, K_MAX])
+    .scaleExtent([K_MIN, K_MAX])
     .on('start', (event) => {
       // Real gestures carry a sourceEvent; programmatic writes do not.
       if (event.sourceEvent) killActiveFly()
@@ -173,7 +176,7 @@ export function createCamera(opts: CameraOptions): Camera {
     // Clamp k FIRST, then the translation against that clamped k — an
     // overshooting ease (back.out) must never write a pair (x, y) clamped
     // against a k that is not the one actually written.
-    const k = Math.min(K_MAX, Math.max(1, t.k))
+    const k = Math.min(K_MAX, Math.max(K_MIN, t.k))
     const clamped = clampTransform({ ...t, k }, effWin(), baseDomain)
     behavior.transform(svgSel, new ZoomTransform(k, clamped.x, clamped.y))
   }
@@ -223,6 +226,7 @@ export function createCamera(opts: CameraOptions): Camera {
     refreshWindow()
     const padding = flyOpts?.padding ?? DEFAULT_PADDING
     const maxK = Math.min(flyOpts?.maxK ?? K_MAX, K_MAX)
+    const minK = flyOpts?.minK ?? K_MIN
     const duration = flyOpts?.duration ?? DEFAULT_DURATION
     const ease = flyOpts?.ease ?? DEFAULT_EASE
     const w = effWin()
@@ -230,7 +234,7 @@ export function createCamera(opts: CameraOptions): Camera {
       (w.x1 - w.x0) / (target.width + 2 * padding),
       (w.y1 - w.y0) / (target.height + 2 * padding),
     )
-    const k = Math.min(maxK, Math.max(1, kFit))
+    const k = Math.min(maxK, Math.max(minK, kFit))
     // Center in the UNOBSTRUCTED window so the target sits beside the drawer.
     flyToTransform(
       {
@@ -246,7 +250,7 @@ export function createCamera(opts: CameraOptions): Camera {
   function zoomBy(factor: number): void {
     killActiveFly()
     refreshWindow()
-    const kTarget = Math.min(K_MAX, Math.max(1, zoomTransform(sceneSvg).k * factor))
+    const kTarget = Math.min(K_MAX, Math.max(K_MIN, zoomTransform(sceneSvg).k * factor))
     // About the extent centroid, i.e. the visible window's center.
     behavior.scaleTo(svgSel, kTarget)
   }

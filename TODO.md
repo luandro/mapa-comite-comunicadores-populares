@@ -67,6 +67,17 @@ Note (2026-09-18, perf gate resolution): the box below is marked DONE-BY-DECISIO
 - [x] **Playwright smoke suite** (load → tap city → tap artifact → panel opens) green locally **before** deploy and re-run against the live URL after
 - [x] GH Pages via committed Actions workflow (`actions/deploy-pages`); wait deploy success; verify live URL with Playwright smoke; `git tag v1.0.0 && git push origin v1.0.0`
 
+## Zoom-out context map (2026-09-18, branch feat/zoom-out-context-map)
+
+User-supplied AI-generated zoomed-out regional map, traced to
+`na cuia/icons/svg/mapa contexto.svg` (60 KB raw / 21 KB gz) and mounted as
+`layer-context` below `layer-land` at identity transform. Camera k floor
+dropped 1 → `K_MIN = 0.55` (SPEC §6/§4 updated same commit): scaleExtent,
+writeTransform, zoomBy, flyTo `minK` option (focus flights pin minK: 1);
+unfocus fallback pins k = 1 both edges; hit-circle ceiling HIT_MAX_R 40 → 60
+(24 CSS-px invariant holds at K_MIN); mobile pill hysteresis band moved
+entirely below 1 (reset at k = 1 always re-shows pills).
+
 ## Post-ship v1.0.1 — visual fidelity vs `Mapa.jpeg` (filed 2026-09-15, live-site audit)
 
 Evidence: `graft/.cache/checks/current-landscape.png` (1600×900, k=1, intro settled) +

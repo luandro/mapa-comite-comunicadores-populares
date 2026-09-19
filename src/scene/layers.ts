@@ -45,11 +45,14 @@ export const SQUIGGLE_MOTION = { duration: 12, pulseDuration: 6 } as const
  * ≥ 24 CSS px at every zoom. `u = measureCtm.a × k` maps scene units to CSS
  * px through the measurement owner's camera-free CTM, so the scene radius is
  * `max(base, 12/u)` clamped to a sane ceiling so circles never swallow
- * neighboring artifacts at k = 1. Pure math — mount.ts feeds it per frame.
+ * neighboring artifacts. Ceiling raised 40 → 60 for the K_MIN zoom-out (at
+ * k = 0.55 portrait the raw floor is ≈52 scene units — 40 would break the
+ * 24 px invariant); 60 still keeps adjacent totems independently tappable.
+ * Pure math — mount.ts feeds it per frame.
  */
 export const HIT_MIN_RADIUS_PX = 12
 export const HIT_BASE_R = 12
-export const HIT_MAX_R = 40
+export const HIT_MAX_R = 60
 
 export function rSceneFor(k: number, measureA: number): number {
   const u = Math.max(measureA * k, Number.EPSILON) // never divide by zero

@@ -138,15 +138,29 @@ describe('mountCalibratedLayers', () => {
     )
   })
 
-  it('rSceneFor: 12 CSS px floor, 40 ceiling, grows as zoom-out shrinks u', () => {
+  it('rSceneFor: 12 CSS px floor, 60 ceiling, grows as zoom-out shrinks u', () => {
     // u = measureA × k ≥ 1 → raw 12/u ≤ 12 → floor 12 dominates
     expect(rSceneFor(1, 1)).toBe(12)
     expect(rSceneFor(4, 1)).toBe(12)
     expect(rSceneFor(1, 2)).toBe(12)
     // zoomed out (u < 1): raw exceeds the floor, still under the ceiling
     expect(rSceneFor(0.5, 1)).toBe(24)
-    // extreme zoom-out: ceiling clamp keeps neighbors tappable
-    expect(rSceneFor(1, 0.2)).toBe(40)
+    // extreme zoom-out: ceiling clamp keeps neighbors tappable (raised
+    // 40 → 60 for the K_MIN zoom-out; still capped)
+    expect(rSceneFor(1, 0.2)).toBe(60)
+  })
+
+  it('rSceneFor at K_MIN keeps the ≥24 CSS px diameter invariant (16:9 and 9:19.5)', () => {
+    // portrait 390×844: measureA = 844/2021.19 ≈ 0.4176
+    const portrait = rSceneFor(0.55, 0.4176)
+    expect(portrait).toBeGreaterThanOrEqual(12 / (0.4176 * 0.55)) // ≈ 52.25 raw floor
+    expect(portrait).toBeLessThanOrEqual(60)
+    expect(2 * portrait * 0.4176 * 0.55).toBeCloseTo(24, 6) // rendered diameter
+    // landscape 1600×900: measureA = 1600/3023.11 ≈ 0.5293
+    const landscape = rSceneFor(0.55, 0.5293)
+    expect(landscape).toBeGreaterThanOrEqual(12 / (0.5293 * 0.55)) // ≈ 41.23 raw floor
+    expect(landscape).toBeLessThanOrEqual(60)
+    expect(2 * landscape * 0.5293 * 0.55).toBeCloseTo(24, 6)
   })
 
   it('bob: ambient g gets .artifact-bob with stepped negative animation-delay', () => {

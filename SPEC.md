@@ -70,13 +70,14 @@ Rules:
 ## 4. Layer stack (bottom → top)
 
 0. (v1.1) `.scene-root` CSS background `#5da9a9` — the ocean (below the SVG, never a scene node)
-1. `layer-land` (42)
-2. `layer-roads` (5)
-3. `layer-water-detail` (17 marks + 3 river — preserves source paint order over land)
-4. `layer-squiggles` (`ondinhas`)
-5. `layer-city-{belem,ananindeua,moju}` (city name labels render in `#labels`, controller-owned)
-6. `layer-artifacts` (totems + invisible hit circles; taps) < `layer-arrows` (authored paths, `pointer-events: none` — decorative, never intercepts taps)
-7. HTML overlay (paints above the whole SVG): `#labels` (controller-owned pills) < title < zoom controls / skip button — explicit z-index in that order.
+1. `layer-context` — zoom-out context underlayer (`mapa contexto.svg`, traced AI-generated regional map; scene coords baked in at identity transform, solve: 0.204 image-px/scene-unit, scene (0,0) at image px (282,280); visible at `k < 1`, content-only decorative, NOT part of the 42/5/20 base counts)
+2. `layer-land` (42)
+3. `layer-roads` (5)
+4. `layer-water-detail` (17 marks + 3 river — preserves source paint order over land)
+5. `layer-squiggles` (`ondinhas`)
+6. `layer-city-{belem,ananindeua,moju}` (city name labels render in `#labels`, controller-owned)
+7. `layer-artifacts` (totems + invisible hit circles; taps) < `layer-arrows` (authored paths, `pointer-events: none` — decorative, never intercepts taps)
+8. HTML overlay (paints above the whole SVG): `#labels` (controller-owned pills) < title < zoom controls / skip button — explicit z-index in that order.
 
 ## 5. Motion design
 
@@ -97,7 +98,7 @@ CSS background (no node) → land + roads fade/rise → water-detail → squiggl
 
 Single controller in the island. All state lives in d3-zoom's element-owned transform: GSAP animates numbers but **every frame writes through `zoom.transform`**; any user gesture (`pointerdown`/`wheel`) cancels the active fly. Clamp **per frame**.
 
-- **Cover is native**: `preserveAspectRatio="xMidYMid slice"` fits the scene to the viewport; the camera is a pure multiplier `k ∈ [1, 4]` with `k_max = 4` (k = 1 ≡ the slice fit). No hand-derived scale factors anywhere. Pan clamped to the **union of the scene rect and the transformed bounds of all hit targets** (calibrated content may exceed the rect; targets must never be unreachable). **Obstruction**: `setObstruction(rect)` extends the pan-clamp domain on the obstructed side by the rect's viewport span so focus targets sit fully in the unobstructed region; `setObstruction(null)` re-clamps with a short tween (no jump).
+- **Cover is native**: `preserveAspectRatio="xMidYMid slice"` fits the scene to the viewport; the camera is a pure multiplier `k ∈ [0.55, 4]` with `k_max = 4`, `k_min = 0.55` (k = 1 ≡ the slice fit is the home framing; the zoom-out floor reveals the context layer). No hand-derived scale factors anywhere. Pan clamped to the **union of the scene rect and the transformed bounds of all hit targets** (calibrated content may exceed the rect; targets must never be unreachable). **Obstruction**: `setObstruction(rect)` extends the pan-clamp domain on the obstructed side by the rect's viewport span so focus targets sit fully in the unobstructed region; `setObstruction(null)` re-clamps with a short tween (no jump).
 - **d3-zoom `extent` must be set explicitly**: the default reads the `viewBox`, which under `slice` is larger than the visible rect (portrait 390×844 shows ≈934 of 3023 units at k=1). Set `zoom.extent` = the viewport corners mapped through the **measurement owner's** `getScreenCTM().inverse()` (§3), recomputed in the `ResizeObserver`; Vitest cases for 16:9 and 9:19.5 aspect ratios, primary and fallback modes.
 - **Hit targets in CSS px — measured, never derived**: in `onTransform`, read `getScreenCTM()` from the **measurement owner** (§3 — untransformed, so `ctm.a` never contains camera transforms in either mode); `u = measureCtm.a × k`, with `k` taken from **controller state** (never a DOM-read transform); hold each hit circle at `r_scene ≥ 12/u` (≥ 24 CSS px diameter at every zoom). Reading any CTM from inside the camera wrapper would double-count k.
 - Double-tap zoom; `+ / − / reset` buttons.

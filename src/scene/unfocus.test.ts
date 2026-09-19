@@ -20,10 +20,20 @@ describe('unfocusFlight', () => {
     expect(flight.opts.maxK).toBeUndefined()
   })
 
-  it('falls back to a zero-area box at initialFraming capped at k = 1 (the reset() target)', () => {
+  it('never pins minK on a captured framing (a k<1 zoom-out framing restores below 1)', () => {
+    // Zoom-out → focus → deselect round-trip (codex r1 P1): the captured box
+    // recomputes its own k, so a framing captured at K_MIN must fly back at
+    // k < 1 — no minK override may lift it to 1.
+    const flight = unfocusFlight({ x: 0, y: 0, width: 5000, height: 3400 }, initialFraming)
+    expect(flight.opts.minK).toBeUndefined()
+  })
+
+  it('falls back to a zero-area box at initialFraming pinned to k = 1 on both edges', () => {
     const flight = unfocusFlight(null, initialFraming)
     expect(flight.box).toEqual({ x: initialFraming.x, y: initialFraming.y, width: 0, height: 0 })
-    expect(flight.opts).toEqual({ padding: 0, maxK: 1 })
+    // maxK AND minK: the fallback is the reset() target — exactly k = 1, never
+    // a K_MIN zoom-out of the empty point box.
+    expect(flight.opts).toEqual({ padding: 0, maxK: 1, minK: 1 })
   })
 
   it('fallback honors any framing point, not just the shipped calibration', () => {

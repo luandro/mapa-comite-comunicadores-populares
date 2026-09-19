@@ -351,13 +351,16 @@ export const PILL_FAR_CLASS = 'is-far'
 export const PILLS_HIDDEN_CLASS = 'pills-hidden'
 
 /**
- * Hysteresis band around `labelK` (±10%, TODO Phase 5): zooming below
- * `labelK × 0.9` hides the pills, zooming back above `labelK × 1.1` shows
- * them; inside the band the previous state holds (no flicker at the edge).
+ * Hysteresis band around `labelK`, entirely BELOW 1 (zoom-out context map):
+ * zooming below `labelK × 0.9` hides the pills, zooming back to `labelK × 1.0`
+ * shows them; inside [0.9, 1.0)·labelK the previous state holds (no flicker
+ * at the edge). The show edge sits AT labelK because K_MIN = 0.55 makes k < 1
+ * a resting state — reset() lands at exactly k = 1 and pills must return (the
+ * old >1.1 edge left them hidden after a zoom-out reset).
  */
 export const LABEL_K = 1
 export const PILL_FADE_LOW = 0.9
-export const PILL_FADE_HIGH = 1.1
+export const PILL_FADE_SHOW = 1.0
 
 /** The hide decision at the band's lower edge (pure — unit-tested). */
 export function pillsHiddenFor(k: number, labelK = LABEL_K): boolean {
@@ -367,14 +370,14 @@ export function pillsHiddenFor(k: number, labelK = LABEL_K): boolean {
 /**
  * Apply the zoom gate to the labels layer — opacity/visibility ONLY (the
  * .pills-hidden rules in scene.css); hit targets, aria and focus are never
- * touched (hard constraint). True ±10% hysteresis: the class itself is the
- * state bit, so k inside the band (0.9·labelK, 1.1·labelK] keeps whatever
- * the last decision was.
+ * touched (hard constraint). True hysteresis below 1: the class itself is the
+ * state bit, so k inside the band [0.9, 1.0)·labelK keeps whatever the last
+ * decision was; k ≥ labelK always shows.
  */
 export function updatePillFade(el: HTMLElement, k: number, labelK = LABEL_K): void {
   const hidden = el.classList.contains(PILLS_HIDDEN_CLASS)
   if (hidden) {
-    if (k > labelK * PILL_FADE_HIGH) el.classList.remove(PILLS_HIDDEN_CLASS)
+    if (k >= labelK * PILL_FADE_SHOW) el.classList.remove(PILLS_HIDDEN_CLASS)
   } else if (pillsHiddenFor(k, labelK)) {
     el.classList.add(PILLS_HIDDEN_CLASS)
   }
