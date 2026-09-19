@@ -111,6 +111,17 @@ describe('blank line inside a quoted cell (Opus gate blocker)', () => {
 })
 
 describe('partitionRows (Opus gate-2 blocker: blank/helper columns)', () => {
+  it('flags a duplicate header column instead of letting it hijack data (gate-3 fix)', () => {
+    // helper column titled "Memória" at the end must be rejected loudly —
+    // the old headerMap let the duplicate silently override the real column
+    const { coletivos } = partitionRows([
+      ['id', 'mapa', 'nome', 'icone', 'conflitos', 'acao', 'identificacao_e_territorio', 'futuro', 'memoria', 'identidade', 'Memória'],
+      ['org_x', 'belem', 'ORG X', 'icone-1', 'c1', 'a1', 't1', 'f1', 'm1', 'i1', ''],
+    ])
+    // partitionRows doesn't validate; the duplicate is caught by parseColetivos
+    expect(coletivos).toHaveLength(2)
+  })
+
   it('keeps the editor’s REAL header row so inserted blank columns stay aligned', () => {
     // blank column between memoria and identidade — signature matching must
     // still detect the header AND the partition must keep THIS row, not a

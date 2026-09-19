@@ -137,7 +137,15 @@ function headerMap(row: string[], expected: readonly string[], tab: string): Map
   const index = new Map<string, number>()
   row.forEach((cell, i) => {
     const folded = foldHeader(cell)
-    if (folded) index.set(folded, i)
+    if (folded) {
+      // a later column with the same folded name must not silently win —
+      // it would redirect the real column's data into the wrong field
+      // (Opus gate-3 pre-merge fix)
+      if (index.has(folded)) {
+        fail(`${tab}!linha1`, `Coluna "${cell}" aparece duas vezes — remova a duplicada`)
+      }
+      index.set(folded, i)
+    }
   })
   for (const expectedHeader of expected) {
     if (!index.has(foldHeader(expectedHeader))) {
