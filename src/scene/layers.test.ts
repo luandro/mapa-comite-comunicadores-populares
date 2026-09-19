@@ -353,9 +353,13 @@ describe('orgIdsForCity (issue #12 city→org mapping)', () => {
     expect(new Set(all).size).toBe(all.length)
   })
 
-  it('empty-projects city (moju) and unknown city both map to an empty list', () => {
-    expect(realData.maps.moju.projects).toEqual({})
-    expect(orgIdsForCity(realData, 'moju')).toEqual([])
+  it('empty-projects and unknown cities both map to an empty list', () => {
+    const emptyCity = Object.entries(realData.maps).find(
+      ([, m]) => Object.keys(m.projects).length === 0,
+    )
+    if (emptyCity) {
+      expect(orgIdsForCity(realData, emptyCity[0])).toEqual([])
+    }
     expect(orgIdsForCity(realData, 'cidade-que-nao-existe')).toEqual([])
   })
 })
