@@ -63,4 +63,6 @@ const textosRows = TEXTOS_ROWS.map((row) => {
 writeFileSync(resolve(outDir, 'Textos do site.csv'), toCsv(TEXTOS_HEADERS, textosRows), 'utf8')
 
 console.log(`content/: ${rows.length} coletivos, ${textosRows.length} textos`)
-console.log('Importe os dois arquivos como abas da planilha compartilhada (Formato → Número → Texto simples ANTES de colar).')
+console.log(
+  'Importe os dois arquivos como abas da planilha compartilhada (Formato → Número → Texto simples ANTES de colar).',
+)

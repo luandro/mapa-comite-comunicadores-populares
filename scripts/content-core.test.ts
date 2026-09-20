@@ -17,7 +17,10 @@ import { partitionRows } from './content-import'
 describe('parseCsv (RFC 4180)', () => {
   it('parses quoted cells with embedded newlines and commas', () => {
     const rows = parseCsv('a,b\n"line1\nline2","has, comma",plain')
-    expect(rows).toEqual([['a', 'b'], ['line1\nline2', 'has, comma', 'plain']])
+    expect(rows).toEqual([
+      ['a', 'b'],
+      ['line1\nline2', 'has, comma', 'plain'],
+    ])
   })
 
   it('parses escaped quotes and strips BOM', () => {
@@ -34,11 +37,14 @@ describe('parseCsv (RFC 4180)', () => {
 
 describe('toCsv ↔ parseCsv round-trip', () => {
   it('survives every nasty cell', () => {
-    const csv = toCsv(['h1', 'h2'], [
-      ['plain', 'with, comma'],
-      ['with "quotes"', 'multi\nline'],
-      ['acentos çãé', ''],
-    ])
+    const csv = toCsv(
+      ['h1', 'h2'],
+      [
+        ['plain', 'with, comma'],
+        ['with "quotes"', 'multi\nline'],
+        ['acentos çãé', ''],
+      ],
+    )
     const rows = parseCsv(csv)
     expect(rows[0]).toEqual(['h1', 'h2'])
     expect(rows[1]).toEqual(['plain', 'with, comma'])
@@ -115,7 +121,19 @@ describe('partitionRows (Opus gate-2 blocker: blank/helper columns)', () => {
     // helper column titled "Memória" at the end must be rejected loudly —
     // the old headerMap let the duplicate silently override the real column
     const { coletivos } = partitionRows([
-      ['id', 'mapa', 'nome', 'icone', 'conflitos', 'acao', 'identificacao_e_territorio', 'futuro', 'memoria', 'identidade', 'Memória'],
+      [
+        'id',
+        'mapa',
+        'nome',
+        'icone',
+        'conflitos',
+        'acao',
+        'identificacao_e_territorio',
+        'futuro',
+        'memoria',
+        'identidade',
+        'Memória',
+      ],
       ['org_x', 'belem', 'ORG X', 'icone-1', 'c1', 'a1', 't1', 'f1', 'm1', 'i1', ''],
     ])
     // partitionRows doesn't validate; the duplicate is caught by parseColetivos
@@ -127,7 +145,19 @@ describe('partitionRows (Opus gate-2 blocker: blank/helper columns)', () => {
     // still detect the header AND the partition must keep THIS row, not a
     // canonical rebuild (which would shift every section index).
     const rows = [
-      ['id', 'mapa', 'nome', 'icone', 'conflitos', 'acao', 'identificacao_e_territorio', 'futuro', 'memoria', '', 'identidade'],
+      [
+        'id',
+        'mapa',
+        'nome',
+        'icone',
+        'conflitos',
+        'acao',
+        'identificacao_e_territorio',
+        'futuro',
+        'memoria',
+        '',
+        'identidade',
+      ],
       ['org_x', 'belem', 'ORG X', 'icone-1', 'c1', 'a1', 't1', 'f1', 'm1', '', 'i1'],
     ]
     const { coletivos, textos } = partitionRows(rows)
@@ -143,7 +173,18 @@ describe('partitionRows (Opus gate-2 blocker: blank/helper columns)', () => {
       ['chave', 'onde aparece', 'valor'],
       ['sobre.texto', 'menu', 'texto aqui'],
       [],
-      ['id', 'mapa', 'nome', 'icone', 'conflitos', 'acao', 'identificacao_e_territorio', 'futuro', 'memoria', 'identidade'],
+      [
+        'id',
+        'mapa',
+        'nome',
+        'icone',
+        'conflitos',
+        'acao',
+        'identificacao_e_territorio',
+        'futuro',
+        'memoria',
+        'identidade',
+      ],
       ['org_y', 'moju', 'ORG Y', 'icone-2', 'c', 'a', 't', 'f', 'm', 'i'],
     ]
     const { coletivos, textos } = partitionRows(rows)

@@ -49,12 +49,7 @@
     #000 calc(100% - 60px),
     rgba(0, 0, 0, 0) 100%
   );
-  mask-image: linear-gradient(
-    to bottom,
-    #000 0,
-    #000 calc(100% - 60px),
-    rgba(0, 0, 0, 0) 100%
-  );
+  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 60px), rgba(0, 0, 0, 0) 100%);
 }
 
 .panel-mobile .panel {
@@ -64,12 +59,7 @@
     #000 calc(100% - 100px),
     rgba(0, 0, 0, 0) 100%
   );
-  mask-image: linear-gradient(
-    to bottom,
-    #000 0,
-    #000 calc(100% - 100px),
-    rgba(0, 0, 0, 0) 100%
-  );
+  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 100px), rgba(0, 0, 0, 0) 100%);
 }
 
 /* v1.2 user directive: content centered on the modal (the mock reads as a

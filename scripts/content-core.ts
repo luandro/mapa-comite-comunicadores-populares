@@ -57,29 +57,150 @@ export interface UiModel {
 }
 
 export const TEXTOS_ROWS: TextosRow[] = [
-  { key: 'titulo.linha.1', onde: 'Primeira linha do título grande do mapa', get: (u) => u.titleLines[0] ?? '', set: (u, v) => { u.titleLines[0] = v } },
-  { key: 'titulo.linha.2', onde: 'Segunda linha do título grande do mapa', get: (u) => u.titleLines[1] ?? '', set: (u, v) => { u.titleLines[1] = v } },
-  { key: 'sobre.texto', onde: 'Texto "Sobre o projeto" do menu', get: (u) => u.about, set: (u, v) => { u.about = v } },
-  { key: 'titulo.pagina', onde: 'Título da aba do navegador', get: (u) => u.docTitle, set: (u, v) => { u.docTitle = v } },
-  { key: 'descricao.pagina', onde: 'Descrição do site (Google/WhatsApp)', get: (u) => u.metaDescription, set: (u, v) => { u.metaDescription = v } },
-  { key: 'mapa.belem.nome', onde: 'Nome exibido do mapa de Belém', get: (u) => u.mapNames.belem ?? '', set: (u, v) => { u.mapNames.belem = v } },
-  { key: 'mapa.ananindeua.nome', onde: 'Nome exibido do mapa de Ananindeua', get: (u) => u.mapNames.ananindeua ?? '', set: (u, v) => { u.mapNames.ananindeua = v } },
-  { key: 'mapa.moju.nome', onde: 'Nome exibido do mapa de Moju', get: (u) => u.mapNames.moju ?? '', set: (u, v) => { u.mapNames.moju = v } },
+  {
+    key: 'titulo.linha.1',
+    onde: 'Primeira linha do título grande do mapa',
+    get: (u) => u.titleLines[0] ?? '',
+    set: (u, v) => {
+      u.titleLines[0] = v
+    },
+  },
+  {
+    key: 'titulo.linha.2',
+    onde: 'Segunda linha do título grande do mapa',
+    get: (u) => u.titleLines[1] ?? '',
+    set: (u, v) => {
+      u.titleLines[1] = v
+    },
+  },
+  {
+    key: 'sobre.texto',
+    onde: 'Texto "Sobre o projeto" do menu',
+    get: (u) => u.about,
+    set: (u, v) => {
+      u.about = v
+    },
+  },
+  {
+    key: 'titulo.pagina',
+    onde: 'Título da aba do navegador',
+    get: (u) => u.docTitle,
+    set: (u, v) => {
+      u.docTitle = v
+    },
+  },
+  {
+    key: 'descricao.pagina',
+    onde: 'Descrição do site (Google/WhatsApp)',
+    get: (u) => u.metaDescription,
+    set: (u, v) => {
+      u.metaDescription = v
+    },
+  },
+  {
+    key: 'mapa.belem.nome',
+    onde: 'Nome exibido do mapa de Belém',
+    get: (u) => u.mapNames.belem ?? '',
+    set: (u, v) => {
+      u.mapNames.belem = v
+    },
+  },
+  {
+    key: 'mapa.ananindeua.nome',
+    onde: 'Nome exibido do mapa de Ananindeua',
+    get: (u) => u.mapNames.ananindeua ?? '',
+    set: (u, v) => {
+      u.mapNames.ananindeua = v
+    },
+  },
+  {
+    key: 'mapa.moju.nome',
+    onde: 'Nome exibido do mapa de Moju',
+    get: (u) => u.mapNames.moju ?? '',
+    set: (u, v) => {
+      u.mapNames.moju = v
+    },
+  },
   ...Object.entries(SECTION_HEADER_PT).map(([section, label]): TextosRow => ({
     key: `secao.${section}.titulo`,
     onde: `Título da seção "${label}" no painel do coletivo`,
     get: (u) => u.sectionLabels[section] ?? '',
-    set: (u, v) => { u.sectionLabels[section] = v },
+    set: (u, v) => {
+      u.sectionLabels[section] = v
+    },
   })),
-  { key: 'rotulo.zoom.mais', onde: 'Acessibilidade: botão de aproximar', get: (u) => u.labels.zoomIn ?? '', set: (u, v) => { u.labels.zoomIn = v } },
-  { key: 'rotulo.zoom.menos', onde: 'Acessibilidade: botão de afastar', get: (u) => u.labels.zoomOut ?? '', set: (u, v) => { u.labels.zoomOut = v } },
-  { key: 'rotulo.redefinir', onde: 'Acessibilidade: botão de redefinir a vista', get: (u) => u.labels.reset ?? '', set: (u, v) => { u.labels.reset = v } },
-  { key: 'rotulo.abrir.menu', onde: 'Acessibilidade: botão que abre o menu', get: (u) => u.labels.openMenu ?? '', set: (u, v) => { u.labels.openMenu = v } },
-  { key: 'rotulo.sobre', onde: 'Acessibilidade: botão "Sobre o projeto"', get: (u) => u.labels.aboutProject ?? '', set: (u, v) => { u.labels.aboutProject = v } },
-  { key: 'rotulo.fechar.menu', onde: 'Acessibilidade: botão de fechar o menu', get: (u) => u.labels.closeMenu ?? '', set: (u, v) => { u.labels.closeMenu = v } },
-  { key: 'rotulo.fechar.painel', onde: 'Acessibilidade: botão de fechar o painel', get: (u) => u.labels.closePanel ?? '', set: (u, v) => { u.labels.closePanel = v } },
-  { key: 'rotulo.controles', onde: 'Acessibilidade: grupo de botões do mapa', get: (u) => u.labels.controlsGroup ?? '', set: (u, v) => { u.labels.controlsGroup = v } },
-  { key: 'rotulo.principal', onde: 'Acessibilidade: nome da região principal', get: (u) => u.labels.main ?? '', set: (u, v) => { u.labels.main = v } },
+  {
+    key: 'rotulo.zoom.mais',
+    onde: 'Acessibilidade: botão de aproximar',
+    get: (u) => u.labels.zoomIn ?? '',
+    set: (u, v) => {
+      u.labels.zoomIn = v
+    },
+  },
+  {
+    key: 'rotulo.zoom.menos',
+    onde: 'Acessibilidade: botão de afastar',
+    get: (u) => u.labels.zoomOut ?? '',
+    set: (u, v) => {
+      u.labels.zoomOut = v
+    },
+  },
+  {
+    key: 'rotulo.redefinir',
+    onde: 'Acessibilidade: botão de redefinir a vista',
+    get: (u) => u.labels.reset ?? '',
+    set: (u, v) => {
+      u.labels.reset = v
+    },
+  },
+  {
+    key: 'rotulo.abrir.menu',
+    onde: 'Acessibilidade: botão que abre o menu',
+    get: (u) => u.labels.openMenu ?? '',
+    set: (u, v) => {
+      u.labels.openMenu = v
+    },
+  },
+  {
+    key: 'rotulo.sobre',
+    onde: 'Acessibilidade: botão "Sobre o projeto"',
+    get: (u) => u.labels.aboutProject ?? '',
+    set: (u, v) => {
+      u.labels.aboutProject = v
+    },
+  },
+  {
+    key: 'rotulo.fechar.menu',
+    onde: 'Acessibilidade: botão de fechar o menu',
+    get: (u) => u.labels.closeMenu ?? '',
+    set: (u, v) => {
+      u.labels.closeMenu = v
+    },
+  },
+  {
+    key: 'rotulo.fechar.painel',
+    onde: 'Acessibilidade: botão de fechar o painel',
+    get: (u) => u.labels.closePanel ?? '',
+    set: (u, v) => {
+      u.labels.closePanel = v
+    },
+  },
+  {
+    key: 'rotulo.controles',
+    onde: 'Acessibilidade: grupo de botões do mapa',
+    get: (u) => u.labels.controlsGroup ?? '',
+    set: (u, v) => {
+      u.labels.controlsGroup = v
+    },
+  },
+  {
+    key: 'rotulo.principal',
+    onde: 'Acessibilidade: nome da região principal',
+    get: (u) => u.labels.main ?? '',
+    set: (u, v) => {
+      u.labels.main = v
+    },
+  },
 ]
 
 /** Every Textos key (contract — the sheet must carry exactly these). */
@@ -87,13 +208,15 @@ export const TEXTOS_KEYS = TEXTOS_ROWS.map((row) => row.key)
 
 /** Strip BOM + NFC + NBSP normalization for one raw CSV cell. */
 export function cleanCell(value: string): string {
-  return value
-    .replace(/^\uFEFF/, '')
-    .normalize('NFC')
-    .replace(/\u00A0/g, ' ')
-    // a CRLF inside a quoted multi-line cell stays in the parsed cell —
-    // normalize so ui.json doesn't drift with noisy \r (Opus post-merge P2)
-    .replace(/\r\n/g, '\n')
+  return (
+    value
+      .replace(/^\uFEFF/, '')
+      .normalize('NFC')
+      .replace(/\u00A0/g, ' ')
+      // a CRLF inside a quoted multi-line cell stays in the parsed cell —
+      // normalize so ui.json doesn't drift with noisy \r (Opus post-merge P2)
+      .replace(/\r\n/g, '\n')
+  )
 }
 
 /**

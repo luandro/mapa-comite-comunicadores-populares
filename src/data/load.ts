@@ -11,10 +11,7 @@ import { ui } from './ui'
  * editable) — they override `data.json`'s static `name` so the sheet controls
  * every rendered string (scene labels, city aria-labels).
  */
-export const comiteData: ComiteData = applyCityNames(
-  validateComiteData(rawData),
-  ui.mapNames,
-)
+export const comiteData: ComiteData = applyCityNames(validateComiteData(rawData), ui.mapNames)
 
 function applyCityNames(data: ComiteData, mapNames: Record<string, string>): ComiteData {
   for (const [cityId, city] of Object.entries(data.maps)) {
