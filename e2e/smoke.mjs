@@ -134,21 +134,48 @@ const portrait = await browser.newPage({
   hasTouch: true, // (pointer: coarse) must match or isMobile() takes the desktop path
 })
 await portrait.goto(BASE, { waitUntil: 'networkidle' })
-await portrait.waitForTimeout(4200) // intro + 1.2s read + retract
+await portrait.waitForTimeout(4200) // intro + 1.2s read
+// The morph flight (PR #35) ends when visibility flips at flight END —
+// its end state is what issue #19 guarantees. Wait for the STATES, never
+// a sleep past them (a fixed timeout lands mid-flight on slow runs).
+// Playwright signature: waitForFunction(fn, arg, options) — the options
+// object MUST be the third argument (opus r1 P2: a bare {timeout} second
+// arg is ignored and the cap silently becomes the 30s page default).
+await portrait
+  .waitForFunction(
+    () => document.querySelector('.app-title')?.classList.contains('is-retracted') ?? false,
+    undefined,
+    { timeout: 10000 },
+  )
+  .catch(() => {})
+await portrait
+  .waitForFunction(
+    () => {
+      const t = document.querySelector('.app-title')
+      return t != null && getComputedStyle(t).visibility === 'hidden'
+    },
+    undefined,
+    { timeout: 5000 },
+  )
+  .catch(() => {})
 const cover = await portrait.evaluate(() => {
   const svg = document.querySelector('svg#scene')
   return svg?.getAttribute('preserveAspectRatio')?.includes('slice')
 })
 check('portrait: slice cover fit', cover)
 check(
-  'portrait: mobile title retracted into burger (issue #19)',
+  'portrait: mobile title morphed into burger (issue #19, PR #35 morph)',
   await portrait.evaluate(() => {
     const title = document.querySelector('.app-title')
     const burger = document.querySelector('.app-burger')
     return (
       title?.classList.contains('is-retracted') === true &&
-      Number(getComputedStyle(title).opacity) !== 1 &&
+      // The morph (PR #35) keeps the title at opacity 1 during the flight —
+      // the blue blob IS the landing paper — and hides it via visibility at
+      // the END of the 0.7s flight. Pin visibility, not opacity.
+      getComputedStyle(title).visibility === 'hidden' &&
       burger != null &&
+      Number(getComputedStyle(burger).opacity) > 0.9 &&
       document.querySelector('.app-info') === null
     )
   }),
