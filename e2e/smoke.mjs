@@ -135,16 +135,29 @@ const portrait = await browser.newPage({
 })
 await portrait.goto(BASE, { waitUntil: 'networkidle' })
 await portrait.waitForTimeout(4200) // intro + 1.2s read
-// The morph flight takes 0.7s AFTER the retracted class lands (PR #35) —
-// its end state is what issue #19 guarantees. Wait for the STATE, never a
-// sleep past it (a fixed timeout lands mid-flight on slow headless runs).
+// The morph flight (PR #35) ends when visibility flips at flight END —
+// its end state is what issue #19 guarantees. Wait for the STATES, never
+// a sleep past them (a fixed timeout lands mid-flight on slow runs).
+// Playwright signature: waitForFunction(fn, arg, options) — the options
+// object MUST be the third argument (opus r1 P2: a bare {timeout} second
+// arg is ignored and the cap silently becomes the 30s page default).
 await portrait
   .waitForFunction(
     () => document.querySelector('.app-title')?.classList.contains('is-retracted') ?? false,
+    undefined,
     { timeout: 10000 },
   )
   .catch(() => {})
-await portrait.waitForTimeout(900) // flight (0.7s) + margin
+await portrait
+  .waitForFunction(
+    () => {
+      const t = document.querySelector('.app-title')
+      return t != null && getComputedStyle(t).visibility === 'hidden'
+    },
+    undefined,
+    { timeout: 5000 },
+  )
+  .catch(() => {})
 const cover = await portrait.evaluate(() => {
   const svg = document.querySelector('svg#scene')
   return svg?.getAttribute('preserveAspectRatio')?.includes('slice')
@@ -162,6 +175,7 @@ check(
       // the END of the 0.7s flight. Pin visibility, not opacity.
       getComputedStyle(title).visibility === 'hidden' &&
       burger != null &&
+      Number(getComputedStyle(burger).opacity) > 0.9 &&
       document.querySelector('.app-info') === null
     )
   }),
