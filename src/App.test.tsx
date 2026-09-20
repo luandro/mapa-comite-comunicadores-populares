@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot, type Root } from 'react-dom/client'
 import { act } from 'react'
@@ -85,6 +87,72 @@ describe('TitleOverlay (issue #10 - mobile behavior)', () => {
     expect(burger!.classList.contains('is-retracted')).toBe(true)
   })
 
+  it('mobile: retract measures the blob and lands it on the burger rect', async () => {
+    useCoarsePointer()
+    renderOverlay()
+
+    const title = document.querySelector('.app-title') as HTMLElement
+    const burger = document.querySelector('.app-burger') as HTMLElement
+    const titleRect = {
+      x: 12,
+      y: 10,
+      left: 12,
+      top: 10,
+      width: 366,
+      height: 59,
+      right: 378,
+      bottom: 69,
+    } as DOMRect
+    const burgerRect = {
+      x: 12,
+      y: 8,
+      left: 12,
+      top: 8,
+      width: 56,
+      height: 44,
+      right: 68,
+      bottom: 52,
+    } as DOMRect
+    vi.spyOn(title, 'getBoundingClientRect').mockReturnValue(titleRect)
+    vi.spyOn(burger, 'getBoundingClientRect').mockReturnValue(burgerRect)
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
+
+    await settleIntro()
+
+    const blobInsetX = 8
+    const blobInsetY = 5
+    const blobLeft = titleRect.left - blobInsetX
+    const blobTop = titleRect.top - blobInsetY
+    const blobWidth = titleRect.width + blobInsetX * 2
+    const blobHeight = titleRect.height + blobInsetY * 2
+    const expectedSx = burgerRect.width / blobWidth
+    const expectedSy = burgerRect.height / blobHeight
+    const expectedTx = burgerRect.left - titleRect.left - (blobLeft - titleRect.left) * expectedSx
+    const expectedTy = burgerRect.top - titleRect.top - (blobTop - titleRect.top) * expectedSy
+
+    const actualSx = Number.parseFloat(title.style.getPropertyValue('--morph-sx'))
+    const actualSy = Number.parseFloat(title.style.getPropertyValue('--morph-sy'))
+    const actualTx = Number.parseFloat(title.style.getPropertyValue('--morph-tx'))
+    const actualTy = Number.parseFloat(title.style.getPropertyValue('--morph-ty'))
+    expect(actualSx).toBeCloseTo(expectedSx, 6)
+    expect(actualSy).toBeCloseTo(expectedSy, 6)
+    expect(actualTx).toBeCloseTo(expectedTx, 6)
+    expect(actualTy).toBeCloseTo(expectedTy, 6)
+
+    // The title-local transform puts the inflated blob's viewport edges on
+    // the burger's border-box edges after scaling.
+    expect(titleRect.left + actualTx + (blobLeft - titleRect.left) * actualSx).toBeCloseTo(
+      burgerRect.left,
+      6,
+    )
+    expect(titleRect.top + actualTy + (blobTop - titleRect.top) * actualSy).toBeCloseTo(
+      burgerRect.top,
+      6,
+    )
+    expect(blobWidth * actualSx).toBeCloseTo(burgerRect.width, 6)
+    expect(blobHeight * actualSy).toBeCloseTo(burgerRect.height, 6)
+  })
+
   it('mobile: burger click opens the menu (dialog with title + about); close button works', async () => {
     useCoarsePointer()
     renderOverlay()
@@ -133,6 +201,19 @@ describe('TitleOverlay (issue #10 - mobile behavior)', () => {
     expect(burger.getAttribute('aria-expanded')).toBe('true')
     const menu = document.querySelector('.app-menu')
     expect(menu!.getAttribute('aria-labelledby')).toBe('app-menu-title')
+  })
+
+  it('close button paints above the menu title blob; blob never intercepts pointers', () => {
+    // jsdom applies no stylesheets — pin the contract on the CSS source.
+    // The .app-menu-title blob overflows its box (inset -4px -8px) and, as a
+    // later sibling, painted OVER .app-menu-close: elementFromPoint at the
+    // button's center returned the blob on 390x844 AND 1600x900 (probe:
+    // graft/.cache/checks/close-probe.mjs). The fix is two-sided: the button
+    // wins paint order, and the decorative blob can never intercept a
+    // pointer anywhere.
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
+    expect(css).toMatch(/\.app-menu-close\s*\{[^}]*z-index:\s*1/)
+    expect(css).toMatch(/\.app-title-blob\s*\{[^}]*pointer-events:\s*none/)
   })
 })
 

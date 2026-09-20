@@ -57,6 +57,7 @@ body {
   pointer-events: none;
   opacity: 0;
   transform: translateY(8px);
+  transform-origin: top left;
   transition:
     opacity 0.6s ease-out,
     transform 0.6s ease-out;
@@ -80,6 +81,12 @@ html.intro-done .app-title {
   inset: -6px -10px;
   width: calc(100% + 20px);
   height: calc(100% + 12px);
+  /* Decorative backing only — must never intercept pointers. Inside
+     .app-title the parent's pointer-events:none covers it, but the menu copy
+     (.app-menu-title) has no such parent, and the blob's negative insets
+     overflow the title box over the menu's × button (probe: elementFromPoint
+     at the × center returned the blob on 390×844 AND 1600×900). */
+  pointer-events: none;
 }
 .app-title-blob path {
   fill: #abd5f3;
@@ -110,13 +117,27 @@ html.intro-done .app-title {
     letter-spacing: -0.02em;
   }
   .app-title-blob {
+    /* Keep -5px/-8px synchronized with the inflation constants in App.tsx. */
+    inset: -5px -8px;
+    width: calc(100% + 16px);
+    height: calc(100% + 10px);
+  }
+}
+@media (pointer: coarse) {
+  .app-title > .app-title-blob {
+    /* Coarse-pointer TitleOverlay uses the same constants at every width. */
     inset: -5px -8px;
     width: calc(100% + 16px);
     height: calc(100% + 10px);
   }
 }
 
-/* --- Issue #10: title retracts into a hand-drawn burger + menu ----------- */
+/* --- Issue #10: title morphs into a hand-drawn burger + menu ------------- */
+
+:root {
+  --morph-duration: 0.7s;
+  --morph-ease: cubic-bezier(0.65, 0, 0.35, 1);
+}
 
 /* Burger button: hidden until retracted; then a small drawn cloud/tag in the
    title's old corner. Same paper palette; wobbly strokes, no generic glyph.
@@ -140,6 +161,11 @@ html.intro-done .app-title {
   transition:
     opacity 0.45s ease-out,
     transform 0.45s ease-out;
+}
+.app-burger.has-morph-geometry {
+  transition:
+    opacity var(--morph-duration) var(--morph-ease),
+    transform var(--morph-duration) var(--morph-ease);
 }
 .app-burger svg {
   display: block;
@@ -193,12 +219,10 @@ html.intro-done .app-title {
   outline-offset: 2px;
 }
 
-/* Retracting title: slides/fades toward the burger corner (transform/opacity
-   only — perf budget). Selector is html.intro-done .app-title.is-retracted:
-   the intro-done reveal rule (0,2,1) would otherwise beat .app-title
-   .is-retracted (0,2,0) and the opacity/transform retract would never run —
-   the title would snap off after only the visibility delay (opus 19 P1,
-   cascade-verified). */
+/* Retracting title: the blue blob morphs continuously into the burger while
+   its text dissolves early (transform/opacity only — perf budget). Selector is
+   html.intro-done .app-title.is-retracted: the intro-done reveal rule
+   (0,2,1) would otherwise beat .app-title .is-retracted (0,2,0). */
 html.intro-done .app-title.is-retracted {
   opacity: 0;
   transform: translate(-18px, -12px) scale(0.96);
@@ -209,11 +233,37 @@ html.intro-done .app-title.is-retracted {
     transform 0.5s ease-in,
     visibility 0s 0.5s;
 }
+html.intro-done .app-title.is-retracted.has-morph-geometry {
+  opacity: 1;
+  transform: translate(var(--morph-tx, -18px), var(--morph-ty, -12px))
+    scale(var(--morph-sx, 0.96), var(--morph-sy, 1));
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    transform var(--morph-duration) var(--morph-ease),
+    visibility 0s linear var(--morph-duration);
+}
+html.intro-done .app-title.is-retracted.has-morph-geometry h1 {
+  opacity: 0;
+  transition: opacity 0.28s var(--morph-ease);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .app-burger,
-  html.intro-done .app-title.is-retracted {
+  .app-burger.has-morph-geometry,
+  .app-title,
+  .app-title h1,
+  html.intro-done .app-title.is-retracted,
+  html.intro-done .app-title.is-retracted.has-morph-geometry,
+  html.intro-done .app-title.is-retracted.has-morph-geometry h1 {
     transition: none;
+  }
+  html.intro-done .app-title.is-retracted,
+  html.intro-done .app-title.is-retracted.has-morph-geometry {
+    opacity: 0;
+  }
+  html.intro-done .app-title.is-retracted h1 {
+    opacity: 0;
   }
 }
 
@@ -259,6 +309,11 @@ html.intro-done .app-title.is-retracted {
   position: absolute;
   top: 10px;
   right: 10px;
+  /* Paint (and hit-test) ABOVE the .app-menu-title blob: the title is a
+     later sibling and its blob overflows -4px/-8px past the title box,
+     which sits under this button's top-right corner (close-probe evidence).
+     z-index lifts the button out of the blob's paint order. */
+  z-index: 1;
   width: 34px;
   height: 34px;
   border: 2px solid #304e23;

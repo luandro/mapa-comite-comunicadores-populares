@@ -40,6 +40,73 @@ const BURGER_STROKES = [
   'M14,39 C38,36 64,38 88,36.8 C97,36.3 103,38 102,40.4 C101,42.8 94,43.2 84,43.4 L20,44.6 C14,44.7 13,41.4 14,39 Z',
 ] as const
 
+/**
+ * Mobile `.app-title-blob` uses `inset: -5px -8px` in index.css. Keep these
+ * inflation values in sync with that rule: the blob is 8px wider on each side
+ * and 5px taller above and below the title element.
+ */
+const MOBILE_TITLE_BLOB_INSET_X = 8
+const MOBILE_TITLE_BLOB_INSET_Y = 5
+
+/**
+ * Capture the mobile title-to-burger landing geometry before the retract
+ * state is rendered. Layout dimensions and fixed offsets give the burger's
+ * final border box without mutating its animated scale(.8) starting state.
+ */
+function setTitleMorphGeometry(title: HTMLElement, burger: HTMLElement): boolean {
+  title.style.removeProperty('--morph-sx')
+  title.style.removeProperty('--morph-sy')
+  title.style.removeProperty('--morph-tx')
+  title.style.removeProperty('--morph-ty')
+
+  if (document.hidden || window.getComputedStyle(title).display === 'none') return false
+
+  const titleRect = title.getBoundingClientRect()
+  const isMeasurableRect = (rect: Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>): boolean =>
+    [rect.left, rect.top, rect.width, rect.height].every(Number.isFinite) &&
+    rect.width > 0 &&
+    rect.height > 0
+  if (!isMeasurableRect(titleRect)) return false
+
+  const burgerVisualRect = burger.getBoundingClientRect()
+  const burgerStyle = window.getComputedStyle(burger)
+  const cssLeft = Number.parseFloat(burgerStyle.left)
+  const cssTop = Number.parseFloat(burgerStyle.top)
+  const cssWidth = Number.parseFloat(burgerStyle.width)
+  const cssHeight = Number.parseFloat(burgerStyle.height)
+  const burgerRect = {
+    left: Number.isFinite(cssLeft) ? cssLeft : burgerVisualRect.left,
+    top: Number.isFinite(cssTop) ? cssTop : burgerVisualRect.top,
+    width: burger.offsetWidth || (Number.isFinite(cssWidth) ? cssWidth : burgerVisualRect.width),
+    height:
+      burger.offsetHeight || (Number.isFinite(cssHeight) ? cssHeight : burgerVisualRect.height),
+  }
+  if (!isMeasurableRect(burgerRect)) return false
+
+  const blobLeft = titleRect.left - MOBILE_TITLE_BLOB_INSET_X
+  const blobTop = titleRect.top - MOBILE_TITLE_BLOB_INSET_Y
+  const blobWidth = titleRect.width + MOBILE_TITLE_BLOB_INSET_X * 2
+  const blobHeight = titleRect.height + MOBILE_TITLE_BLOB_INSET_Y * 2
+  const scaleX = burgerRect.width / blobWidth
+  const scaleY = burgerRect.height / blobHeight
+
+  // Transform origin is the title's top-left. With transform:
+  // translate(tx, ty) scale(sx, sy), final = translate + scale * localPoint.
+  // Therefore title.left + tx + (blob.left - title.left) * sx = burger.left.
+  const localBlobLeft = blobLeft - titleRect.left
+  const localBlobTop = blobTop - titleRect.top
+  const localBurgerLeft = burgerRect.left - titleRect.left
+  const localBurgerTop = burgerRect.top - titleRect.top
+  const translateX = localBurgerLeft - localBlobLeft * scaleX
+  const translateY = localBurgerTop - localBlobTop * scaleY
+
+  title.style.setProperty('--morph-sx', String(scaleX))
+  title.style.setProperty('--morph-sy', String(scaleY))
+  title.style.setProperty('--morph-tx', `${translateX}px`)
+  title.style.setProperty('--morph-ty', `${translateY}px`)
+  return true
+}
+
 /** Hand-drawn info glyph for the desktop about button: an "i" as a wobbly dot
  * + stem (ink-stroke style matching BURGER_STROKES — no generic glyph, no new
  * asset; drawn in code like every other authored overlay path). */
@@ -54,8 +121,8 @@ const INFO_GLYPH = [
  * edited via the content spreadsheet, never hardcoded here. */
 
 /** Title overlay — above the scene, below future controls (SPEC §3 z-order).
- * Issue #10: the title appears with the intro, then retracts into a
- * hand-drawn burger button; tapping it opens a paper-style menu with the
+ * Issue #10: the title appears with the intro, then morphs continuously into
+ * a hand-drawn burger button; tapping it opens a paper-style menu with the
  * full title + about text. React state only — never scene SVG via JSX. */
 function useMenuDialog(
   menuOpen: boolean,
@@ -108,7 +175,7 @@ function useMenuDialog(
 }
 
 /** Title overlay — above the scene, below future controls (SPEC §3 z-order).
- * Issue #10 (mobile): the title appears with the intro, then retracts into a
+ * Issue #10 (mobile): the title appears with the intro, then morphs into a
  * hand-drawn burger button; tapping it opens a paper-style menu with the full
  * title + about text. Desktop (user directive): the title STAYS on screen and
  * a hand-drawn info button in the top-right opens the same centered about
@@ -116,6 +183,7 @@ function useMenuDialog(
  * via JSX. */
 export function TitleOverlay() {
   const [retracted, setRetracted] = useState(false)
+  const [hasMorphGeometry, setHasMorphGeometry] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobile] = useState(isMobile)
   const burgerRef = useRef<HTMLButtonElement>(null)
@@ -123,7 +191,7 @@ export function TitleOverlay() {
   const closeMenu = useCallback(() => setMenuOpen(false), [])
   useMenuDialog(menuOpen, closeMenu, burgerRef, menuRef)
 
-  // Retract once the scene intro settles (natural end or skip) — MOBILE ONLY:
+  // Morph once the scene intro settles (natural end or skip) — MOBILE ONLY:
   // on desktop the title persists and the about entry point is the info
   // button, so the whole observer/timer machinery never arms (user directive).
   // The class gate keeps reduced-motion as an instant state jump (CSS
@@ -138,7 +206,12 @@ export function TitleOverlay() {
     let cleanup: (() => void) | null = null
     const armRetract = () => {
       const t = window.setTimeout(() => {
-        if (!disposed) setRetracted(true)
+        if (!disposed) {
+          const title = document.querySelector<HTMLElement>('.app-title')
+          const burger = document.querySelector<HTMLElement>('.app-burger')
+          setHasMorphGeometry(Boolean(title && burger && setTitleMorphGeometry(title, burger)))
+          setRetracted(true)
+        }
       }, 1200)
       cleanup = () => {
         window.clearTimeout(t)
@@ -174,7 +247,11 @@ export function TitleOverlay() {
 
   return (
     <>
-      <div className={retracted ? 'app-title is-retracted' : 'app-title'}>
+      <div
+        className={`app-title${retracted ? ' is-retracted' : ''}${
+          hasMorphGeometry ? ' has-morph-geometry' : ''
+        }`}
+      >
         <svg
           className="app-title-blob"
           viewBox="0 0 920 126"
@@ -193,7 +270,9 @@ export function TitleOverlay() {
         <button
           type="button"
           ref={burgerRef}
-          className={retracted ? 'app-burger is-retracted' : 'app-burger'}
+          className={`app-burger${retracted ? ' is-retracted' : ''}${
+            hasMorphGeometry ? ' has-morph-geometry' : ''
+          }`}
           aria-label={ui.labels.openMenu}
           aria-expanded={menuOpen}
           onClick={openMenu}
