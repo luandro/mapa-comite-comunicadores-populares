@@ -343,9 +343,11 @@ describe('orgIdsForCity (issue #12 city→org mapping)', () => {
     expect(orgIdsForCity(realData, 'ananindeua')).toEqual([
       'rede_afroamazonida',
       'centro_educacao_popular',
+      'espaco_cultural_ruth_costa',
     ])
     expect(orgIdsForCity(realData, 'belem')).toContain('rede_casacura')
     expect(orgIdsForCity(realData, 'belem')).toContain('chibe')
+    expect(orgIdsForCity(realData, 'belem')).not.toContain('espaco_cultural_ruth_costa')
   })
 
   it('keeps the mapping disjoint across cities (org ids are unique)', () => {
