@@ -214,6 +214,17 @@ describe('TitleOverlay (issue #10 - mobile behavior)', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
     expect(css).toMatch(/\.app-menu-close\s*\{[^}]*z-index:\s*1/)
     expect(css).toMatch(/\.app-title-blob\s*\{[^}]*pointer-events:\s*none/)
+    // Opus r1 P2: the morph math inflates the measured title rect by the
+    // blob insets via MOBILE_TITLE_BLOB_INSET_X/Y in App.tsx — if the CSS
+    // inset ever changes without the constants, the blob silently lands off
+    // the burger. Pin the agreement: the ≤640px rule carries the
+    // "synchronized with the inflation constants" comment; the coarse rule
+    // repeats the same values at every width.
+    const coarseBlock = css.slice(css.indexOf('(pointer: coarse)'))
+    expect(coarseBlock).toMatch(
+      /\.app-title\s*>\s*\.app-title-blob\s*\{[^}]*inset:\s*-5px\s+-8px[^}]*\}/,
+    )
+    expect(css).toMatch(/-5px\/-8px synchronized with the inflation constants/)
   })
 })
 
