@@ -1,8 +1,5 @@
 {
-  "titleLines": [
-    "Mapeamento de 25 Coletivos do",
-    "Comitê de Comunicadores Populares"
-  ],
+  "titleLines": ["Mapeamento de 25 Coletivos do", "Comitê de Comunicadores Populares"],
   "about": "O Na Cuia mapeia 11 coletivos de comunicadores populares de Belém, Ananindeua e Moju (Pará), integrantes do Comitê de Comunicadores Populares. Cada totem no mapa representa um coletivo: toque nele para conhecer seus conflitos, ações, território, futuro, memória e identidade.",
   "mapNames": {
     "ananindeua": "Ananindeua",

@@ -48,8 +48,7 @@ function change(message: string): void {
 // --- 1. Load the source (local file or Google Sheets URL) -----------------
 
 async function fetchSheetCsv(url: string, gid: string): Promise<string> {
-  const endpoint =
-    `https://docs.google.com/spreadsheets/d/${url}/export?format=csv&gid=${encodeURIComponent(gid)}`
+  const endpoint = `https://docs.google.com/spreadsheets/d/${url}/export?format=csv&gid=${encodeURIComponent(gid)}`
   const response = await fetch(endpoint, { redirect: 'follow' })
   const body = await response.text()
   // Wrong sharing → 302 → accounts.google.com → HTTP 200 text/html. The
@@ -110,9 +109,7 @@ function detectTab(rows: string[][]): 'coletivos' | 'textos' | null {
  * survive so column indices stay aligned; Opus gate-2 blocker). Exported for
  * tests; used by BOTH the local-file and URL paths.
  */
-export function partitionRows(
-  rows: string[][],
-): { coletivos: string[][]; textos: string[][] } {
+export function partitionRows(rows: string[][]): { coletivos: string[][]; textos: string[][] } {
   const coletivos: string[][] = []
   const textos: string[][] = []
   let current: 'coletivos' | 'textos' | null = null
@@ -199,7 +196,10 @@ function parseColetivos(rows: string[][]): ColetivosRow[] {
     }
     if (!nome) fail(sheetCell('nome'), `"${id}": nome vazio`)
     if (isFormulaError(nome) || isFormulaError(icone)) {
-      fail(sheetCell('nome'), `"${id}": célula com erro de fórmula (ex. #REF!, #VALUE!) — corrija na planilha`)
+      fail(
+        sheetCell('nome'),
+        `"${id}": célula com erro de fórmula (ex. #REF!, #VALUE!) — corrija na planilha`,
+      )
     }
     const sections: Record<string, string[]> = {}
     for (const key of Object.keys(SECTION_HEADER_PT)) {
@@ -241,7 +241,10 @@ function parseTextos(rows: string[][]): Map<string, string> {
       return
     }
     if (seen.has(key)) {
-      fail(`${tab}!A${rowAt + 2}`, `chave duplicada "${key}" (cada chave deve aparecer uma única vez)`)
+      fail(
+        `${tab}!A${rowAt + 2}`,
+        `chave duplicada "${key}" (cada chave deve aparecer uma única vez)`,
+      )
       return
     }
     seen.add(key)
@@ -281,7 +284,10 @@ function buildData(base: ComiteData, rows: ColetivosRow[]): ComiteData {
   const data: ComiteData = JSON.parse(JSON.stringify(base))
   for (const row of rows) {
     if (!Object.hasOwn(data.maps, row.mapa)) {
-      fail('Coletivos!mapa', `"${row.id}": mapa desconhecido "${row.mapa}" (use: ${Object.keys(data.maps).join(', ')})`)
+      fail(
+        'Coletivos!mapa',
+        `"${row.id}": mapa desconhecido "${row.mapa}" (use: ${Object.keys(data.maps).join(', ')})`,
+      )
       continue
     }
     const map = data.maps[row.mapa]
@@ -399,7 +405,10 @@ async function main(): Promise<void> {
   // A missing tab is fine: the missing one just contributes no edits (its
   // section is skipped below). Only a source with NO recognizable tab errors.
   if (coletivosRows.length === 0 && textosRows.length === 0) {
-    fail('fonte', 'Nenhuma aba reconhecida — forneça os CSVs (Coletivos / Textos do site) ou a URL com gids')
+    fail(
+      'fonte',
+      'Nenhuma aba reconhecida — forneça os CSVs (Coletivos / Textos do site) ou a URL com gids',
+    )
   }
   if (failures.length > 0) reportAndExit()
 
@@ -415,7 +424,10 @@ async function main(): Promise<void> {
     for (const map of Object.values(baseData.maps)) {
       for (const projectId of Object.keys(map.projects)) {
         if (!sheetIds.has(projectId)) {
-          fail('Coletivos!id', `"${projectId}" sumiu da planilha — a coluna id foi editada? (renomear/remover coletivos não é permitido aqui)`)
+          fail(
+            'Coletivos!id',
+            `"${projectId}" sumiu da planilha — a coluna id foi editada? (renomear/remover coletivos não é permitido aqui)`,
+          )
         }
       }
     }
@@ -444,11 +456,7 @@ async function main(): Promise<void> {
     return
   }
   writeFileSync(resolve(root, 'data.json'), `${JSON.stringify(nextData, null, 2)}\n`, 'utf8')
-  writeFileSync(
-    resolve(root, 'src/data/ui.json'),
-    `${JSON.stringify(nextUi, null, 2)}\n`,
-    'utf8',
-  )
+  writeFileSync(resolve(root, 'src/data/ui.json'), `${JSON.stringify(nextUi, null, 2)}\n`, 'utf8')
   console.log('\nEscrito: data.json + src/data/ui.json. Rode bun run build && bun run test.')
 }
 

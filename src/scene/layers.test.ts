@@ -380,9 +380,7 @@ describe('labels', () => {
     // first pill follows data.json project order across ALL maps (belem first);
     // assert it is one of the real org names rather than a hard-coded string
     const allNames = new Set(
-      Object.values(realData.maps).flatMap((m) =>
-        Object.values(m.projects).map((p) => p.name),
-      ),
+      Object.values(realData.maps).flatMap((m) => Object.values(m.projects).map((p) => p.name)),
     )
     expect(allNames.has(firstLabel.textContent!)).toBe(true)
     expect(firstLabel.textContent).not.toBe('')

@@ -35,10 +35,7 @@
             "Nível Nacional: Conexão Nacional de Juventudes para Discussão Artística Socioambiental"
           ],
           "futuro": [],
-          "memoria": [
-            "Festa de Yemanja",
-            "Levantamento da Bandeira"
-          ],
+          "memoria": ["Festa de Yemanja", "Levantamento da Bandeira"],
           "identidade": [
             "Cidade Nova",
             "Cidade Velha",
@@ -71,9 +68,7 @@
             "Espaço de lazer (Não tem)",
             "Institucionalização do espaço enquanto movimento"
           ],
-          "acao": [
-            "Arraial do Casarão Junho"
-          ],
+          "acao": ["Arraial do Casarão Junho"],
           "identificacao_e_territorio": [
             "Mulheres",
             "Crianças e adolescentes",
@@ -89,11 +84,7 @@
             "Reformar e estruturar o centro"
           ],
           "memoria": [],
-          "identidade": [
-            "Eliana",
-            "Raimundo",
-            "Júlia Seffer"
-          ]
+          "identidade": ["Eliana", "Raimundo", "Júlia Seffer"]
         },
         "espaco_cultural_ruth_costa": {
           "name": "ESPAÇO CULTURAL RUTH COSTA",
@@ -121,9 +112,7 @@
             "Incidência Política",
             "Formação em mobilidade antiracista"
           ],
-          "identificacao_e_territorio": [
-            "Mobilidade urbana democrática e sustentável"
-          ],
+          "identificacao_e_territorio": ["Mobilidade urbana democrática e sustentável"],
           "futuro": [
             "Captar recursos",
             "Tornar o espaço uma referência de cuidado, de cultura e de acolhimento"
@@ -132,11 +121,7 @@
             "Tacacá com Carimbó: O Sabor da Justiça Climática",
             "Pedal Manifesto Perifa na Pista"
           ],
-          "identidade": [
-            "Mapinguarí",
-            "Batuque da lua crescente",
-            "Paraciclo"
-          ]
+          "identidade": ["Mapinguarí", "Batuque da lua crescente", "Paraciclo"]
         }
       }
     },
@@ -167,15 +152,8 @@
             "Roteiro Cozinha Periférica",
             "Prédio do Museu Memorial da Vila da Barca"
           ],
-          "identificacao_e_territorio": [
-            "História",
-            "Memória",
-            "Cultura Periférica"
-          ],
-          "futuro": [
-            "Prédio do Museu Memorial",
-            "Continuação Revista Vozes"
-          ],
+          "identificacao_e_territorio": ["História", "Memória", "Cultura Periférica"],
+          "futuro": ["Prédio do Museu Memorial", "Continuação Revista Vozes"],
           "memoria": [
             "Arraial da Vila",
             "Círio Nossa Senhora dos Navegantes",
@@ -243,10 +221,7 @@
             "Dentro da Nossa Biblioteca",
             "Formações e acessos para periferia e pessoas lgbt"
           ],
-          "identificacao_e_territorio": [
-            "Lou",
-            "Guamá"
-          ],
+          "identificacao_e_territorio": ["Lou", "Guamá"],
           "futuro": [
             "Documentar",
             "Formar",
@@ -282,22 +257,14 @@
             "Posto de Sáude e Projetos culturais",
             "Linha de ônibus"
           ],
-          "acao": [
-            "Criação de um espaço cultural e acolhimento para a comunidade"
-          ],
-          "identificacao_e_territorio": [
-            "Grupo de Dança LGBT",
-            "Quadrilha Fogo no Rabo"
-          ],
+          "acao": ["Criação de um espaço cultural e acolhimento para a comunidade"],
+          "identificacao_e_territorio": ["Grupo de Dança LGBT", "Quadrilha Fogo no Rabo"],
           "futuro": [
             "Espaço cultural acolhedor para os moradores da baixada",
             "Espaço de lazer para crianças",
             "Volta da Quadrilha"
           ],
-          "memoria": [
-            "Festa da Quadrilha Fogo no Rabo",
-            "Ensaios da Quadrilha Fogo no Rabo"
-          ],
+          "memoria": ["Festa da Quadrilha Fogo no Rabo", "Ensaios da Quadrilha Fogo no Rabo"],
           "identidade": [
             "Lou (Guamá)",
             "Xico (Canudos)",
@@ -342,16 +309,8 @@
             "Criar independência financeira",
             "Criar a casa do Hip-Hop"
           ],
-          "memoria": [
-            "Festival Hip-Hop Pai d’égua em novembro"
-          ],
-          "identidade": [
-            "Roberta",
-            "RMY",
-            "Larix",
-            "Tinta Preta",
-            "Mina Ribeirinha"
-          ]
+          "memoria": ["Festival Hip-Hop Pai d’égua em novembro"],
+          "identidade": ["Roberta", "RMY", "Larix", "Tinta Preta", "Mina Ribeirinha"]
         },
         "rede_casacura": {
           "name": "REDE CASACURA (Comunidade do Açaizal / Jaderlândia)",
@@ -441,12 +400,7 @@
             "Saneamento básica (Poluição de rios e falta de água)",
             "Lugares de lazer"
           ],
-          "acao": [
-            "Semana do Hip-Hop Pai d’égua",
-            "Formação",
-            "Oficinas",
-            "Militância Política"
-          ],
+          "acao": ["Semana do Hip-Hop Pai d’égua", "Formação", "Oficinas", "Militância Política"],
           "identificacao_e_territorio": [
             "Coisas de Negro",
             "Feira de Artesanato do Paracuri",
@@ -455,11 +409,7 @@
             "Orla de Icoaraci",
             "Círio de Icoaraci"
           ],
-          "futuro": [
-            "Continuar existindo",
-            "Se regularizar",
-            "Se manter financeiramente"
-          ],
+          "futuro": ["Continuar existindo", "Se regularizar", "Se manter financeiramente"],
           "memoria": [
             "Infância em movimento",
             "Carta de direitos climáticos de Icoaraci",
