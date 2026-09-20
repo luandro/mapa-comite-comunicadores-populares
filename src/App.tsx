@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { comiteData } from './data/load'
 import type { Project } from './data/types'
+import { ui } from './data/ui'
 import { Controls } from './panel/Controls'
 import { Panel } from './panel/Panel'
 import { isMobile } from './device'
@@ -49,10 +50,8 @@ const INFO_GLYPH = [
   'M51,27 C58,25.4 64,27.4 63.6,31.6 C63.3,34.8 62,38 61.4,42 C60.8,46 61.4,49.4 58.6,50.4 C55.6,51.4 51.2,50.6 50.2,47.4 C49.4,44.8 50.8,41 51.6,37 C52.3,33.6 51.4,31.8 47.8,32.2 C44.6,32.5 43.4,29 45.6,27.6 C47.2,26.6 49,27.4 51,27 Z',
 ] as const
 
-/** About-the-project copy (pt-BR, issue #10 — shown inside the about dialog,
- * opened by the mobile burger or the desktop info button). */
-const PROJECT_ABOUT =
-  'O Na Cuia mapeia 25 coletivos de comunicadores populares de Belém, Ananindeua e Moju (Pará), integrantes do Comitê de Comunicadores Populares. Cada totem no mapa representa um coletivo: toque nele para conhecer seus conflitos, ações, território, futuro, memória e identidade.'
+/** About-the-project copy (pt-BR, issue #10) lives in `ui.json` (`about`) —
+ * edited via the content spreadsheet, never hardcoded here. */
 
 /** Title overlay — above the scene, below future controls (SPEC §3 z-order).
  * Issue #10: the title appears with the intro, then retracts into a
@@ -185,8 +184,9 @@ export function TitleOverlay() {
           <path d={TITLE_BLOB_PATH} />
         </svg>
         <h1>
-          <span>Mapeamento de 25 Coletivos do</span>
-          <span>Comitê de Comunicadores Populares</span>
+          {ui.titleLines.map((line) => (
+            <span key={line}>{line}</span>
+          ))}
         </h1>
       </div>
       {mobile ? (
@@ -194,7 +194,7 @@ export function TitleOverlay() {
           type="button"
           ref={burgerRef}
           className={retracted ? 'app-burger is-retracted' : 'app-burger'}
-          aria-label="Abrir menu do projeto"
+          aria-label={ui.labels.openMenu}
           aria-expanded={menuOpen}
           onClick={openMenu}
           // Invisible until retraction — keep it out of the tab order then too
@@ -214,7 +214,7 @@ export function TitleOverlay() {
           type="button"
           ref={burgerRef}
           className="app-info"
-          aria-label="Sobre o projeto"
+          aria-label={ui.labels.aboutProject}
           aria-expanded={menuOpen}
           onClick={openMenu}
         >
@@ -239,7 +239,7 @@ export function TitleOverlay() {
               type="button"
               className="app-menu-close"
               onClick={closeMenu}
-              aria-label="Fechar menu"
+              aria-label={ui.labels.closeMenu}
             >
               ×
             </button>
@@ -253,11 +253,12 @@ export function TitleOverlay() {
                 <path d={TITLE_BLOB_PATH} />
               </svg>
               <h2>
-                <span>Mapeamento de 25 Coletivos do</span>
-                <span>Comitê de Comunicadores Populares</span>
+                {ui.titleLines.map((line) => (
+                  <span key={line}>{line}</span>
+                ))}
               </h2>
             </div>
-            <p>{PROJECT_ABOUT}</p>
+            <p>{ui.about}</p>
           </div>
         </>
       )}
@@ -318,7 +319,7 @@ export default function App() {
   }, [])
 
   return (
-    <main aria-label="Mapa Na Cuia">
+    <main aria-label={ui.labels.main}>
       <div ref={hostRef} style={{ height: '100dvh' }} data-scene-host="" />
       <div ref={panelHostRef}>
         <Panel

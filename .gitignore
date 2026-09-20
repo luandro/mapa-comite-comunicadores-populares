@@ -7,3 +7,7 @@ test-results
 .DS_Store
 .agents/
 .codex/
+# Content pipeline handoff artifacts — the shared Google Spreadsheet is the
+# editing surface; data.json + src/data/ui.json are canonical in-repo.
+content/
+content.config.json
