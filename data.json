@@ -94,6 +94,49 @@
             "Raimundo",
             "Júlia Seffer"
           ]
+        },
+        "espaco_cultural_ruth_costa": {
+          "name": "ESPAÇO CULTURAL RUTH COSTA",
+          "icon": "icone-6",
+          "pos": {
+            "x": 2610,
+            "y": 586,
+            "from": [
+              {
+                "x": 2227,
+                "y": 556
+              }
+            ]
+          },
+          "conflitos": [
+            "Especulação Imobiliária",
+            "Transporte Público Mobilidade Ativa",
+            "Saneamento Básico",
+            "Resíduos Sólidos"
+          ],
+          "acao": [
+            "Incidência Política pela democratização da mobilidade",
+            "Campanha de comunicação",
+            "Incentivo a mobilidade ativa e sustentável",
+            "Incidência Política",
+            "Formação em mobilidade antiracista"
+          ],
+          "identificacao_e_territorio": [
+            "Mobilidade urbana democrática e sustentável"
+          ],
+          "futuro": [
+            "Captar recursos",
+            "Tornar o espaço uma referência de cuidado, de cultura e de acolhimento"
+          ],
+          "memoria": [
+            "Tacacá com Carimbó: O Sabor da Justiça Climática",
+            "Pedal Manifesto Perifa na Pista"
+          ],
+          "identidade": [
+            "Mapinguarí",
+            "Batuque da lua crescente",
+            "Paraciclo"
+          ]
         }
       }
     },
@@ -262,49 +305,6 @@
             "Adilson (Jurunas)",
             "Renata",
             "Roma"
-          ]
-        },
-        "espaco_cultural_ruth_costa": {
-          "name": "ESPAÇO CULTURAL RUTH COSTA",
-          "icon": "icone-6",
-          "pos": {
-            "x": 2610,
-            "y": 586,
-            "from": [
-              {
-                "x": 2227,
-                "y": 556
-              }
-            ]
-          },
-          "conflitos": [
-            "Especulação Imobiliária",
-            "Transporte Público Mobilidade Ativa",
-            "Saneamento Básico",
-            "Resíduos Sólidos"
-          ],
-          "acao": [
-            "Incidência Política pela democratização da mobilidade",
-            "Campanha de comunicação",
-            "Incentivo a mobilidade ativa e sustentável",
-            "Incidência Política",
-            "Formação em mobilidade antiracista"
-          ],
-          "identificacao_e_territorio": [
-            "Mobilidade urbana democrática e sustentável"
-          ],
-          "futuro": [
-            "Captar recursos",
-            "Tornar o espaço uma referência de cuidado, de cultura e de acolhimento"
-          ],
-          "memoria": [
-            "Tacacá com Carimbó: O Sabor da Justiça Climática",
-            "Pedal Manifesto Perifa na Pista"
-          ],
-          "identidade": [
-            "Mapinguarí",
-            "Batuque da lua crescente",
-            "Paraciclo"
           ]
         },
         "hip_hop": {
