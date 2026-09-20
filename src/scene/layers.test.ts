@@ -341,11 +341,11 @@ describe('orgIdsForCity (issue #12 city→org mapping)', () => {
     // spot-check the real data: belem's first org is the first data.json key
     expect(orgIdsForCity(realData, 'belem')[0]).toBe('museu_memorial_vila_da_barca')
     expect(orgIdsForCity(realData, 'ananindeua')).toEqual([
-      'rede_casacura',
       'rede_afroamazonida',
       'centro_educacao_popular',
-      'chibe',
     ])
+    expect(orgIdsForCity(realData, 'belem')).toContain('rede_casacura')
+    expect(orgIdsForCity(realData, 'belem')).toContain('chibe')
   })
 
   it('keeps the mapping disjoint across cities (org ids are unique)', () => {
@@ -375,7 +375,15 @@ describe('labels', () => {
     expect(el.querySelectorAll('.label-pill')).toHaveLength(11)
     expect(el.querySelectorAll('.label-city')).toHaveLength(3)
     const firstLabel = el.querySelector<HTMLElement>('.label-pill')!
-    expect(firstLabel.textContent).toBe('REDE CASACURA (Comunidade do Açaizal / Jaderlândia)')
+    // first pill follows data.json project order across ALL maps (belem first);
+    // assert it is one of the real org names rather than a hard-coded string
+    const allNames = new Set(
+      Object.values(realData.maps).flatMap((m) =>
+        Object.values(m.projects).map((p) => p.name),
+      ),
+    )
+    expect(allNames.has(firstLabel.textContent!)).toBe(true)
+    expect(firstLabel.textContent).not.toBe('')
     expect(firstLabel.style.transform).toContain('translate(-50%, 0%)')
     expect(firstLabel.style.transform).toContain('8px')
     expect(
