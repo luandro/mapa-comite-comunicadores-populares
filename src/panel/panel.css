@@ -34,32 +34,45 @@
   animation: panel-in 0.28s ease-out forwards;
 }
 
-/* v1.3 user directive: the CARD ITSELF fades into the background toward its
-   bottom — a vertical alpha mask on the whole card. v1.3.2: the fade must
-   begin EXACTLY where the wave overlay's ink begins — 60px above the card's
-   bottom edge on desktop (.panel-waves-overlay top: calc(100% - 60px)),
-   100px on mobile (overlay bottom-anchored, 100px tall) — opaque above,
-   easing to 0% at the edge. The waves then paint on top of the translucent
-   zone over the live map. mask-image keeps the card one paint layer;
-   -webkit prefix serves Safari. */
+/* v1.4 user directive: the card's bottom must NOT dissolve to transparent —
+   seeing the live map through the card reads as confusing. Instead the card
+   fades INTO a single solid color: a slightly darkened card cream (#f3ead2
+   vs #fdf6e3), so the bottom reads as the paper continuing, just shaded.
+   Implementation: a background gradient layered OVER the base cream, eased
+   in over the same band where the wave overlay's ink begins — 60px above the
+   card's bottom edge on desktop (.panel-waves-overlay top:
+   calc(100% - 60px)), 100px on mobile (overlay bottom-anchored, 100px tall).
+   v1.3.2 lesson: anchor the band to px-from-bottom (DOM geometry of the
+   overlay it aligns with), never to % of card height. The wave overlay then
+   paints on top of the solid zone (unchanged composition — no map shows
+   through). The v1.3 mask-image is GONE (mask also clipped box-shadow). */
 .panel {
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    #000 0,
-    #000 calc(100% - 60px),
-    rgba(0, 0, 0, 0) 100%
-  );
-  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 60px), rgba(0, 0, 0, 0) 100%);
+  /* border-box: the calc() band must measure from the same box the wave
+     overlay's top: calc(100% - 60px) measures from (the frame's border-box,
+     which includes the 3px border) — the padding-box default shifts the
+     ramp 3px (opus review P3, PR #38). Declared AFTER the `background`
+     shorthand below: a shorthand resets background-origin to padding-box,
+     so a longhand above it is a silent no-op (opus r2 catch). */
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(243, 234, 210, 0) 0,
+      rgba(243, 234, 210, 0) calc(100% - 60px),
+      #f3ead2 100%
+    ),
+    #fdf6e3;
+  background-origin: border-box;
 }
 
 .panel-mobile .panel {
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    #000 0,
-    #000 calc(100% - 100px),
-    rgba(0, 0, 0, 0) 100%
-  );
-  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 100px), rgba(0, 0, 0, 0) 100%);
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(243, 234, 210, 0) 0,
+      rgba(243, 234, 210, 0) calc(100% - 100px),
+      #f3ead2 100%
+    ),
+    #fdf6e3;
 }
 
 /* v1.2 user directive: content centered on the modal (the mock reads as a
@@ -78,7 +91,6 @@
      button compensate with their own horizontal padding/margins. */
   padding: 24px 0 0;
   text-align: center;
-  background: #fdf6e3; /* cream paper */
   color: #1c2b1c;
   font-family: Archivo, system-ui, sans-serif;
   font-size: 16px;
@@ -166,9 +178,10 @@
 
 /* Scrollable middle: vertical only — `overflow-x: hidden` + wrap-safe
    children guarantee zero horizontal scrolling (user directive).
-   padding-bottom (v1.3.2): the card is opaque until the wave overlay's ink
-   starts — 60px above the bottom edge on desktop, 100px on mobile — so the
-   last list item must scroll clear ABOVE that line (+12px breathing room).
+   padding-bottom (v1.3.2): the wave overlay's ink line sits 60px above the
+   card's bottom edge on desktop (100px mobile), so the last list item must
+   scroll clear ABOVE that line (+12px breathing room) — the card itself is
+   opaque everywhere (v1.4 solid fade).
    The horizontal padding lives HERE (not on .panel) so the scrollbar
    renders at the card's very right edge (PR #9 review P1). */
 .panel-body {
@@ -188,14 +201,17 @@
 }
 
 /* Scrollbar in the map's illustration language (user directive): the card
-   border's dark green, cream paper track, organic rounded thumb like the
-   hand-drawn ink strokes used everywhere else (border radii, buttons).
+   border's dark green thumb, organic rounded like the hand-drawn ink
+   strokes used everywhere else (border radii, buttons). The TRACK is
+   transparent (PR #38 review P3): it spans the full body height, so an
+   opaque cream track would paint a base-cream stripe through the darker
+   fade zone — transparent lets the card's own gradient show through.
    Firefox: thin + tinted. The webkit block serves Safari; Chromium ≥121
    ignores it when scrollbar-width/color are set (draws its own green
    arrows — visually equivalent, accepted). */
 .panel-body {
   scrollbar-width: thin;
-  scrollbar-color: #304e23 #fdf6e3;
+  scrollbar-color: #304e23 transparent;
 }
 
 .panel-body::-webkit-scrollbar {
@@ -203,8 +219,8 @@
 }
 
 .panel-body::-webkit-scrollbar-track {
-  background: #fdf6e3; /* cream paper */
-  border-left: 3px solid #fdf6e3; /* breathing room from the border stroke */
+  background: transparent;
+  border-left: 3px solid transparent; /* keep the border-stroke breathing room */
 }
 
 .panel-body::-webkit-scrollbar-thumb {
@@ -288,12 +304,11 @@
 
 /* Wave overlay (v1.2 user directive): the band stack lives OUTSIDE the card,
    straddling its bottom edge — first pale bands on the cream (like the mock),
-   then flowing over the live map and fading to transparent via the mask in
-   Panel.tsx. Absolute inside .panel-frame, so it tracks the card edge with
-   pure CSS (no JS measurement, no entrance-animation race).
-   v1.3: the card under the first 60px is now itself masked to ~0 alpha
-   (.panel mask-image), so the bands there float over the map showing
-   through — waves on top of the fading modal bottom. */
+   then dissolving via the mask in Panel.tsx. Absolute inside .panel-frame,
+   so it tracks the card edge with pure CSS (no JS measurement, no
+   entrance-animation race). v1.4: the card under the first 60px is a solid
+   darker cream (.panel gradient — the v1.3 alpha mask is gone), so the
+   bands melt into the card's own color instead of the live map. */
 .panel-waves-overlay {
   position: absolute;
   left: 0;
