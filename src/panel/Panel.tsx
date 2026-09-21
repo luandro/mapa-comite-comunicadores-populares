@@ -305,10 +305,11 @@ export function Panel({
             ))}
           </div>
         </div>
-        {/* v1.2 user directive: the waves must FADE INTO the background, not
-            sit on the cream. The overlay straddles the card's bottom edge:
-            top 60px of bands over the cream (as in modal.jpeg), the rest over
-            the live map, dissolving via the fade mask. */}
+        {/* v1.2 user directive: the waves straddle the card's bottom edge —
+            top 60px of bands over the cream (as in modal.jpeg), the rest
+            dissolving via the overlay's own SVG fade mask. v1.4: the card
+            under that zone is solid darker cream (no map shows through) —
+            the waves dissolve INTO the card's color. */}
         <svg
           className="panel-waves-overlay"
           viewBox={`0 0 ${WAVE_INK_W} ${WAVE_OVERLAY_H}`}
@@ -319,7 +320,7 @@ export function Panel({
             <linearGradient id="panel-wave-fade" x1="0" y1="0" x2="0" y2="1">
               {/* solid at the overlay top (on cream), ≈half opacity at the
                   card seam, transparent at the bottom: the bands melt into
-                  whatever is behind (the live map) */}
+                  the solid darker-cream fade zone (v1.4 — no map behind) */}
               <stop offset="0" stopColor="#fff" stopOpacity="1" />
               <stop offset="0.55" stopColor="#fff" stopOpacity="0.55" />
               <stop offset="1" stopColor="#fff" stopOpacity="0" />
