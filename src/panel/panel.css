@@ -47,6 +47,11 @@
    paints on top of the solid zone (unchanged composition — no map shows
    through). The v1.3 mask-image is GONE (mask also clipped box-shadow). */
 .panel {
+  /* border-box: the calc() band must measure from the same box the wave
+     overlay's top: calc(100% - 60px) measures from (the frame's border-box,
+     which includes the 3px border) — the padding-box default shifts the
+     ramp 3px (opus review P3, PR #38). */
+  background-origin: border-box;
   background:
     linear-gradient(
       to bottom,
@@ -171,9 +176,10 @@
 
 /* Scrollable middle: vertical only — `overflow-x: hidden` + wrap-safe
    children guarantee zero horizontal scrolling (user directive).
-   padding-bottom (v1.3.2): the card is opaque until the wave overlay's ink
-   starts — 60px above the bottom edge on desktop, 100px on mobile — so the
-   last list item must scroll clear ABOVE that line (+12px breathing room).
+   padding-bottom (v1.3.2): the wave overlay's ink line sits 60px above the
+   card's bottom edge on desktop (100px mobile), so the last list item must
+   scroll clear ABOVE that line (+12px breathing room) — the card itself is
+   opaque everywhere (v1.4 solid fade).
    The horizontal padding lives HERE (not on .panel) so the scrollbar
    renders at the card's very right edge (PR #9 review P1). */
 .panel-body {
@@ -193,14 +199,17 @@
 }
 
 /* Scrollbar in the map's illustration language (user directive): the card
-   border's dark green, cream paper track, organic rounded thumb like the
-   hand-drawn ink strokes used everywhere else (border radii, buttons).
+   border's dark green thumb, organic rounded like the hand-drawn ink
+   strokes used everywhere else (border radii, buttons). The TRACK is
+   transparent (PR #38 review P3): it spans the full body height, so an
+   opaque cream track would paint a base-cream stripe through the darker
+   fade zone — transparent lets the card's own gradient show through.
    Firefox: thin + tinted. The webkit block serves Safari; Chromium ≥121
    ignores it when scrollbar-width/color are set (draws its own green
    arrows — visually equivalent, accepted). */
 .panel-body {
   scrollbar-width: thin;
-  scrollbar-color: #304e23 #fdf6e3;
+  scrollbar-color: #304e23 transparent;
 }
 
 .panel-body::-webkit-scrollbar {
@@ -208,8 +217,8 @@
 }
 
 .panel-body::-webkit-scrollbar-track {
-  background: #fdf6e3; /* cream paper */
-  border-left: 3px solid #fdf6e3; /* breathing room from the border stroke */
+  background: transparent;
+  border-left: 3px solid transparent; /* keep the border-stroke breathing room */
 }
 
 .panel-body::-webkit-scrollbar-thumb {
