@@ -50,8 +50,9 @@
   /* border-box: the calc() band must measure from the same box the wave
      overlay's top: calc(100% - 60px) measures from (the frame's border-box,
      which includes the 3px border) — the padding-box default shifts the
-     ramp 3px (opus review P3, PR #38). */
-  background-origin: border-box;
+     ramp 3px (opus review P3, PR #38). Declared AFTER the `background`
+     shorthand below: a shorthand resets background-origin to padding-box,
+     so a longhand above it is a silent no-op (opus r2 catch). */
   background:
     linear-gradient(
       to bottom,
@@ -60,6 +61,7 @@
       #f3ead2 100%
     ),
     #fdf6e3;
+  background-origin: border-box;
 }
 
 .panel-mobile .panel {
