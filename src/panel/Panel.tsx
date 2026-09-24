@@ -162,6 +162,7 @@ export function Panel({
 }: PanelProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
   const restoreFocusRef = useRef<HTMLElement | null>(null)
   const restoreTimer = useRef<number | null>(null)
   const open = project !== null
@@ -255,6 +256,29 @@ export function Panel({
 
   const handleClose = useCallback(() => onClose(), [onClose])
 
+  /**
+   * Legend jump (v1.6 desktop): scroll the body to the section block and move
+   * focus to it (focus must follow the view — WCAG 2.4.3). `preventScroll`
+   * keeps the programmatic focus from fighting the smooth scroll; the offset
+   * is hand-tuned breathing room, not magic alignment.
+   */
+  const jumpToSection = useCallback((key: (typeof SECTION_KEYS)[number]) => {
+    const body = bodyRef.current
+    const target = body?.querySelector<HTMLElement>(`#panel-sec-${key}`)
+    if (!body || !target) return
+    const reduce =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // jsdom ships no Element.scrollTo — feature-check, never assume.
+    if (typeof body.scrollTo === 'function') {
+      body.scrollTo({
+        top: target.offsetTop - body.offsetTop - 12,
+        behavior: reduce ? 'auto' : 'smooth',
+      })
+    }
+    target.focus({ preventScroll: true })
+  }, [])
+
   if (project === null) return null
 
   const sections = SECTION_KEYS.map((key) => ({ key, items: project[key] })).filter(
@@ -289,20 +313,60 @@ export function Panel({
             ×
           </button>
           <h2 id="panel-heading">{project.name}</h2>
-          <div className="panel-body" tabIndex={0}>
-            {sections.map(({ key, items }) => (
-              <section key={key} className="panel-section">
-                <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
-                <div className="panel-section-content">
-                  <h3 className="panel-section-label">{sectionLabel(key)}</h3>
-                  <ul>
-                    {items.map((item, i) => (
-                      <li key={i}>{item}</li>
+          {/* v1.6 desktop legend: on desktop the columns wrapper holds the
+              legend aside + the scrolling body side by side; on mobile it is
+              a plain flex pass-through and the legend is NOT rendered at all
+              (DOM parity with the v1.5 layout the user approved). */}
+          <div className={mobile ? 'panel-columns' : 'panel-columns panel-columns-legend'}>
+            {!mobile && (
+              <aside className="panel-legend-col" aria-labelledby="panel-legend-title">
+                <div className="panel-legend">
+                  <h3 id="panel-legend-title" className="panel-legend-title">
+                    {ui.labels.legendTitle}
+                  </h3>
+                  <ul className="panel-legend-list">
+                    {sections.map(({ key }) => (
+                      <li key={key}>
+                        <button
+                          type="button"
+                          className="panel-legend-entry"
+                          onClick={() => jumpToSection(key)}
+                        >
+                          <img src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
+                          <span>{sectionLabel(key)}</span>
+                        </button>
+                      </li>
                     ))}
                   </ul>
                 </div>
-              </section>
-            ))}
+              </aside>
+            )}
+            <div ref={bodyRef} className="panel-body" tabIndex={0}>
+              {sections.map(({ key, items }) => (
+                <section
+                  key={key}
+                  id={`panel-sec-${key}`}
+                  tabIndex={-1}
+                  className="panel-section"
+                  aria-labelledby={`panel-h-${key}`}
+                >
+                  <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
+                  <div className="panel-section-content">
+                    <h3
+                      id={`panel-h-${key}`}
+                      className={mobile ? 'panel-section-label' : 'panel-section-label sr-only'}
+                    >
+                      {sectionLabel(key)}
+                    </h3>
+                    <ul>
+                      {items.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              ))}
+            </div>
           </div>
         </div>
         {/* v1.2 user directive: the waves straddle the card's bottom edge —

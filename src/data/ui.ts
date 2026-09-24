@@ -37,4 +37,5 @@ export const UI_LABEL_KEYS = [
   'aboutProject',
   'closeMenu',
   'closePanel',
+  'legendTitle',
 ] as const

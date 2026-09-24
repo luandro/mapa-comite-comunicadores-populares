@@ -159,6 +159,42 @@ describe('Panel (Phase 6)', () => {
     expect(document.querySelector('.panel-frame')!.classList.contains('panel-mobile')).toBe(true)
   })
 
+  // v1.6 desktop legend: entries mirror the non-empty sections and jump to
+  // their block; mobile keeps the v1.5 DOM (no legend at all).
+  it('desktop: legend has one entry per non-empty section', () => {
+    renderPanel(fullProject, () => {})
+    const entries = Array.from(document.querySelectorAll('.panel-legend-entry')).map(
+      (b) => b.textContent,
+    )
+    // futuro/memória are empty → absent from the legend too
+    expect(entries).toEqual(['Conflitos', 'Ação', 'Identificação e território', 'Identidade'])
+  })
+
+  it('desktop: legend entry click moves focus to its section block', () => {
+    renderPanel(fullProject, () => {})
+    const entries = document.querySelectorAll('.panel-legend-entry')
+    act(() => {
+      ;(entries[entries.length - 1] as HTMLElement).click() // "Identidade"
+    })
+    expect(document.activeElement).toBe(document.getElementById('panel-sec-identidade'))
+  })
+
+  it('mobile: no legend in the DOM at all', () => {
+    renderPanel(fullProject, () => {}, true)
+    expect(document.querySelector('.panel-legend')).toBeNull()
+    // labels stay visible on mobile (user-approved v1.5 layout)
+    const label = document.querySelector('.panel-section-label')!
+    expect(label.classList.contains('sr-only')).toBe(false)
+  })
+
+  it('desktop: section h3s are sr-only but present for heading navigation', () => {
+    renderPanel(fullProject, () => {})
+    const label = document.querySelector('.panel-section-label')!
+    expect(label.classList.contains('sr-only')).toBe(true)
+    expect(label.textContent).toBe('Conflitos')
+    expect(document.getElementById('panel-legend-title')!.textContent).toBe('Legenda')
+  })
+
   it('wave overlay renders inside the frame, aria-hidden, and unmounts on close', () => {
     const { rerender } = renderPanel(fullProject, () => {}, false)
     const overlay = document.querySelector('.panel-frame > .panel-waves-overlay')
