@@ -331,13 +331,20 @@
 
 /* v1.8 user directive (desktop only): two-column sections — the icon is its
    own column, the text block sits beside it in the same row, both centered
-   only VERTICALLY; the text aligns to the right edge. Mobile keeps the
-   stacked centered layout above (approved v1.5). The h3 is sr-only on
-   desktop (the map legend names the icons), so the text column is the list. */
+   only VERTICALLY; the text aligns to the right edge. The whole pair is ONE
+   fixed-width block CENTERED in the body (v1.8.1 fix — at full body width
+   the columns spread to the card edges and read as broken): every section
+   is the same width, so the icons align in one vertical column and all
+   text edges line up on the right. Mobile keeps the stacked centered
+   layout above (approved v1.5). The h3 is sr-only on desktop (the map
+   legend names the icons), so the text column is the list. */
 .panel-frame:not(.panel-mobile) .panel-section {
   flex-direction: row;
   align-items: center; /* vertical centering within the row */
   gap: 20px;
+  width: min(560px, 100%);
+  margin-left: auto;
+  margin-right: auto;
   text-align: right;
 }
 
