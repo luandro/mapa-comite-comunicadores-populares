@@ -264,21 +264,26 @@ export function Panel({
               legend carries the names visually), mobile keeps visible labels
               (the approved v1.5 layout). */}
           <div className="panel-body" tabIndex={0}>
-            {sections.map(({ key, items }) => (
-              <section key={key} className="panel-section">
-                <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
-                <div className="panel-section-content">
-                  <h3 className={mobile ? 'panel-section-label' : 'panel-section-label sr-only'}>
-                    {sectionLabel(key)}
-                  </h3>
-                  <ul>
-                    {items.map((item, i) => (
-                      <li key={i}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              </section>
-            ))}
+            {/* v1.11: the ONE shared grid — all sections join it via
+                display:contents, so every icon sits in the same 52px rail
+                and every text edge is shared (dual-consult consensus). */}
+            <div className="panel-columns">
+              {sections.map(({ key, items }) => (
+                <section key={key} className="panel-section">
+                  <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
+                  <div className="panel-section-content">
+                    <h3 className={mobile ? 'panel-section-label' : 'panel-section-label sr-only'}>
+                      {sectionLabel(key)}
+                    </h3>
+                    <ul>
+                      {items.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              ))}
+            </div>
           </div>
         </div>
         {/* v1.2 user directive: the waves straddle the card's bottom edge —

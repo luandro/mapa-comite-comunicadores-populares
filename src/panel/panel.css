@@ -331,58 +331,83 @@
   text-align: center;
 }
 
-/* v1.10 — user-approved Codex proposals (icon LEFT + tighter rhythm):
-   diagnosis of v1.9: geometrically centered but not visually centered
-   (text/icons both sat right of the card axis), ~39px between one-line
-   items, stacked 18+28px section margins, icons vertically centered beside
-   arbitrary middle lines. Fixes: icon back on the LEFT, section
-   shrink-wrapped to its text (fit-content track) so the icon hugs the real
-   text edge — the v1.8 dead-middle hole can't return; top-aligned icon
-   reads as the section marker; line-height 1.35 + 2px list gap (~24px
-   cadence); single 14px between sections; title gap tightened. Text stays
-   right-aligned (not the problem). Mobile keeps the stacked centered
-   v1.5 layout. The h3 is sr-only on desktop (the map legend names the
-   icons). */
+/* v1.11 — dual-consult consensus (Opus 5 + Codex gpt-5.6-sol both
+   diagnosed the same core defect): "aligned to the right" was a semantic
+   misread — the text COLUMN sits right of the icons, but list text itself
+   must be LEFT-aligned; six shrink-wrapped rows left no shared edge, so
+   every icon/text block floated independently. The fix is ONE shared
+   fixed-width grid: all sections participate in the same 52px icon rail +
+   1fr text rail (display:contents), so icons align in one exact column
+   and every text edge is shared — a calm field-guide list. Hanging dot
+   bullets (brown) and dashed section separators keep the hand-drawn
+   language and give a within/between rhythm. Mobile keeps the approved
+   v1.5 stacked centered layout. The h3 is sr-only on desktop (the map
+   legend names the icons). */
 .panel-frame:not(.panel-mobile) .panel-section {
-  display: grid;
-  grid-template-columns: 36px fit-content(390px); /* icon | text */
-  column-gap: 12px;
-  align-items: start; /* icon top-aligned = section marker */
-  width: max-content; /* shrink-wrap to the actual text */
-  max-width: calc(100% - 48px);
-  margin-left: auto;
-  margin-right: auto;
-  text-align: right;
+  display: contents; /* join the ONE shared grid below */
 }
 
-.panel-frame:not(.panel-mobile) .panel-section + .panel-section {
-  margin-top: 14px; /* the ONE between-section gap (replaces 18/28px stack) */
+.panel-frame:not(.panel-mobile) .panel-section + .panel-section .panel-icon,
+.panel-frame:not(.panel-mobile) .panel-section + .panel-section .panel-section-content {
+  border-top: 1px dashed rgba(90, 70, 50, 0.2); /* section separator */
+}
+
+.panel-frame:not(.panel-mobile) .panel-section + .panel-section .panel-icon {
+  padding-top: 18px;
+}
+
+.panel-frame:not(.panel-mobile) .panel-section + .panel-section .panel-section-content {
+  padding-top: 18px;
+}
+
+.panel-frame:not(.panel-mobile) .panel-body {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.panel-frame:not(.panel-mobile) .panel-columns {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  column-gap: 20px;
+  row-gap: 0;
+  width: min(600px, 100%);
+  margin: 0 auto;
+  align-items: start; /* every icon top-aligns with its text block */
 }
 
 .panel-frame:not(.panel-mobile) .panel-icon {
-  width: 32px;
-  height: 40px;
   justify-self: center;
 }
 
 .panel-frame:not(.panel-mobile) .panel-section-content {
   min-width: 0;
-  max-width: 390px;
 }
 
 .panel-frame:not(.panel-mobile) .panel-section ul {
-  display: grid;
-  row-gap: 2px; /* within-section cadence (vs 14px between sections) */
+  display: block;
+  text-align: left; /* the chronic defect — fixed at last */
 }
 
 .panel-frame:not(.panel-mobile) .panel-section li {
-  line-height: 1.35;
+  position: relative;
+  padding-left: 16px; /* hanging indent for the dot bullet */
+  line-height: 1.5;
+  margin: 0;
 }
 
-/* v1.10: the legacy em-margin would stack on the grid row-gap (31px
-   measured cadence instead of ~24px) — desktop uses the grid gap only. */
 .panel-frame:not(.panel-mobile) .panel-section li + li {
-  margin-top: 0;
+  margin-top: 6px;
+}
+
+.panel-frame:not(.panel-mobile) .panel-section li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.65em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #5a4632; /* the brown ink */
 }
 
 /* Real icon art (na cuia/icons/svg) — one per section. v1.2: centered layout,
