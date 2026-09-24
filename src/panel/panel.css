@@ -329,23 +329,40 @@
   text-align: center;
 }
 
-/* v1.8 user directive (desktop only): two-column sections — the icon is its
-   own column, the text block sits beside it in the same row, both centered
-   only VERTICALLY; the text aligns to the right edge. The whole pair is ONE
-   fixed-width block CENTERED in the body (v1.8.1 fix — at full body width
-   the columns spread to the card edges and read as broken): every section
-   is the same width, so the icons align in one vertical column and all
-   text edges line up on the right. Mobile keeps the stacked centered
-   layout above (approved v1.5). The h3 is sr-only on desktop (the map
-   legend names the icons), so the text column is the list. */
+/* v1.9 user directive + Codex design review: two-column sections with the
+   icon on the RIGHT — right-aligned copy must terminate beside its visual
+   marker; a left icon + right text on a wide row leaves a dead hole in the
+   middle (the "still looks strange" diagnosis). The row is a fixed-width
+   460px block centered in the body (390px text column fits the longest
+   line without wrapping). Vertical rhythm is split in two: 7px within a
+   section's list, 28px between sections (they previously merged into one
+   undifferentiated column). Mobile keeps the stacked centered layout
+   (approved v1.5). The h3 is sr-only on desktop (the map legend names the
+   icons). */
 .panel-frame:not(.panel-mobile) .panel-section {
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: minmax(0, 390px) 52px; /* text | icon */
+  column-gap: 18px;
   align-items: center; /* vertical centering within the row */
-  gap: 20px;
-  width: min(560px, 100%);
+  width: min(460px, 100%);
   margin-left: auto;
   margin-right: auto;
+  margin-bottom: 28px; /* between-section rhythm */
   text-align: right;
+}
+
+.panel-frame:not(.panel-mobile) .panel-icon {
+  order: 2; /* icon column sits to the RIGHT of the text */
+  justify-self: center;
+}
+
+.panel-frame:not(.panel-mobile) .panel-section-content {
+  order: 1;
+}
+
+.panel-frame:not(.panel-mobile) .panel-section ul {
+  display: grid;
+  row-gap: 7px; /* within-section rhythm (vs 28px between sections) */
 }
 
 /* Real icon art (na cuia/icons/svg) — one per section. v1.2: centered layout,
