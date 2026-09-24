@@ -164,15 +164,17 @@
   outline-offset: 2px;
 }
 
+/* v1.10 proposal 4: the title connects to its content (was 8px margin +
+   24px padding = ~38px visual gap) */
 .panel h2 {
   flex: none;
   /* matches .panel-body's 28px padding so the title shares the body's
      content box; the extra symmetric 20px clears the absolute close
      button on the right without leaving the center axis */
-  margin: 0 48px 8px; /* 28 (body padding) + 20 (close-button clearance) */
+  margin: 0 48px 16px; /* 28 (body padding) + 20 (close-button clearance) */
   font-family: Fraunces, Georgia, serif;
   font-size: 24px;
-  line-height: 1.2;
+  line-height: 1.15;
   color: #304e23;
 }
 
@@ -329,40 +331,58 @@
   text-align: center;
 }
 
-/* v1.9 user directive + Codex design review: two-column sections with the
-   icon on the RIGHT — right-aligned copy must terminate beside its visual
-   marker; a left icon + right text on a wide row leaves a dead hole in the
-   middle (the "still looks strange" diagnosis). The row is a fixed-width
-   460px block centered in the body (390px text column fits the longest
-   line without wrapping). Vertical rhythm is split in two: 7px within a
-   section's list, 28px between sections (they previously merged into one
-   undifferentiated column). Mobile keeps the stacked centered layout
-   (approved v1.5). The h3 is sr-only on desktop (the map legend names the
+/* v1.10 — user-approved Codex proposals (icon LEFT + tighter rhythm):
+   diagnosis of v1.9: geometrically centered but not visually centered
+   (text/icons both sat right of the card axis), ~39px between one-line
+   items, stacked 18+28px section margins, icons vertically centered beside
+   arbitrary middle lines. Fixes: icon back on the LEFT, section
+   shrink-wrapped to its text (fit-content track) so the icon hugs the real
+   text edge — the v1.8 dead-middle hole can't return; top-aligned icon
+   reads as the section marker; line-height 1.35 + 2px list gap (~24px
+   cadence); single 14px between sections; title gap tightened. Text stays
+   right-aligned (not the problem). Mobile keeps the stacked centered
+   v1.5 layout. The h3 is sr-only on desktop (the map legend names the
    icons). */
 .panel-frame:not(.panel-mobile) .panel-section {
   display: grid;
-  grid-template-columns: minmax(0, 390px) 52px; /* text | icon */
-  column-gap: 18px;
-  align-items: center; /* vertical centering within the row */
-  width: min(460px, 100%);
+  grid-template-columns: 36px fit-content(390px); /* icon | text */
+  column-gap: 12px;
+  align-items: start; /* icon top-aligned = section marker */
+  width: max-content; /* shrink-wrap to the actual text */
+  max-width: calc(100% - 48px);
   margin-left: auto;
   margin-right: auto;
-  margin-bottom: 28px; /* between-section rhythm */
   text-align: right;
 }
 
+.panel-frame:not(.panel-mobile) .panel-section + .panel-section {
+  margin-top: 14px; /* the ONE between-section gap (replaces 18/28px stack) */
+}
+
 .panel-frame:not(.panel-mobile) .panel-icon {
-  order: 2; /* icon column sits to the RIGHT of the text */
+  width: 32px;
+  height: 40px;
   justify-self: center;
 }
 
 .panel-frame:not(.panel-mobile) .panel-section-content {
-  order: 1;
+  min-width: 0;
+  max-width: 390px;
 }
 
 .panel-frame:not(.panel-mobile) .panel-section ul {
   display: grid;
-  row-gap: 7px; /* within-section rhythm (vs 28px between sections) */
+  row-gap: 2px; /* within-section cadence (vs 14px between sections) */
+}
+
+.panel-frame:not(.panel-mobile) .panel-section li {
+  line-height: 1.35;
+}
+
+/* v1.10: the legacy em-margin would stack on the grid row-gap (31px
+   measured cadence instead of ~24px) — desktop uses the grid gap only. */
+.panel-frame:not(.panel-mobile) .panel-section li + li {
+  margin-top: 0;
 }
 
 /* Real icon art (na cuia/icons/svg) — one per section. v1.2: centered layout,
