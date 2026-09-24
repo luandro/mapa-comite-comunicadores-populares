@@ -159,6 +159,27 @@ describe('Panel (Phase 6)', () => {
     expect(document.querySelector('.panel-frame')!.classList.contains('panel-mobile')).toBe(true)
   })
 
+  // v1.7: the legend is a MAP overlay (rendered by App when !mobile), so the
+  // panel itself never contains one; desktop keeps its h3s sr-only (the map
+  // legend carries the names), mobile keeps them visible (approved v1.5).
+  it('desktop: no legend inside the panel; section h3s are sr-only but present', () => {
+    renderPanel(fullProject, () => {})
+    expect(document.querySelector('.panel-legend')).toBeNull()
+    expect(document.querySelector('.map-legend')).toBeNull()
+    const label = document.querySelector('.panel-section-label')!
+    expect(label.classList.contains('sr-only')).toBe(true)
+    expect(label.textContent).toBe('Conflitos')
+  })
+
+  it('mobile: no legend, labels stay visible (v1.5 layout)', () => {
+    renderPanel(fullProject, () => {}, true)
+    expect(document.querySelector('.panel-legend')).toBeNull()
+    expect(document.querySelector('.map-legend')).toBeNull()
+    const label = document.querySelector('.panel-section-label')!
+    expect(label.classList.contains('sr-only')).toBe(false)
+    expect(label.textContent).toBe('Conflitos')
+  })
+
   it('wave overlay renders inside the frame, aria-hidden, and unmounts on close', () => {
     const { rerender } = renderPanel(fullProject, () => {}, false)
     const overlay = document.querySelector('.panel-frame > .panel-waves-overlay')

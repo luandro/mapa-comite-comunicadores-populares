@@ -164,15 +164,17 @@
   outline-offset: 2px;
 }
 
+/* v1.10 proposal 4: the title connects to its content (was 8px margin +
+   24px padding = ~38px visual gap) */
 .panel h2 {
   flex: none;
   /* matches .panel-body's 28px padding so the title shares the body's
      content box; the extra symmetric 20px clears the absolute close
      button on the right without leaving the center axis */
-  margin: 0 48px 8px; /* 28 (body padding) + 20 (close-button clearance) */
+  margin: 0 48px 16px; /* 28 (body padding) + 20 (close-button clearance) */
   font-family: Fraunces, Georgia, serif;
   font-size: 24px;
-  line-height: 1.2;
+  line-height: 1.15;
   color: #304e23;
 }
 
@@ -237,14 +239,175 @@
   outline-offset: -3px;
 }
 
+/* ── v1.7 desktop MAP legend ────────────────────────────────────────────
+   The section key lives on the MAP (user directive): fixed bottom-left,
+   ALWAYS visible — including while the content panel is open (z-index 50,
+   above .panel-frame's 40). Desktop only: App.tsx mounts MapLegend when
+   !mobile, so on touch devices nothing renders (the approved v1.5 in-panel
+   labels stay). Same hand-drawn language as the old in-panel box: darker
+   cream fill, brown ink border, irregular radii, offset shadow. */
+.map-legend {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 50; /* above .panel-frame (40), below DEV toolbar (4000) */
+  max-width: min(240px, calc(100vw - 32px));
+  background: #f3ead2; /* the card's fade-zone cream — same paper family */
+  border: 2px solid #5a4632; /* the brown ink */
+  /* irregular radii: the hand-drawn language, smaller scale than the card */
+  border-radius: 10px 4px 12px 6px / 5px 11px 4px 13px;
+  box-shadow: 3px 4px 0 rgba(90, 70, 50, 0.18);
+  padding: 10px 12px 8px;
+  font-family: Archivo, system-ui, sans-serif;
+}
+
+.map-legend-title {
+  margin: 0 0 6px;
+  padding-bottom: 5px;
+  border-bottom: 1.5px dashed rgba(90, 70, 50, 0.45);
+  font-family: Fraunces, Georgia, serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #304e23;
+}
+
+.map-legend-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.map-legend-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 2px 0;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 15px;
+  line-height: 1.25;
+  color: #5a4632;
+}
+
+.map-legend-entry img {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.map-legend-entry span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Screen-reader-only utility (desktop v1.7: the map legend carries the
+   section names visually; the panel's h3s stay in the DOM for heading
+   navigation). Mobile renders the labels visibly (v1.5, approved). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .panel-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  /* v1.5: icon → heading spacing (heading is now VISIBLE below its icon) */
+  gap: 5px;
   margin: 18px 0;
   /* v1.2 user directive: content centered on the modal */
   text-align: center;
+}
+
+/* v1.11 — dual-consult consensus (Opus 5 + Codex gpt-5.6-sol both
+   diagnosed the same core defect): "aligned to the right" was a semantic
+   misread — the text COLUMN sits right of the icons, but list text itself
+   must be LEFT-aligned; six shrink-wrapped rows left no shared edge, so
+   every icon/text block floated independently. The fix is ONE shared
+   fixed-width grid: all sections participate in the same 52px icon rail +
+   1fr text rail (display:contents), so icons align in one exact column
+   and every text edge is shared — a calm field-guide list. Hanging dot
+   bullets (brown) and dashed section separators keep the hand-drawn
+   language and give a within/between rhythm. Mobile keeps the approved
+   v1.5 stacked centered layout. The h3 is sr-only on desktop (the map
+   legend names the icons). */
+.panel-frame:not(.panel-mobile) .panel-section {
+  display: contents; /* join the ONE shared grid below */
+}
+
+.panel-frame:not(.panel-mobile) .panel-section + .panel-section .panel-icon,
+.panel-frame:not(.panel-mobile) .panel-section + .panel-section .panel-section-content {
+  border-top: 1px dashed rgba(90, 70, 50, 0.2); /* section separator */
+}
+
+.panel-frame:not(.panel-mobile) .panel-section + .panel-section .panel-icon {
+  padding-top: 18px;
+}
+
+.panel-frame:not(.panel-mobile) .panel-section + .panel-section .panel-section-content {
+  padding-top: 18px;
+}
+
+.panel-frame:not(.panel-mobile) .panel-body {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.panel-frame:not(.panel-mobile) .panel-columns {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  column-gap: 20px;
+  row-gap: 0;
+  width: min(600px, 100%);
+  margin: 0 auto;
+  align-items: start; /* every icon top-aligns with its text block */
+}
+
+.panel-frame:not(.panel-mobile) .panel-icon {
+  justify-self: center;
+}
+
+.panel-frame:not(.panel-mobile) .panel-section-content {
+  min-width: 0;
+}
+
+.panel-frame:not(.panel-mobile) .panel-section ul {
+  display: block;
+  text-align: left; /* the chronic defect — fixed at last */
+}
+
+.panel-frame:not(.panel-mobile) .panel-section li {
+  position: relative;
+  padding-left: 16px; /* hanging indent for the dot bullet */
+  line-height: 1.5;
+  margin: 0;
+}
+
+.panel-frame:not(.panel-mobile) .panel-section li + li {
+  margin-top: 6px;
+}
+
+.panel-frame:not(.panel-mobile) .panel-section li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.65em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #5a4632; /* the brown ink */
 }
 
 /* Real icon art (na cuia/icons/svg) — one per section. v1.2: centered layout,
@@ -262,26 +425,20 @@
 }
 
 .panel-section h3 {
-  margin: 0 0 2px;
+  /* v1.5: visible heading — 6px before the section content (with the 5px
+     column gap: icon → label = 5px, label → content = 6px, per directive) */
+  margin: 0 0 6px;
   font-family: Fraunces, Georgia, serif;
   font-size: 17px;
   line-height: 1.3;
   color: #5a4632;
 }
 
-/* Screen-reader-only: the mock shows NO visible section headings — the icon
-   carries the meaning visually; the h3 stays for the accessibility tree. */
+/* v1.5 user directive: section headings are VISIBLE — each icon carries its
+   label directly beneath it (was sr-only in v1.2; the mock's icon-only
+   reading is superseded). Brown Fraunces styling unchanged. */
 .panel-section-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
+  margin: 0;
 }
 
 .panel-section ul {

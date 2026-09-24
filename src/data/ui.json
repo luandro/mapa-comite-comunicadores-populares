@@ -25,6 +25,7 @@
     "openMenu": "Abrir menu do projeto",
     "aboutProject": "Sobre o projeto",
     "closeMenu": "Fechar menu",
-    "closePanel": "Fechar painel"
+    "closePanel": "Fechar painel",
+    "legendTitle": "Legenda"
   }
 }

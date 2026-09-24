@@ -194,6 +194,14 @@ export const TEXTOS_ROWS: TextosRow[] = [
     },
   },
   {
+    key: 'rotulo.legenda',
+    onde: 'Título da caixa de legenda no painel (desktop)',
+    get: (u) => u.labels.legendTitle ?? '',
+    set: (u, v) => {
+      u.labels.legendTitle = v
+    },
+  },
+  {
     key: 'rotulo.principal',
     onde: 'Acessibilidade: nome da região principal',
     get: (u) => u.labels.main ?? '',

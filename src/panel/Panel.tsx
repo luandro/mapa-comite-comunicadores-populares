@@ -11,47 +11,16 @@
  */
 import { useCallback, useEffect, useRef } from 'react'
 import { SECTION_KEYS, type Project } from '../data/types'
+import { SECTION_ICONS, sectionLabel } from './sections'
 import { ui } from '../data/ui'
-import icone1 from '/na cuia/icons/svg/icone 1.svg?url'
-import icone2 from '/na cuia/icons/svg/icone 2.svg?url'
-import icone3 from '/na cuia/icons/svg/icone 3.svg?url'
-import icone4 from '/na cuia/icons/svg/icone 4.svg?url'
-import icone5 from '/na cuia/icons/svg/icone 5.svg?url'
-import icone7 from '/na cuia/icons/svg/icone 7.svg?url'
 import onda1 from '/na cuia/icons/svg/onda 1.svg?scene'
 import onda2 from '/na cuia/icons/svg/onda 2.svg?scene'
 import onda4 from '/na cuia/icons/svg/onda 4.svg?scene'
-
-/** pt-BR headings live in `ui.json` (`sectionLabels`) — content-editable via
- * the spreadsheet pipeline; whitelisted section keys in contract order
- * (AGENTS §9). A missing label is a hard error, never a silent fallback. */
-function sectionLabel(key: (typeof SECTION_KEYS)[number]): string {
-  const label = ui.sectionLabels[key]
-  if (typeof label !== 'string' || label.length === 0) {
-    throw new Error(`Panel: missing ui.sectionLabels.${key} (run content:import?)`)
-  }
-  return label
-}
 
 /** The scene's deselect fly-back duration (mount.ts UNFOCUS_DURATION, s→ms).
  * Focus restoration waits this out so the restored focus (:focus-visible)
  * cannot re-trigger the artifact focus-flight mid-fly and cancel it. */
 const UNFOCUS_SETTLE_MS = 650
-
-/**
- * Authored section glyphs (§1) — the REAL icon art from `na cuia/icons/svg/`
- * (same set the scene uses), one per whitelisted section. v1.2 centered
- * layout: each icon sits above its centered text block. Plain `?url` imports
- * — assets only, never inlined into the scene (AGENTS invariant 3).
- */
-const SECTION_ICONS: Record<(typeof SECTION_KEYS)[number], string> = {
-  conflitos: icone2, // lightning — conflict/energy
-  acao: icone5, // green leaves — action/growth
-  identificacao_e_territorio: icone4, // carved territory marker — land
-  futuro: icone7, // sprout — what is coming
-  memoria: icone3, // totem — memory/ancestry
-  identidade: icone1, // the cuia itself — identity
-}
 
 /**
  * Wave footer (SPEC §8 art direction) — the REAL `onda` gradient bands from
@@ -289,20 +258,32 @@ export function Panel({
             ×
           </button>
           <h2 id="panel-heading">{project.name}</h2>
+          {/* v1.7: the desktop legend moved OUT of the panel — it lives on
+              the map (MapLegend, always visible). The body is the plain
+              single column again; desktop section h3s are sr-only (the map
+              legend carries the names visually), mobile keeps visible labels
+              (the approved v1.5 layout). */}
           <div className="panel-body" tabIndex={0}>
-            {sections.map(({ key, items }) => (
-              <section key={key} className="panel-section">
-                <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
-                <div className="panel-section-content">
-                  <h3 className="panel-section-label">{sectionLabel(key)}</h3>
-                  <ul>
-                    {items.map((item, i) => (
-                      <li key={i}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              </section>
-            ))}
+            {/* v1.11: the ONE shared grid — all sections join it via
+                display:contents, so every icon sits in the same 52px rail
+                and every text edge is shared (dual-consult consensus). */}
+            <div className="panel-columns">
+              {sections.map(({ key, items }) => (
+                <section key={key} className="panel-section">
+                  <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
+                  <div className="panel-section-content">
+                    <h3 className={mobile ? 'panel-section-label' : 'panel-section-label sr-only'}>
+                      {sectionLabel(key)}
+                    </h3>
+                    <ul>
+                      {items.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              ))}
+            </div>
           </div>
         </div>
         {/* v1.2 user directive: the waves straddle the card's bottom edge —
