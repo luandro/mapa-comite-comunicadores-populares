@@ -11,47 +11,16 @@
  */
 import { useCallback, useEffect, useRef } from 'react'
 import { SECTION_KEYS, type Project } from '../data/types'
+import { SECTION_ICONS, sectionLabel } from './sections'
 import { ui } from '../data/ui'
-import icone1 from '/na cuia/icons/svg/icone 1.svg?url'
-import icone2 from '/na cuia/icons/svg/icone 2.svg?url'
-import icone3 from '/na cuia/icons/svg/icone 3.svg?url'
-import icone4 from '/na cuia/icons/svg/icone 4.svg?url'
-import icone5 from '/na cuia/icons/svg/icone 5.svg?url'
-import icone7 from '/na cuia/icons/svg/icone 7.svg?url'
 import onda1 from '/na cuia/icons/svg/onda 1.svg?scene'
 import onda2 from '/na cuia/icons/svg/onda 2.svg?scene'
 import onda4 from '/na cuia/icons/svg/onda 4.svg?scene'
-
-/** pt-BR headings live in `ui.json` (`sectionLabels`) — content-editable via
- * the spreadsheet pipeline; whitelisted section keys in contract order
- * (AGENTS §9). A missing label is a hard error, never a silent fallback. */
-function sectionLabel(key: (typeof SECTION_KEYS)[number]): string {
-  const label = ui.sectionLabels[key]
-  if (typeof label !== 'string' || label.length === 0) {
-    throw new Error(`Panel: missing ui.sectionLabels.${key} (run content:import?)`)
-  }
-  return label
-}
 
 /** The scene's deselect fly-back duration (mount.ts UNFOCUS_DURATION, s→ms).
  * Focus restoration waits this out so the restored focus (:focus-visible)
  * cannot re-trigger the artifact focus-flight mid-fly and cancel it. */
 const UNFOCUS_SETTLE_MS = 650
-
-/**
- * Authored section glyphs (§1) — the REAL icon art from `na cuia/icons/svg/`
- * (same set the scene uses), one per whitelisted section. v1.2 centered
- * layout: each icon sits above its centered text block. Plain `?url` imports
- * — assets only, never inlined into the scene (AGENTS invariant 3).
- */
-const SECTION_ICONS: Record<(typeof SECTION_KEYS)[number], string> = {
-  conflitos: icone2, // lightning — conflict/energy
-  acao: icone5, // green leaves — action/growth
-  identificacao_e_territorio: icone4, // carved territory marker — land
-  futuro: icone7, // sprout — what is coming
-  memoria: icone3, // totem — memory/ancestry
-  identidade: icone1, // the cuia itself — identity
-}
 
 /**
  * Wave footer (SPEC §8 art direction) — the REAL `onda` gradient bands from
@@ -162,7 +131,6 @@ export function Panel({
 }: PanelProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
-  const bodyRef = useRef<HTMLDivElement>(null)
   const restoreFocusRef = useRef<HTMLElement | null>(null)
   const restoreTimer = useRef<number | null>(null)
   const open = project !== null
@@ -256,29 +224,6 @@ export function Panel({
 
   const handleClose = useCallback(() => onClose(), [onClose])
 
-  /**
-   * Legend jump (v1.6 desktop): scroll the body to the section block and move
-   * focus to it (focus must follow the view — WCAG 2.4.3). `preventScroll`
-   * keeps the programmatic focus from fighting the smooth scroll; the offset
-   * is hand-tuned breathing room, not magic alignment.
-   */
-  const jumpToSection = useCallback((key: (typeof SECTION_KEYS)[number]) => {
-    const body = bodyRef.current
-    const target = body?.querySelector<HTMLElement>(`#panel-sec-${key}`)
-    if (!body || !target) return
-    const reduce =
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    // jsdom ships no Element.scrollTo — feature-check, never assume.
-    if (typeof body.scrollTo === 'function') {
-      body.scrollTo({
-        top: target.offsetTop - body.offsetTop - 12,
-        behavior: reduce ? 'auto' : 'smooth',
-      })
-    }
-    target.focus({ preventScroll: true })
-  }, [])
-
   if (project === null) return null
 
   const sections = SECTION_KEYS.map((key) => ({ key, items: project[key] })).filter(
@@ -313,60 +258,27 @@ export function Panel({
             ×
           </button>
           <h2 id="panel-heading">{project.name}</h2>
-          {/* v1.6 desktop legend: on desktop the columns wrapper holds the
-              legend aside + the scrolling body side by side; on mobile it is
-              a plain flex pass-through and the legend is NOT rendered at all
-              (DOM parity with the v1.5 layout the user approved). */}
-          <div className={mobile ? 'panel-columns' : 'panel-columns panel-columns-legend'}>
-            {!mobile && (
-              <aside className="panel-legend-col" aria-labelledby="panel-legend-title">
-                <div className="panel-legend">
-                  <h3 id="panel-legend-title" className="panel-legend-title">
-                    {ui.labels.legendTitle}
+          {/* v1.7: the desktop legend moved OUT of the panel — it lives on
+              the map (MapLegend, always visible). The body is the plain
+              single column again; desktop section h3s are sr-only (the map
+              legend carries the names visually), mobile keeps visible labels
+              (the approved v1.5 layout). */}
+          <div className="panel-body" tabIndex={0}>
+            {sections.map(({ key, items }) => (
+              <section key={key} className="panel-section">
+                <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
+                <div className="panel-section-content">
+                  <h3 className={mobile ? 'panel-section-label' : 'panel-section-label sr-only'}>
+                    {sectionLabel(key)}
                   </h3>
-                  <ul className="panel-legend-list">
-                    {sections.map(({ key }) => (
-                      <li key={key}>
-                        <button
-                          type="button"
-                          className="panel-legend-entry"
-                          onClick={() => jumpToSection(key)}
-                        >
-                          <img src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
-                          <span>{sectionLabel(key)}</span>
-                        </button>
-                      </li>
+                  <ul>
+                    {items.map((item, i) => (
+                      <li key={i}>{item}</li>
                     ))}
                   </ul>
                 </div>
-              </aside>
-            )}
-            <div ref={bodyRef} className="panel-body" tabIndex={0}>
-              {sections.map(({ key, items }) => (
-                <section
-                  key={key}
-                  id={`panel-sec-${key}`}
-                  tabIndex={-1}
-                  className="panel-section"
-                  aria-labelledby={`panel-h-${key}`}
-                >
-                  <img className="panel-icon" src={SECTION_ICONS[key]} alt="" aria-hidden="true" />
-                  <div className="panel-section-content">
-                    <h3
-                      id={`panel-h-${key}`}
-                      className={mobile ? 'panel-section-label' : 'panel-section-label sr-only'}
-                    >
-                      {sectionLabel(key)}
-                    </h3>
-                    <ul>
-                      {items.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </section>
-              ))}
-            </div>
+              </section>
+            ))}
           </div>
         </div>
         {/* v1.2 user directive: the waves straddle the card's bottom edge —

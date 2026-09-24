@@ -237,44 +237,31 @@
   outline-offset: -3px;
 }
 
-/* ── v1.6 desktop legend ────────────────────────────────────────────────
-   Desktop: the columns wrapper holds the legend aside (left, FIXED — it
-   stays visible while the content scrolls, like a map legend on the sheet
-   edge) + the scrolling body (right). Mobile: plain pass-through wrapper,
-   legend not rendered (user approved mobile as-is). Left placement keeps
-   the close button + scrollbar clear on the right (Opus 5 design round). */
-.panel-columns {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.panel-columns-legend {
-  flex-direction: row;
-}
-
-.panel-legend-col {
-  flex: 0 0 208px;
-  min-height: 0;
-  overflow-y: auto; /* short-viewport safety: legend scrolls on its own */
-  /* 72px bottom = the same wave-ink clearance the body carries */
-  padding: 18px 0 72px 28px;
-  text-align: left;
-}
-
-.panel-legend {
+/* ── v1.7 desktop MAP legend ────────────────────────────────────────────
+   The section key lives on the MAP (user directive): fixed bottom-left,
+   ALWAYS visible — including while the content panel is open (z-index 50,
+   above .panel-frame's 40). Desktop only: App.tsx mounts MapLegend when
+   !mobile, so on touch devices nothing renders (the approved v1.5 in-panel
+   labels stay). Same hand-drawn language as the old in-panel box: darker
+   cream fill, brown ink border, irregular radii, offset shadow. */
+.map-legend {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 50; /* above .panel-frame (40), below DEV toolbar (4000) */
+  max-width: min(240px, calc(100vw - 32px));
   background: #f3ead2; /* the card's fade-zone cream — same paper family */
   border: 2px solid #5a4632; /* the brown ink */
   /* irregular radii: the hand-drawn language, smaller scale than the card */
   border-radius: 10px 4px 12px 6px / 5px 11px 4px 13px;
   box-shadow: 3px 4px 0 rgba(90, 70, 50, 0.18);
-  padding: 12px 12px 10px;
+  padding: 10px 12px 8px;
+  font-family: Archivo, system-ui, sans-serif;
 }
 
-.panel-legend-title {
-  margin: 0 0 8px;
-  padding-bottom: 6px;
+.map-legend-title {
+  margin: 0 0 6px;
+  padding-bottom: 5px;
   border-bottom: 1.5px dashed rgba(90, 70, 50, 0.45);
   font-family: Fraunces, Georgia, serif;
   font-size: 13px;
@@ -285,78 +272,39 @@
   color: #304e23;
 }
 
-.panel-legend-list {
+.map-legend-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.panel-legend-entry {
+.map-legend-entry {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  min-height: 40px;
-  padding: 4px 6px;
-  border: 0;
-  border-radius: 8px 5px 9px 4px; /* organic, like the close button */
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
+  min-height: 34px;
+  padding: 2px 0;
   font-family: Fraunces, Georgia, serif;
   font-size: 15px;
   line-height: 1.25;
   color: #5a4632;
 }
 
-.panel-legend-entry img {
+.map-legend-entry img {
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
 }
 
-.panel-legend-entry span {
+.map-legend-entry span {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.panel-legend-entry:hover {
-  background: rgba(48, 78, 35, 0.08);
-}
-
-.panel-legend-entry:focus-visible {
-  outline: 2px solid #304e23;
-  outline-offset: 1px;
-}
-
-/* In the row layout the body must be allowed to shrink (min-width: 0) or a
-   138-char string widens the column and forces horizontal scroll. */
-.panel-columns-legend .panel-body {
-  min-width: 0;
-}
-
-/* Desktop blocks: the label moved to the legend — the icon becomes a
-   map-style symbol above its text block (40px, was 52px). */
-.panel-columns-legend .panel-icon {
-  width: 40px;
-  height: 40px;
-}
-
-/* Programmatic jump target (legend click): section receives focus, so the
-   default focus ring must not flash — keyboard users still get a visible
-   dashed ring via :focus-visible below. */
-.panel-section:focus {
-  outline: none;
-}
-
-.panel-section:focus-visible {
-  outline: 2px dashed #304e23;
-  outline-offset: 4px;
-}
-
-/* Screen-reader-only utility (desktop v1.6: section h3s are visually
-   carried by the legend; they stay in the DOM for heading navigation). */
+/* Screen-reader-only utility (desktop v1.7: the map legend carries the
+   section names visually; the panel's h3s stay in the DOM for heading
+   navigation). Mobile renders the labels visibly (v1.5, approved). */
 .sr-only {
   position: absolute;
   width: 1px;

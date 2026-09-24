@@ -16,6 +16,7 @@ import { comiteData } from './data/load'
 import type { Project } from './data/types'
 import { ui } from './data/ui'
 import { Controls } from './panel/Controls'
+import { MapLegend } from './panel/MapLegend'
 import { Panel } from './panel/Panel'
 import { isMobile } from './device'
 import { mountScene, type SceneController } from './scene/mount'
@@ -413,6 +414,9 @@ export default function App() {
         onZoomOut={() => controllerRef.current?.zoomBy(1 / 1.4)}
         onReset={() => controllerRef.current?.reset()}
       />
+      {/* v1.7 desktop map legend: bottom-left, ALWAYS visible — including
+          while the panel is open (its z-index sits above .panel-frame). */}
+      {!mobile && <MapLegend />}
       <TitleOverlay />
     </main>
   )

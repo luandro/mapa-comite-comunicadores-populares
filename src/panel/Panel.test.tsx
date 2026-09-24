@@ -159,40 +159,25 @@ describe('Panel (Phase 6)', () => {
     expect(document.querySelector('.panel-frame')!.classList.contains('panel-mobile')).toBe(true)
   })
 
-  // v1.6 desktop legend: entries mirror the non-empty sections and jump to
-  // their block; mobile keeps the v1.5 DOM (no legend at all).
-  it('desktop: legend has one entry per non-empty section', () => {
+  // v1.7: the legend is a MAP overlay (rendered by App when !mobile), so the
+  // panel itself never contains one; desktop keeps its h3s sr-only (the map
+  // legend carries the names), mobile keeps them visible (approved v1.5).
+  it('desktop: no legend inside the panel; section h3s are sr-only but present', () => {
     renderPanel(fullProject, () => {})
-    const entries = Array.from(document.querySelectorAll('.panel-legend-entry')).map(
-      (b) => b.textContent,
-    )
-    // futuro/memória are empty → absent from the legend too
-    expect(entries).toEqual(['Conflitos', 'Ação', 'Identificação e território', 'Identidade'])
-  })
-
-  it('desktop: legend entry click moves focus to its section block', () => {
-    renderPanel(fullProject, () => {})
-    const entries = document.querySelectorAll('.panel-legend-entry')
-    act(() => {
-      ;(entries[entries.length - 1] as HTMLElement).click() // "Identidade"
-    })
-    expect(document.activeElement).toBe(document.getElementById('panel-sec-identidade'))
-  })
-
-  it('mobile: no legend in the DOM at all', () => {
-    renderPanel(fullProject, () => {}, true)
     expect(document.querySelector('.panel-legend')).toBeNull()
-    // labels stay visible on mobile (user-approved v1.5 layout)
-    const label = document.querySelector('.panel-section-label')!
-    expect(label.classList.contains('sr-only')).toBe(false)
-  })
-
-  it('desktop: section h3s are sr-only but present for heading navigation', () => {
-    renderPanel(fullProject, () => {})
+    expect(document.querySelector('.map-legend')).toBeNull()
     const label = document.querySelector('.panel-section-label')!
     expect(label.classList.contains('sr-only')).toBe(true)
     expect(label.textContent).toBe('Conflitos')
-    expect(document.getElementById('panel-legend-title')!.textContent).toBe('Legenda')
+  })
+
+  it('mobile: no legend, labels stay visible (v1.5 layout)', () => {
+    renderPanel(fullProject, () => {}, true)
+    expect(document.querySelector('.panel-legend')).toBeNull()
+    expect(document.querySelector('.map-legend')).toBeNull()
+    const label = document.querySelector('.panel-section-label')!
+    expect(label.classList.contains('sr-only')).toBe(false)
+    expect(label.textContent).toBe('Conflitos')
   })
 
   it('wave overlay renders inside the frame, aria-hidden, and unmounts on close', () => {

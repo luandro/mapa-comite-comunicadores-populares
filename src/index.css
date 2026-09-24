@@ -195,6 +195,8 @@ html.intro-done .app-title {
    pointers): the title stays on screen, so the about entry point is a small
    hand-drawn info button in the TOP-RIGHT corner instead of the burger. Same
    paper palette + wobbly-border language as .app-controls; always visible.
+   Desktop v1.7: the .map-legend anchor sits bottom-LEFT — the controls keep
+   bottom-right (no overlap).
    DESKTOP-ONLY scope: the base rules below apply only where .app-title uses
    its wide desktop width (≥ 641px); the ≤ 640px media query (mobile layout)
    never renders this button — TitleOverlay gates it on isMobile(). */
