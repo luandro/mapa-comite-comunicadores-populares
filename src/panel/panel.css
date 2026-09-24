@@ -329,6 +329,18 @@
   text-align: center;
 }
 
+/* v1.8 user directive (desktop only): two-column sections — the icon is its
+   own column, the text block sits beside it in the same row, both centered
+   only VERTICALLY; the text aligns to the right edge. Mobile keeps the
+   stacked centered layout above (approved v1.5). The h3 is sr-only on
+   desktop (the map legend names the icons), so the text column is the list. */
+.panel-frame:not(.panel-mobile) .panel-section {
+  flex-direction: row;
+  align-items: center; /* vertical centering within the row */
+  gap: 20px;
+  text-align: right;
+}
+
 /* Real icon art (na cuia/icons/svg) — one per section. v1.2: centered layout,
    icon sits above its centered text block. */
 .panel-icon {
