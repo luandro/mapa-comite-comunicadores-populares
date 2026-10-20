@@ -1,6 +1,6 @@
 {
-  "titleLines": ["Mapeamento de 25 Coletivos do", "Comitê de Comunicadores Populares"],
-  "about": "O Na Cuia mapeia 11 coletivos de comunicadores populares de Belém, Ananindeua e Moju (Pará), integrantes do Comitê de Comunicadores Populares. Cada totem no mapa representa um coletivo: toque nele para conhecer seus conflitos, ações, território, futuro, memória e identidade.",
+  "titleLines": ["Mapa de Referências Culturais Vivas", "Comitê de Comunicadores Populares"],
+  "about": "A Na Cuia apresenta o mapeamento de Referências Culturais Viva, produto do projeto Comitê de comunicadores populares que mapeou iniciativas em Belém, Ananindeua e Moju (Pará), Cada totem no mapa representa um coletivo: toque nele para conhecer seus conflitos, ações, território, futuro, memória e identidade. Essa construção é continua e queremos evidenciar o quanto o território é fundamental no combate ao racismo ambiental e na incidência por justiça climática.",
   "mapNames": {
     "ananindeua": "Ananindeua",
     "belem": "Belém",
@@ -14,8 +14,8 @@
     "memoria": "Memória",
     "identidade": "Identidade"
   },
-  "docTitle": "Na Cuia · Mapa do Comitê de Comunicadores Populares",
-  "metaDescription": "Mapa interativo ilustrado dos coletivos de comunicadores populares de Belém, Ananindeua e Moju",
+  "docTitle": "Na Cuia · Mapa de Referências Culturais Vivas",
+  "metaDescription": "Mapa de Referências Culturais Vivas - Na Cuia",
   "labels": {
     "main": "Mapa Na Cuia",
     "controlsGroup": "Controles do mapa",
@@ -26,6 +26,13 @@
     "aboutProject": "Sobre o projeto",
     "closeMenu": "Fechar menu",
     "closePanel": "Fechar painel",
-    "legendTitle": "Legenda"
+    "legendTitle": "Legenda",
+    "socialLinks": "Redes sociais",
+    "lifeStories": "Histórias de vida",
+    "instagram": "Instagram",
+    "website": "Site",
+    "instagramPost": "Publicação no Instagram",
+    "article": "Reportagem",
+    "newTab": "abre em nova aba"
   }
 }

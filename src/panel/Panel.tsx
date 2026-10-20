@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { SECTION_KEYS, type Project } from '../data/types'
 import { SECTION_ICONS, sectionLabel } from './sections'
+import { ProjectProfile } from './ProjectProfile'
 import { ui } from '../data/ui'
 import onda1 from '/na cuia/icons/svg/onda 1.svg?scene'
 import onda2 from '/na cuia/icons/svg/onda 2.svg?scene'
@@ -264,6 +265,9 @@ export function Panel({
               legend carries the names visually), mobile keeps visible labels
               (the approved v1.5 layout). */}
           <div className="panel-body" tabIndex={0}>
+            {/* v1.12: mini-bio + social/story links — top of the body, before
+                the thematic grid (visible without scrolling). */}
+            <ProjectProfile project={project} />
             {/* v1.11: the ONE shared grid — all sections join it via
                 display:contents, so every icon sits in the same 52px rail
                 and every text edge is shared (dual-consult consensus). */}

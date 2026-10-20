@@ -1,4 +1,5 @@
 import { POS_MARGIN, SCENE_HEIGHT, SCENE_WIDTH } from './constants'
+import { normalizeHttpUrl } from './links'
 import {
   SECTION_KEYS,
   type CityMap,
@@ -11,7 +12,15 @@ import {
 
 export const DEFAULT_ICON = 'icone-6'
 
-const PROJECT_KEY_LIST = ['name', 'icon', 'pos', ...SECTION_KEYS]
+const PROJECT_KEY_LIST = [
+  'name',
+  'icon',
+  'pos',
+  'miniBio',
+  'socialLinks',
+  'lifeStories',
+  ...SECTION_KEYS,
+]
 const SECTION_KEY_LIST = SECTION_KEYS as readonly string[]
 
 function fail(path: string, message: string): never {
@@ -123,6 +132,28 @@ function validateProject(path: string, value: unknown): Project {
   const project: Project = { name, ...sections }
   if (value.icon !== undefined) project.icon = validateIcon(path, value.icon)
   if (value.pos !== undefined) project.pos = validatePos(`${path}.pos`, value.pos)
+  // v1.12 profile fields: optional, validated strictly (a bad URL is a
+  // content error, never silently dropped).
+  if (value.miniBio !== undefined) {
+    if (typeof value.miniBio !== 'string' || value.miniBio.trim().length === 0) {
+      fail(`${path}.miniBio`, 'expected a non-empty string')
+    }
+    project.miniBio = value.miniBio
+  }
+  for (const field of ['socialLinks', 'lifeStories'] as const) {
+    const raw = value[field]
+    if (raw === undefined) continue
+    const list = validateStringArray(`${path}.${field}`, raw)
+    const normalized: string[] = []
+    list.forEach((link, i) => {
+      const url = normalizeHttpUrl(link)
+      if (url === null) {
+        fail(`${path}.${field}[${i}]`, `not an absolute http(s) URL: "${link}"`)
+      }
+      normalized.push(url)
+    })
+    if (normalized.length > 0) project[field] = normalized
+  }
   return project
 }
 

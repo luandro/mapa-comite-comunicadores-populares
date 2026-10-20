@@ -47,7 +47,8 @@
             "Recife",
             "Manaus",
             "Rio de Janeiro (RJ)"
-          ]
+          ],
+          "socialLinks": ["https://www.instagram.com/afro_amazonida/"]
         },
         "centro_educacao_popular": {
           "name": "CENTRO DE EDUCAÇÃO POPULAR E CULTURA DOMINGOS DA SILVA (C.E.P.C.D.S)",
@@ -121,7 +122,14 @@
             "Tacacá com Carimbó: O Sabor da Justiça Climática",
             "Pedal Manifesto Perifa na Pista"
           ],
-          "identidade": ["Mapinguarí", "Batuque da lua crescente", "Paraciclo"]
+          "identidade": ["Mapinguarí", "Batuque da lua crescente", "Paraciclo"],
+          "miniBio": "Um ponto de encontro para fortalecer a comunidade. Acolhimento, Afeto e Cultura na Periferia 🧡. 🎬 Cinema, Arte e cultura.",
+          "socialLinks": ["https://www.instagram.com/espacoculturalruthcosta/"],
+          "lifeStories": [
+            "https://www.instagram.com/p/DcO1n0SlNZX/?img_index=1",
+            "https://nacuia.org/pt_br/dia-nacional-do-ciclista-ruth-costa-faz-do-pedal-uma-ferramenta-de-luta-e-transformacao-nas-periferias/",
+            "https://nacuia.org/pt_br/espaco-cultural-ruth-costa-lanca-formacao-em-mobilidade-antirracista-voltada-as-periferias-de-belem/"
+          ]
         }
       }
     },
@@ -167,7 +175,8 @@
             "Inês Medeiros",
             "Rafael Serrão",
             "Andrey Leão"
-          ]
+          ],
+          "socialLinks": ["https://www.instagram.com/museumemorialviladabarca/"]
         },
         "na_cuia": {
           "name": "NA CUIA",
@@ -194,7 +203,8 @@
           ],
           "futuro": [],
           "memoria": [],
-          "identidade": []
+          "identidade": [],
+          "socialLinks": ["https://www.instagram.com/nacuia_org/"]
         },
         "cooperativa_audiovisual_caba": {
           "name": "COOPERATIVA DE AUDIOVISUAL, BEM VIVER E ARTE (CABA)",
@@ -272,6 +282,13 @@
             "Adilson (Jurunas)",
             "Renata",
             "Roma"
+          ],
+          "miniBio": "⭐Quadrilha junina LGBTQIA+ 🌈💥Fundada em 2000✨🏹da baixada do marco pro 🌎 25 anus de história, resistência, cultura e arte na perferia de Belém (PA)",
+          "socialLinks": ["https://www.instagram.com/fogonoraboquadrilha/"],
+          "lifeStories": [
+            "https://www.instagram.com/p/DaBe3uQFOx3/?img_index=1",
+            "https://nacuia.org/pt_br/sem-quadrilha-nas-ruas-fogo-no-rabo-realiza-festividade-junina-lgbtqiapn-em-meio-a-crise-na-cultura-em-belem/",
+            "https://nacuia.org/pt_br/cultura-popular-e-lgbtqiapn-resiste-quadrilha-fogo-no-rabo-realiza-5a-festividade-junina-neste-sabado-13-com-apoio-coletivo/"
           ]
         },
         "hip_hop": {
@@ -310,7 +327,13 @@
             "Criar a casa do Hip-Hop"
           ],
           "memoria": ["Festival Hip-Hop Pai d’égua em novembro"],
-          "identidade": ["Roberta", "RMY", "Larix", "Tinta Preta", "Mina Ribeirinha"]
+          "identidade": ["Roberta", "RMY", "Larix", "Tinta Preta", "Mina Ribeirinha"],
+          "miniBio": "Hip-Hop na Amazônia Paraense | 5 elementos + Justiça socioambiental + empreendedorismo = melhoria pras quebradas",
+          "socialLinks": ["https://www.instagram.com/hiphopaidegua/"],
+          "lifeStories": [
+            "https://nacuia.org/pt_br/bengui-ganha-museu-de-graffiti-a-ceu-aberto-com-inauguracao-no-festival-bengola-em-cores/",
+            "https://www.instagram.com/p/DZImV16JIP8/"
+          ]
         },
         "rede_casacura": {
           "name": "REDE CASACURA (Comunidade do Açaizal / Jaderlândia)",
@@ -380,7 +403,8 @@
             "Guamá",
             "Telégrafo",
             "Terra Firme"
-          ]
+          ],
+          "socialLinks": ["https://www.instagram.com/redecasacura/"]
         },
         "chibe": {
           "name": "CHIBÉ",
@@ -427,7 +451,8 @@
             "Silvia (Cruzeiro)",
             "Andressa (Águas negras)",
             "Tayna (Tenoné)"
-          ]
+          ],
+          "socialLinks": ["https://www.instagram.com/coletivochibe/"]
         }
       }
     },
@@ -492,7 +517,10 @@
             "Guamá",
             "Jurunas",
             "Ananindeua"
-          ]
+          ],
+          "miniBio": "A Associação ARQUIBAGUA é uma organização que abrange quatro comunidades quilombolas ribeirinhas do município de Moju na região do Tocantins no Pará. A Associação desenvolve atividades culturais e educativas voltadas para o fortalecimento da identidade quilombola e para a reivindicação de políticas públicas para o território",
+          "socialLinks": ["https://www.instagram.com/quilomboarquibagua/"],
+          "lifeStories": ["https://www.instagram.com/p/DO3KE-vgDdj/"]
         }
       }
     }

@@ -191,3 +191,47 @@ describe('validateComiteData — pos validation', () => {
     expect(() => validateComiteData(dataWith(project))).toThrow('pos.from[0].surpresa')
   })
 })
+
+describe('validateComiteData — v1.12 profile fields', () => {
+  it('preserves miniBio, socialLinks and lifeStories', () => {
+    const data = validateComiteData(
+      dataWith({
+        ...baseProject(),
+        miniBio: 'Uma bio curta.',
+        socialLinks: ['https://www.instagram.com/org/'],
+        lifeStories: ['https://nacuia.org/pt_br/reportagem/'],
+      }),
+    )
+    const project = data.maps.belem.projects.test_org!
+    expect(project.miniBio).toBe('Uma bio curta.')
+    expect(project.socialLinks).toEqual(['https://www.instagram.com/org/'])
+    expect(project.lifeStories).toEqual(['https://nacuia.org/pt_br/reportagem/'])
+  })
+
+  it('accepts a project without any profile fields (older data.json)', () => {
+    const data = validateComiteData(dataWith(baseProject()))
+    const project = data.maps.belem.projects.test_org!
+    expect(project.miniBio).toBeUndefined()
+    expect(project.socialLinks).toBeUndefined()
+    expect(project.lifeStories).toBeUndefined()
+  })
+
+  it('throws on an empty miniBio', () => {
+    expect(() => validateComiteData(dataWith({ ...baseProject(), miniBio: '   ' }))).toThrow(
+      'miniBio',
+    )
+  })
+
+  it('normalizes a raw pipe in stored links (export separator safety)', () => {
+    const data = validateComiteData(
+      dataWith({ ...baseProject(), lifeStories: ['https://example.com/a|b'] }),
+    )
+    expect(data.maps.belem.projects.test_org!.lifeStories).toEqual(['https://example.com/a%7Cb'])
+  })
+
+  it('throws on a non-http link', () => {
+    expect(() =>
+      validateComiteData(dataWith({ ...baseProject(), socialLinks: ['javascript:alert(1)'] })),
+    ).toThrow('not an absolute http(s) URL')
+  })
+})

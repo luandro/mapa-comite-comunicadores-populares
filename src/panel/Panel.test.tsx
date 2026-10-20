@@ -180,6 +180,44 @@ describe('Panel (Phase 6)', () => {
     expect(label.textContent).toBe('Conflitos')
   })
 
+  // v1.12 profile block: mini-bio + social/story links at the top of the body.
+  it('renders bio, social links and story links with safe external attrs', () => {
+    const withProfile: Project = {
+      ...fullProject,
+      miniBio: 'Bio curta do coletivo.',
+      socialLinks: ['https://www.instagram.com/org_test/'],
+      lifeStories: [
+        'https://nacuia.org/pt_br/reportagem-teste/',
+        'https://www.instagram.com/p/ABC123/',
+      ],
+    }
+    renderPanel(withProfile, () => {})
+    const profile = document.querySelector('.panel-profile')!
+    expect(profile).not.toBeNull()
+    expect(profile.querySelector('.panel-bio')!.textContent).toBe('Bio curta do coletivo.')
+    const links = Array.from(profile.querySelectorAll('a'))
+    expect(links).toHaveLength(3)
+    expect(links[0]!.textContent).toContain('@org_test')
+    expect(links[0]!.getAttribute('target')).toBe('_blank')
+    expect(links[0]!.getAttribute('rel')).toBe('noopener noreferrer')
+    expect(links[1]!.textContent).toContain('Reportagem')
+    expect(links[2]!.textContent).toContain('Publicação no Instagram')
+    // accessible names mention the collective and the new-tab notice
+    expect(links[0]!.getAttribute('aria-label')).toContain('NA CUIA (BELÉM)')
+    expect(links[0]!.getAttribute('aria-label')).toContain('abre em nova aba')
+  })
+
+  it('omits the profile block entirely when the project has no profile data', () => {
+    renderPanel(fullProject, () => {})
+    expect(document.querySelector('.panel-profile')).toBeNull()
+  })
+
+  it('renders only the parts that exist (bio-only project)', () => {
+    renderPanel({ ...fullProject, miniBio: 'Só bio.' }, () => {})
+    expect(document.querySelector('.panel-bio')!.textContent).toBe('Só bio.')
+    expect(document.querySelector('.panel-link-group')).toBeNull()
+  })
+
   it('wave overlay renders inside the frame, aria-hidden, and unmounts on close', () => {
     const { rerender } = renderPanel(fullProject, () => {}, false)
     const overlay = document.querySelector('.panel-frame > .panel-waves-overlay')

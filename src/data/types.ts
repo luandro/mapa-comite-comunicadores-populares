@@ -13,6 +13,12 @@ export interface Project {
   name: string
   icon?: string
   pos?: ProjectPos
+  /** Sheet column MiniBio — short free-text presentation (v1.12). */
+  miniBio?: string
+  /** Sheet column Redes Sociais — http(s) profile URLs. */
+  socialLinks?: string[]
+  /** Sheet column Histórias de vida — http(s) article/post URLs. */
+  lifeStories?: string[]
   conflitos: string[]
   acao: string[]
   identificacao_e_territorio: string[]

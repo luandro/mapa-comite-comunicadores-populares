@@ -10,8 +10,19 @@
 import { SECTION_KEYS } from '../src/data/types'
 import { UI_LABEL_KEYS } from '../src/data/ui'
 
-/** Human column headers, in order, for the `Coletivos` tab. */
-export const COLETIVOS_HEADERS = ['id', 'mapa', 'nome', 'icone', ...SECTION_KEYS] as const
+/** Required human column headers, in order, for the `Coletivos` tab. */
+export const COLETIVOS_REQUIRED_HEADERS = ['id', 'mapa', 'nome', 'icone', ...SECTION_KEYS] as const
+
+/** Columns appended in v1.12 — OPTIONAL: sheets that predate them still
+ * import, and their absence preserves the committed data.json values. */
+export const COLETIVOS_OPTIONAL_HEADERS = ['Redes Sociais', 'MiniBio', 'Histórias de vida'] as const
+
+/** Full header contract used by export + header validation (order matters
+ * only for export). */
+export const COLETIVOS_HEADERS = [
+  ...COLETIVOS_REQUIRED_HEADERS,
+  ...COLETIVOS_OPTIONAL_HEADERS,
+] as const
 
 /** Human column headers for the `Textos do site` tab. */
 export const TEXTOS_HEADERS = ['chave', 'onde aparece', 'valor'] as const
@@ -195,10 +206,66 @@ export const TEXTOS_ROWS: TextosRow[] = [
   },
   {
     key: 'rotulo.legenda',
-    onde: 'Título da caixa de legenda no painel (desktop)',
+    onde: 'Título da caixa de legenda no mapa (desktop)',
     get: (u) => u.labels.legendTitle ?? '',
     set: (u, v) => {
       u.labels.legendTitle = v
+    },
+  },
+  {
+    key: 'rotulo.coletivo.redes',
+    onde: 'Título do grupo "Redes sociais" no painel do coletivo',
+    get: (u) => u.labels.socialLinks ?? '',
+    set: (u, v) => {
+      u.labels.socialLinks = v
+    },
+  },
+  {
+    key: 'rotulo.coletivo.historias',
+    onde: 'Título do grupo "Histórias de vida" no painel do coletivo',
+    get: (u) => u.labels.lifeStories ?? '',
+    set: (u, v) => {
+      u.labels.lifeStories = v
+    },
+  },
+  {
+    key: 'rotulo.link.instagram',
+    onde: 'Rótulo de link para o Instagram',
+    get: (u) => u.labels.instagram ?? '',
+    set: (u, v) => {
+      u.labels.instagram = v
+    },
+  },
+  {
+    key: 'rotulo.link.site',
+    onde: 'Rótulo de link para outro site',
+    get: (u) => u.labels.website ?? '',
+    set: (u, v) => {
+      u.labels.website = v
+    },
+  },
+  {
+    key: 'rotulo.link.publicacao',
+    onde: 'Rótulo de link para publicação no Instagram',
+    get: (u) => u.labels.instagramPost ?? '',
+    set: (u, v) => {
+      u.labels.instagramPost = v
+    },
+  },
+  {
+    key: 'rotulo.link.reportagem',
+    onde: 'Rótulo de link para reportagem no site do Na Cuia',
+    get: (u) => u.labels.article ?? '',
+    set: (u, v) => {
+      u.labels.article = v
+    },
+  },
+  {
+    key: 'rotulo.link.nova.aba',
+    onde: 'Aviso de acessibilidade: o link abre em nova aba',
+    get: (u) => u.labels.newTab ?? '',
+    set: (u, v) => {
+      u.labels.newTab = v
     },
   },
   {
@@ -213,6 +280,24 @@ export const TEXTOS_ROWS: TextosRow[] = [
 
 /** Every Textos key (contract — the sheet must carry exactly these). */
 export const TEXTOS_KEYS = TEXTOS_ROWS.map((row) => row.key)
+
+/**
+ * Keys a sheet may omit without failing the import (v1.12): labels added by
+ * newer site versions, where an older shared sheet simply doesn't know them
+ * yet. Missing → the committed ui.json value is kept; a present-but-blank or
+ * duplicated value still fails like any other key (the `where` text still
+ * documents the row). Everything not listed here stays strictly required.
+ */
+export const TEXTOS_OPTIONAL_KEYS: readonly string[] = [
+  'rotulo.legenda',
+  'rotulo.coletivo.redes',
+  'rotulo.coletivo.historias',
+  'rotulo.link.instagram',
+  'rotulo.link.site',
+  'rotulo.link.publicacao',
+  'rotulo.link.reportagem',
+  'rotulo.link.nova.aba',
+]
 
 /** Strip BOM + NFC + NBSP normalization for one raw CSV cell. */
 export function cleanCell(value: string): string {

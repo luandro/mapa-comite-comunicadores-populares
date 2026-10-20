@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot, type Root } from 'react-dom/client'
 import { act } from 'react'
 import { TitleOverlay } from './App'
+import { ui } from './data/ui'
 import * as device from './device'
 
 let host: HTMLElement
@@ -164,7 +165,7 @@ describe('TitleOverlay (issue #10 - mobile behavior)', () => {
     const menu = document.querySelector('.app-menu')
     expect(menu).not.toBeNull()
     expect(document.getElementById('app-menu-title')).not.toBeNull()
-    expect(menu!.textContent).toContain('coletivos')
+    expect(menu!.textContent).toContain(ui.about.slice(0, 40))
     // close via x
     const close = document.querySelector('.app-menu-close') as HTMLElement
     act(() => {
