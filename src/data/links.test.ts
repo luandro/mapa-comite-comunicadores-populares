@@ -13,6 +13,10 @@ describe('normalizeHttpUrl', () => {
     expect(normalizeHttpUrl('  https://nacuia.org/pt_br/x/  ')).toBe('https://nacuia.org/pt_br/x/')
   })
 
+  it('percent-encodes a literal pipe so export/import round-trips losslessly', () => {
+    expect(normalizeHttpUrl('https://example.com/a|b')).toBe('https://example.com/a%7Cb')
+  })
+
   it('rejects non-http schemes, bare domains and credentials', () => {
     expect(normalizeHttpUrl('ftp://example.com/file')).toBeNull()
     expect(normalizeHttpUrl('javascript:alert(1)')).toBeNull()

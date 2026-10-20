@@ -222,6 +222,13 @@ describe('validateComiteData — v1.12 profile fields', () => {
     )
   })
 
+  it('normalizes a raw pipe in stored links (export separator safety)', () => {
+    const data = validateComiteData(
+      dataWith({ ...baseProject(), lifeStories: ['https://example.com/a|b'] }),
+    )
+    expect(data.maps.belem.projects.test_org!.lifeStories).toEqual(['https://example.com/a%7Cb'])
+  })
+
   it('throws on a non-http link', () => {
     expect(() =>
       validateComiteData(dataWith({ ...baseProject(), socialLinks: ['javascript:alert(1)'] })),

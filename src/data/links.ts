@@ -21,7 +21,10 @@ export function normalizeHttpUrl(value: string): string | null {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
   if (!url.hostname.includes('.')) return null
   if (url.username || url.password) return null
-  return url.href
+  // v1.12 (Sol review P2): `|` is the sheet's multi-URL separator. A raw
+  // pipe inside a URL would silently split on export→import, so canonicalize
+  // it to its percent-encoding — round-trips are then lossless.
+  return url.href.replace(/\|/g, '%7C')
 }
 
 /** Split a sheet cell holding one-or-more pipe/newline separated URLs.

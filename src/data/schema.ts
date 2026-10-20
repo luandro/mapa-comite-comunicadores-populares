@@ -144,12 +144,15 @@ function validateProject(path: string, value: unknown): Project {
     const raw = value[field]
     if (raw === undefined) continue
     const list = validateStringArray(`${path}.${field}`, raw)
+    const normalized: string[] = []
     list.forEach((link, i) => {
-      if (normalizeHttpUrl(link) === null) {
+      const url = normalizeHttpUrl(link)
+      if (url === null) {
         fail(`${path}.${field}[${i}]`, `not an absolute http(s) URL: "${link}"`)
       }
+      normalized.push(url)
     })
-    if (list.length > 0) project[field] = list
+    if (normalized.length > 0) project[field] = normalized
   }
   return project
 }
