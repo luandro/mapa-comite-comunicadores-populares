@@ -84,7 +84,11 @@ check(
 // City tap FILTERS orgs not in the city: non-Belem orgs fade out + drop
 // pointer-events. Undo it before the artifact step with an empty tap (the
 // documented reset path) so the panel step sees the full scene again.
-await page.mouse.click(40, 860) // bottom-left water corner = tap-empty
+// (40,860) stopped working when the map legend landed there (PR #39) — a
+// tap on the legend is not a map tap, and (1560,860) is off-scene under
+// the slice fit (water ends ~x<1500), where taps don't reset either.
+// Bottom-center water (800,870) is provably scene + empty on 1600×900.
+await page.mouse.click(800, 870) // tap-empty reset
 await page.waitForTimeout(700)
 
 // Arrows never intercept taps (opus r2): each Belém `pos.from` hub point sits
