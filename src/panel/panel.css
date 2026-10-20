@@ -304,6 +304,129 @@
   overflow-wrap: anywhere;
 }
 
+/* ── v1.12 project profile: bio + social/story links ─────────────────────
+   Sits at the TOP of the panel body, before the thematic grid. Width and
+   left padding match the shared grid's text rail (600px block, icon 52 +
+   gap 20 = 72px), so the bio's left edge lines up with every section's
+   text. Sol plan: 44px-tall link rows for touch, brown ink glyphs, dashed
+   separator before the sections. */
+.panel-profile {
+  box-sizing: border-box;
+  width: min(600px, 100%);
+  margin: 0 auto 18px;
+  padding-left: 72px;
+  text-align: left; /* the card inherits center — profile aligns with the text rail */
+}
+
+.panel-profile .panel-link-list {
+  justify-items: start;
+}
+
+/* only draw the separator when thematic sections follow (links-only orgs
+   end the panel with the profile) */
+.panel-profile + .panel-columns {
+  border-top: 1px dashed rgba(90, 70, 50, 0.2);
+  padding-top: 18px;
+}
+
+.panel-bio {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #304e23;
+  overflow-wrap: anywhere;
+}
+
+.panel-link-group {
+  margin-top: 16px;
+}
+
+.panel-link-heading {
+  margin: 0 0 8px;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #5a4632;
+}
+
+.panel-link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  row-gap: 8px;
+}
+
+.panel-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: 8px 5px 9px 4px; /* organic, like the close button */
+  color: #304e23;
+  font-family: Archivo, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.35;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.panel-link:hover {
+  text-decoration-thickness: 2px;
+}
+
+.panel-link:focus-visible {
+  outline: 3px solid #304e23;
+  outline-offset: 3px;
+  border-radius: 8px 5px 9px 4px;
+}
+
+.panel-link-glyph {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: #5a4632; /* the brown ink */
+}
+
+.panel-link-label {
+  min-width: 0;
+}
+
+.panel-link-external {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: #5a4632;
+  opacity: 0.9;
+}
+
+/* Mobile (approved centered layout): profile text centers; each link's
+   glyph stacks above the label (5px), the external arrow stays beside it. */
+.panel-mobile .panel-profile {
+  padding-left: 0;
+  text-align: center;
+}
+
+.panel-mobile .panel-link-list {
+  justify-items: center;
+}
+
+.panel-mobile .panel-link {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px 6px;
+  text-align: center;
+}
+
+.panel-mobile .panel-link-glyph {
+  flex-basis: 100%;
+  margin: 0 auto;
+}
+
 /* Screen-reader-only utility (desktop v1.7: the map legend carries the
    section names visually; the panel's h3s stay in the DOM for heading
    navigation). Mobile renders the labels visibly (v1.5, approved). */

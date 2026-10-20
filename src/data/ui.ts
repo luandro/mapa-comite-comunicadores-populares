@@ -38,4 +38,11 @@ export const UI_LABEL_KEYS = [
   'closeMenu',
   'closePanel',
   'legendTitle',
+  'socialLinks',
+  'lifeStories',
+  'instagram',
+  'website',
+  'instagramPost',
+  'article',
+  'newTab',
 ] as const

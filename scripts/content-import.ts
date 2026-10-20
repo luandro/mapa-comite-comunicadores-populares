@@ -13,10 +13,12 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
-  COLETIVOS_HEADERS,
+  COLETIVOS_OPTIONAL_HEADERS,
+  COLETIVOS_REQUIRED_HEADERS,
   SECTION_HEADER_PT,
   TEXTOS_HEADERS,
   TEXTOS_KEYS,
+  TEXTOS_OPTIONAL_KEYS,
   TEXTOS_ROWS,
   type UiModel,
   foldHeader,
@@ -24,6 +26,7 @@ import {
   parseCsv,
   splitItems,
 } from './content-core'
+import { parseUrlCell } from '../src/data/links'
 import { validateComiteData } from '../src/data/schema'
 import type { ComiteData, Project } from '../src/data/types'
 
@@ -97,7 +100,7 @@ function isHeaderRow(row: string[], expected: readonly string[]): boolean {
 
 function detectTab(rows: string[][]): 'coletivos' | 'textos' | null {
   for (const row of rows.slice(0, 3)) {
-    if (isHeaderRow(row, COLETIVOS_HEADERS)) return 'coletivos'
+    if (isHeaderRow(row, COLETIVOS_REQUIRED_HEADERS)) return 'coletivos'
     if (isHeaderRow(row, TEXTOS_HEADERS)) return 'textos'
   }
   return null
@@ -114,7 +117,7 @@ export function partitionRows(rows: string[][]): { coletivos: string[][]; textos
   const textos: string[][] = []
   let current: 'coletivos' | 'textos' | null = null
   for (const row of rows) {
-    if (isHeaderRow(row, COLETIVOS_HEADERS)) {
+    if (isHeaderRow(row, COLETIVOS_REQUIRED_HEADERS)) {
       current = 'coletivos'
       if (coletivos.length === 0) coletivos.push(row)
       continue
@@ -163,6 +166,10 @@ interface ColetivosRow {
   nome: string
   icone: string
   sections: Record<string, string[]>
+  /** undefined = column absent (preserve); null = present-but-blank (delete). */
+  miniBio?: string | null
+  socialLinks?: string[] | null
+  lifeStories?: string[] | null
 }
 
 function parseColetivos(rows: string[][]): ColetivosRow[] {
@@ -171,10 +178,16 @@ function parseColetivos(rows: string[][]): ColetivosRow[] {
     fail(`${tab}!1`, 'Arquivo vazio')
     return []
   }
-  const index = headerMap(rows[0], COLETIVOS_HEADERS, tab)
+  const index = headerMap(rows[0], COLETIVOS_REQUIRED_HEADERS, tab)
   const col = (row: string[], name: string): string => {
     const at = index.get(foldHeader(name))
     return at === undefined ? '' : (row[at] ?? '').trim()
+  }
+  /** Optional column lookup: undefined = the sheet has no such column. */
+  const optionalCol = (row: string[], name: string): string | undefined => {
+    const at = index.get(foldHeader(name))
+    if (at === undefined) return undefined
+    return (row[at] ?? '').trim()
   }
   const parsed: ColetivosRow[] = []
   rows.slice(1).forEach((row, rowAt) => {
@@ -209,7 +222,41 @@ function parseColetivos(rows: string[][]): ColetivosRow[] {
       }
       sections[key] = splitItems(raw)
     }
-    parsed.push({ id, mapa, nome, icone, sections })
+    // v1.12 optional profile columns. Absent column → undefined (preserve the
+    // committed data); present-but-blank → null (the sheet is the source of
+    // truth and the editor cleared it).
+    const profile: Pick<ColetivosRow, 'miniBio' | 'socialLinks' | 'lifeStories'> = {}
+    const bioRaw = optionalCol(row, COLETIVOS_OPTIONAL_HEADERS[1])
+    if (bioRaw !== undefined) {
+      if (isFormulaError(bioRaw)) {
+        fail(`${tab}!MiniBio${rowAt + 2}`, `"${id}": célula com erro de fórmula`)
+      }
+      profile.miniBio = bioRaw === '' ? null : bioRaw
+    }
+    for (const [header, field] of [
+      [COLETIVOS_OPTIONAL_HEADERS[0], 'socialLinks'],
+      [COLETIVOS_OPTIONAL_HEADERS[2], 'lifeStories'],
+    ] as const) {
+      const raw = optionalCol(row, header)
+      if (raw === undefined) continue
+      if (isFormulaError(raw)) {
+        fail(`${tab}!${header}${rowAt + 2}`, `"${id}": célula com erro de fórmula`)
+        continue
+      }
+      if (raw === '') {
+        profile[field] = null
+        continue
+      }
+      const { urls, invalid } = parseUrlCell(raw)
+      if (invalid.length > 0) {
+        fail(
+          `${tab}!${header}${rowAt + 2}`,
+          `"${id}": link inválido "${invalid[0]}" (use https://…)`,
+        )
+      }
+      profile[field] = urls
+    }
+    parsed.push({ id, mapa, nome, icone, sections, ...profile })
   })
   const seen = new Set<string>()
   for (const row of parsed) {
@@ -259,6 +306,7 @@ function parseTextos(rows: string[][]): Map<string, string> {
     values.set(key, value)
   })
   for (const key of TEXTOS_KEYS) {
+    if (TEXTOS_OPTIONAL_KEYS.includes(key)) continue // old sheets may omit it
     if (!values.has(key)) fail(`${tab}`, `chave obrigatória ausente: "${key}"`)
   }
   return values
@@ -319,6 +367,9 @@ function buildData(base: ComiteData, rows: ColetivosRow[]): ComiteData {
         memoria: row.sections.memoria ?? [],
         identidade: row.sections.identidade ?? [],
       }
+      if (row.miniBio) fresh.miniBio = row.miniBio
+      if (row.socialLinks && row.socialLinks.length > 0) fresh.socialLinks = row.socialLinks
+      if (row.lifeStories && row.lifeStories.length > 0) fresh.lifeStories = row.lifeStories
       change(`+ coletivo novo "${row.id}" em ${row.mapa} (calibrar pos/ícone depois)`)
       map.projects[row.id] = fresh
       continue
@@ -338,6 +389,29 @@ function buildData(base: ComiteData, rows: ColetivosRow[]): ComiteData {
       if (before !== JSON.stringify(next)) {
         change(`${row.id}.${key}: ${next.length} item(ns)`)
         ;(existing as unknown as Record<string, string[]>)[key] = next
+      }
+    }
+    // v1.12 profile fields: undefined = keep, null = cleared in the sheet.
+    if (row.miniBio !== undefined) {
+      if (row.miniBio === null) {
+        if (existing.miniBio !== undefined) {
+          change(`${row.id}.miniBio: removida`)
+          delete existing.miniBio
+        }
+      } else if (existing.miniBio !== row.miniBio) {
+        change(`${row.id}.miniBio: atualizada`)
+        existing.miniBio = row.miniBio
+      }
+    }
+    for (const field of ['socialLinks', 'lifeStories'] as const) {
+      const next = row[field]
+      if (next === undefined) continue
+      const before = JSON.stringify(existing[field] ?? null)
+      const after = next === null || next.length === 0 ? null : next
+      if (before !== JSON.stringify(after)) {
+        change(`${row.id}.${field}: ${after?.length ?? 0} link(s)`)
+        if (after === null) delete existing[field]
+        else existing[field] = after
       }
     }
   }

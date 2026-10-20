@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   COLETIVOS_HEADERS,
+  COLETIVOS_REQUIRED_HEADERS,
   SECTION_HEADER_PT,
   TEXTOS_HEADERS,
   TEXTOS_KEYS,
+  TEXTOS_OPTIONAL_KEYS,
   assertNoNewlineItems,
   cleanCell,
   foldHeader,
@@ -54,7 +56,7 @@ describe('toCsv ↔ parseCsv round-trip', () => {
 
   it('produces the canonical header signatures', () => {
     expect(toCsv(COLETIVOS_HEADERS, []).split('\r\n')[0]).toBe(
-      'id,mapa,nome,icone,conflitos,acao,identificacao_e_territorio,futuro,memoria,identidade',
+      'id,mapa,nome,icone,conflitos,acao,identificacao_e_territorio,futuro,memoria,identidade,Redes Sociais,MiniBio,Histórias de vida',
     )
     expect(toCsv(TEXTOS_HEADERS, []).split('\r\n')[0]).toBe('chave,onde aparece,valor')
   })
@@ -194,5 +196,23 @@ describe('partitionRows (Opus gate-2 blocker: blank/helper columns)', () => {
     expect(textos).toHaveLength(3)
     expect(coletivos[1][2]).toBe('ORG Y')
     expect(textos[1][2]).toBe('texto aqui')
+  })
+})
+
+describe('v1.12 optional contract', () => {
+  it('detection uses the required headers, so older sheets still import', () => {
+    expect([...COLETIVOS_REQUIRED_HEADERS]).not.toContain('MiniBio')
+    expect([...COLETIVOS_REQUIRED_HEADERS]).not.toContain('Redes Sociais')
+    const oldHeader = [...COLETIVOS_REQUIRED_HEADERS]
+    const rows = parseCsv([oldHeader.join(','), 'x,belem,NOME,icone-6,,,,,,'].join('\n'))
+    const parsed = partitionRows(rows)
+    expect(parsed.coletivos.length).toBe(2)
+  })
+
+  it('keeps the legend label optional but every other Textos key required', () => {
+    expect(TEXTOS_OPTIONAL_KEYS).toContain('rotulo.legenda')
+    expect(TEXTOS_OPTIONAL_KEYS).toContain('rotulo.coletivo.redes')
+    expect(TEXTOS_OPTIONAL_KEYS).not.toContain('sobre.texto')
+    expect(TEXTOS_KEYS).toEqual(expect.arrayContaining([...TEXTOS_OPTIONAL_KEYS]))
   })
 })

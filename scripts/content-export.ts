@@ -34,6 +34,9 @@ for (const [mapId, map] of Object.entries(data.maps)) {
       ...Object.keys(SECTION_HEADER_PT).map((key) =>
         (project as unknown as Record<string, string[]>)[key].join('\n'),
       ),
+      (project.socialLinks ?? []).join(' | '),
+      project.miniBio ?? '',
+      (project.lifeStories ?? []).join(' | '),
     ])
   }
 }
