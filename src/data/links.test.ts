@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeHttpUrl, parseUrlCell } from './links'
+import { normalizeHttpUrl, normalizeUrlList, parseUrlCell } from './links'
 
 describe('normalizeHttpUrl', () => {
   it('accepts absolute http(s) URLs and preserves query/fragment', () => {
@@ -24,6 +24,19 @@ describe('normalizeHttpUrl', () => {
     expect(normalizeHttpUrl('https://user:pass@example.com/')).toBeNull()
     expect(normalizeHttpUrl('https://exa mple.com/')).toBeNull()
     expect(normalizeHttpUrl('')).toBeNull()
+  })
+})
+
+describe('normalizeUrlList (export boundary)', () => {
+  it('canonicalizes stored links so export cells round-trip', () => {
+    expect(normalizeUrlList(['https://example.com/a|b', 'https://nacuia.org/x/'])).toEqual([
+      'https://example.com/a%7Cb',
+      'https://nacuia.org/x/',
+    ])
+  })
+
+  it('refuses to serialize an invalid stored URL', () => {
+    expect(() => normalizeUrlList(['not-a-url'])).toThrow('Invalid URL')
   })
 })
 

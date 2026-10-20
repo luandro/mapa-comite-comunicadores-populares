@@ -16,6 +16,7 @@ import {
   toCsv,
 } from './content-core'
 import type { ComiteData } from '../src/data/types'
+import { normalizeUrlList } from '../src/data/links'
 
 const root = new URL('..', import.meta.url).pathname
 const outDir = resolve(root, 'content')
@@ -34,9 +35,9 @@ for (const [mapId, map] of Object.entries(data.maps)) {
       ...Object.keys(SECTION_HEADER_PT).map((key) =>
         (project as unknown as Record<string, string[]>)[key].join('\n'),
       ),
-      (project.socialLinks ?? []).join(' | '),
+      normalizeUrlList(project.socialLinks ?? []).join(' | '),
       project.miniBio ?? '',
-      (project.lifeStories ?? []).join(' | '),
+      normalizeUrlList(project.lifeStories ?? []).join(' | '),
     ])
   }
 }

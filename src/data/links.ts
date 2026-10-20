@@ -27,6 +27,18 @@ export function normalizeHttpUrl(value: string): string | null {
   return url.href.replace(/\|/g, '%7C')
 }
 
+/** Canonicalize a stored URL list for serialization. Throws on an invalid
+ * entry — export must never write a cell the importer would reject. */
+export function normalizeUrlList(urls: string[]): string[] {
+  return urls.map((url) => {
+    const normalized = normalizeHttpUrl(url)
+    if (normalized === null) {
+      throw new Error(`Invalid URL in content (expected absolute http(s)): "${url}"`)
+    }
+    return normalized
+  })
+}
+
 /** Split a sheet cell holding one-or-more pipe/newline separated URLs.
  * Returns the normalized list plus the raw tokens that failed validation. */
 export function parseUrlCell(raw: string): { urls: string[]; invalid: string[] } {
